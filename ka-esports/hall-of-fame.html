@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hall of Fame – KA ESPORTS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">KA ESPORTS</div>
+      <h1>Hall of Fame</h1>
+      <p>All‑time records and achievements.</p>
+    </header>
+    <div class="grid">
+      <div id="sidebar-container"></div>
+      <main class="content">
+        <section class="panel">
+          <div class="section-heading">Records</div>
+          <div id="records-content">
+            <p>Loading…</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="../js/api-loader.js"></script>
+  <script>
+    async function loadRecords() {
+      try {
+        const players = await fetchSheetData('PLAYERS');
+        const header = players[0].map(h => (h||'').toString().trim());
+        const nameIdx = header.indexOf('Name');
+        const ratingIdx = header.indexOf('Rating');
+        const matchesIdx = header.indexOf('Matches');
+        const winsIdx = header.indexOf('Wins');
+        const data = players.slice(1).filter(r => r[nameIdx]);
+
+        const sortedByRating = [...data].sort((a,b) => parseFloat(b[ratingIdx]) - parseFloat(a[ratingIdx]))[0];
+        const sortedByMatches = [...data].sort((a,b) => parseInt(b[matchesIdx]) - parseInt(a[matchesIdx]))[0];
+        const sortedByWins = [...data].sort((a,b) => parseInt(b[winsIdx]) - parseInt(a[winsIdx]))[0];
+
+        let html = '';
+        if (sortedByRating) html += `<div class="stat-card"><h3>🏅 Highest Rating Ever</h3><div class="value">${sortedByRating[nameIdx]} (${parseFloat(sortedByRating[ratingIdx]).toFixed(2)})</div></div>`;
+        if (sortedByMatches) html += `<div class="stat-card"><h3>🎮 Most Matches Played</h3><div class="value">${sortedByMatches[nameIdx]} (${sortedByMatches[matchesIdx]} matches)</div></div>`;
+        if (sortedByWins) html += `<div class="stat-card"><h3>👑 Most Wins</h3><div class="value">${sortedByWins[nameIdx]} (${sortedByWins[winsIdx]} wins)</div></div>`;
+        document.getElementById('records-content').innerHTML = html || '<p>No records found.</p>';
+      } catch (e) {
+        document.getElementById('records-content').innerHTML = `<p>Error: ${e.message}</p>`;
+      }
+    }
+    document.addEventListener('DOMContentLoaded', loadRecords);
+  </script>
+  <script>
+    fetch("../sidebar.html").then(r => r.text()).then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
