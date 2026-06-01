@@ -5,21 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hall of Fame – KA ESPORTS</title>
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .record-card { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+    .record-icon { font-size: 2.5rem; }
+    .record-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin: 8px 0 4px; }
+    .record-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+    .record-player { font-size: 1.1rem; color: var(--text); margin-top: 4px; }
+    .mode-switch { display: flex; gap: 8px; margin-bottom: 16px; }
+    .mode-btn { padding: 8px 16px; border: 2px solid var(--border); background: var(--surface); border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  </style>
 </head>
 <body>
   <div class="wrap">
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Hall of Fame</h1>
-      <p>All‑time records and achievements.</p>
+      <p>All‑time legends and monthly champions. Choose your view.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
       <main class="content">
         <section class="panel">
-          <div class="section-heading">Records</div>
-          <div id="records-content">
-            <p>Loading…</p>
+          <div class="mode-switch" id="mode-switch">
+            <button class="mode-btn active" data-mode="alltime">🏆 All‑Time</button>
+            <button class="mode-btn" data-mode="monthly">📅 Monthly</button>
+          </div>
+
+          <div id="month-selector" style="display:none; margin-bottom:16px;">
+            <label for="hof-month-select">Season:</label>
+            <select id="hof-month-select" style="margin-left:10px; padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+              <option value="">-- Choose a month --</option>
+            </select>
+          </div>
+
+          <div class="records-grid" id="records-container">
+            <p>Loading records…</p>
           </div>
         </section>
       </main>
@@ -27,7 +49,30 @@
   </div>
   <script src="../js/api-loader.js"></script>
   <script>
-    async function loadRecords() {
+    let currentMode = 'alltime';
+
+    function getLastCompletedMonth(months) {
+      const now = new Date();
+      const currentKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const completed = months.filter(m => m < currentKey).sort().reverse();
+      return completed.length > 0 ? completed[0] : null;
+    }
+
+    function buildRecordCard(icon, title, player, value) {
+      return `
+        <div class="record-card">
+          <div class="record-icon">${icon}</div>
+          <div class="record-title">${title}</div>
+          <div class="record-value">${value}</div>
+          <div class="record-player">${player}</div>
+        </div>
+      `;
+    }
+
+    async function loadAllTimeRecords() {
+      const container = document.getElementById('records-container');
+      container.innerHTML = '<p>Loading all‑time records…</p>';
+
       try {
         const players = await fetchSheetData('PLAYERS');
         const header = players[0].map(h => (h||'').toString().trim());
@@ -37,20 +82,124 @@
         const winsIdx = header.indexOf('Wins');
         const data = players.slice(1).filter(r => r[nameIdx]);
 
-        const sortedByRating = [...data].sort((a,b) => parseFloat(b[ratingIdx]) - parseFloat(a[ratingIdx]))[0];
-        const sortedByMatches = [...data].sort((a,b) => parseInt(b[matchesIdx]) - parseInt(a[matchesIdx]))[0];
-        const sortedByWins = [...data].sort((a,b) => parseInt(b[winsIdx]) - parseInt(a[winsIdx]))[0];
+        // Highest rating ever
+        const topRating = [...data].sort((a,b) => parseFloat(b[ratingIdx]) - parseFloat(a[ratingIdx]))[0];
+        // Most matches
+        const topMatches = [...data].sort((a,b) => parseInt(b[matchesIdx]) - parseInt(a[matchesIdx]))[0];
+        // Most wins
+        const topWins = [...data].sort((a,b) => parseInt(b[winsIdx]) - parseInt(a[winsIdx]))[0];
+        // Highest win rate (min 10 matches)
+        const highWR = data.filter(r => parseInt(r[matchesIdx]) >= 10)
+          .sort((a,b) => (parseInt(b[winsIdx])/parseInt(b[matchesIdx])) - (parseInt(a[winsIdx])/parseInt(a[matchesIdx])))[0];
 
         let html = '';
-        if (sortedByRating) html += `<div class="stat-card"><h3>🏅 Highest Rating Ever</h3><div class="value">${sortedByRating[nameIdx]} (${parseFloat(sortedByRating[ratingIdx]).toFixed(2)})</div></div>`;
-        if (sortedByMatches) html += `<div class="stat-card"><h3>🎮 Most Matches Played</h3><div class="value">${sortedByMatches[nameIdx]} (${sortedByMatches[matchesIdx]} matches)</div></div>`;
-        if (sortedByWins) html += `<div class="stat-card"><h3>👑 Most Wins</h3><div class="value">${sortedByWins[nameIdx]} (${sortedByWins[winsIdx]} wins)</div></div>`;
-        document.getElementById('records-content').innerHTML = html || '<p>No records found.</p>';
-      } catch (e) {
-        document.getElementById('records-content').innerHTML = `<p>Error: ${e.message}</p>`;
+        if (topRating) html += buildRecordCard('👑', 'Highest Rating Ever', topRating[nameIdx], parseFloat(topRating[ratingIdx]).toFixed(2));
+        if (topMatches) html += buildRecordCard('🎮', 'Most Matches Played', topMatches[nameIdx], topMatches[matchesIdx] + ' matches');
+        if (topWins) html += buildRecordCard('🏅', 'Most Wins', topWins[nameIdx], topWins[winsIdx] + ' wins');
+        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR[nameIdx], (parseInt(highWR[winsIdx])/parseInt(highWR[matchesIdx])*100).toFixed(1) + '%');
+        container.innerHTML = html || '<p>No records found.</p>';
+      } catch (err) {
+        container.innerHTML = `<p>Error: ${err.message}</p>`;
       }
     }
-    document.addEventListener('DOMContentLoaded', loadRecords);
+
+    async function loadMonthlyRecords(sheetName) {
+      const container = document.getElementById('records-container');
+      container.innerHTML = '<p>Loading monthly records…</p>';
+
+      try {
+        const data = await fetchSheetData(sheetName);
+        if (data.length < 4) {
+          container.innerHTML = '<p>No data for this month.</p>';
+          return;
+        }
+        const headers = data[2].map(h => (h||'').toString().trim());
+        const nameIdx = headers.indexOf('Player');
+        const ratingIdx = headers.indexOf('Rating');
+        const rdIdx = headers.indexOf('RD');
+        const matchesIdx = headers.indexOf('Matches');
+        const winsIdx = headers.indexOf('Wins');
+        const rows = data.slice(3).filter(r => r[nameIdx] && parseInt(r[matchesIdx]) > 0);
+        if (rows.length === 0) {
+          container.innerHTML = '<p>No players with matches this month.</p>';
+          return;
+        }
+
+        const players = rows.map(r => ({
+          name: r[nameIdx],
+          rating: parseFloat(r[ratingIdx]),
+          rd: parseFloat(r[rdIdx]),
+          matches: parseInt(r[matchesIdx]),
+          wins: parseInt(r[winsIdx])
+        }));
+
+        // Highest rating of the month
+        const topRating = players.reduce((a,b) => a.rating > b.rating ? a : b);
+        // Most matches played this month
+        const topMatches = players.reduce((a,b) => a.matches > b.matches ? a : b);
+        // Most wins this month
+        const topWins = players.reduce((a,b) => a.wins > b.wins ? a : b);
+        // Best win rate (min 3 matches)
+        const highWR = players.filter(p => p.matches >= 3)
+          .sort((a,b) => (b.wins/b.matches) - (a.wins/a.matches))[0];
+
+        let html = '';
+        html += buildRecordCard('👑', 'Highest Rating This Month', topRating.name, topRating.rating.toFixed(2));
+        html += buildRecordCard('🎮', 'Most Matches This Month', topMatches.name, topMatches.matches + ' matches');
+        html += buildRecordCard('🏅', 'Most Wins This Month', topWins.name, topWins.wins + ' wins');
+        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
+        container.innerHTML = html || '<p>Not enough data for records.</p>';
+      } catch (err) {
+        container.innerHTML = `<p>Error: ${err.message}</p>`;
+      }
+    }
+
+    async function switchMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+
+      const monthSelector = document.getElementById('month-selector');
+      const recordsContainer = document.getElementById('records-container');
+
+      if (mode === 'alltime') {
+        monthSelector.style.display = 'none';
+        loadAllTimeRecords();
+      } else {
+        monthSelector.style.display = 'block';
+        const allSheets = await fetchSheetList();
+        const leaderboardSheets = allSheets.filter(s => s.startsWith('LEADERBOARD_')).map(s => s.replace('LEADERBOARD_', ''));
+        const defaultSheet = getLastCompletedMonth(leaderboardSheets);
+        if (defaultSheet) {
+          document.getElementById('hof-month-select').value = `LEADERBOARD_${defaultSheet}`;
+          loadMonthlyRecords(`LEADERBOARD_${defaultSheet}`);
+        } else {
+          recordsContainer.innerHTML = '<p>No completed seasons found.</p>';
+        }
+      }
+    }
+
+    async function init() {
+      // Populate month selector for monthly mode
+      await populateMonthSelector('hof-month-select', 'LEADERBOARD_');
+
+      // Mode switch buttons
+      document.getElementById('mode-switch').addEventListener('click', e => {
+        if (e.target.classList.contains('mode-btn')) {
+          switchMode(e.target.dataset.mode);
+        }
+      });
+
+      // Month selector change
+      document.getElementById('hof-month-select').addEventListener('change', e => {
+        if (e.target.value) loadMonthlyRecords(e.target.value);
+      });
+
+      // Load all-time by default
+      loadAllTimeRecords();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
   </script>
   <script>
     fetch("../sidebar.html").then(r => r.text()).then(html => {
