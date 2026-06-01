@@ -24,7 +24,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Hall of Fame</h1>
-      <p>All‑time legends and monthly champions. Now with visual stats.</p>
+      <p>All‑time legends and monthly champions (ranked players only).</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -81,7 +81,7 @@
       if (currentChart) { currentChart.destroy(); currentChart = null; }
     }
 
-    // ---------- ALL-TIME RECORDS & CHART ----------
+    // ---------- ALL-TIME RECORDS & CHART (from Global Leaderboard, excluding Unranked) ----------
     async function loadAllTimeRecords() {
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
@@ -91,33 +91,55 @@
       destroyChart();
 
       try {
-        const players = await fetchSheetData('PLAYERS');
-        const header = players[0].map(h => (h||'').toString().trim());
-        const nameIdx = header.indexOf('Name');
-        const ratingIdx = header.indexOf('Rating');
-        const matchesIdx = header.indexOf('Matches');
-        const winsIdx = header.indexOf('Wins');
-        const data = players.slice(1).filter(r => r[nameIdx]);
+        const data = await fetchSheetData('LEADERBOARD_GLOBAL');
+        // Global leaderboard: row 0 title, row 1 subtitle, row 2 headers, data from row 3
+        if (data.length < 4) {
+          container.innerHTML = '<p>No data available.</p>';
+          return;
+        }
+        const headers = data[2].map(h => (h||'').toString().trim());
+        const nameIdx = headers.indexOf('Player');
+        const ratingIdx = headers.indexOf('Rating');
+        const rankIdx = headers.indexOf('Rank');
+        const matchesIdx = headers.indexOf('Matches');
+        const winsIdx = headers.indexOf('Wins');
+
+        const rows = data.slice(3).filter(r => {
+          const rank = (r[rankIdx] || '').toString().trim();
+          return r[nameIdx] && rank !== 'Unranked';
+        });
+
+        if (rows.length === 0) {
+          container.innerHTML = '<p>No ranked players found.</p>';
+          return;
+        }
+
+        const players = rows.map(r => ({
+          name: r[nameIdx],
+          rating: parseFloat(r[ratingIdx]),
+          matches: parseInt(r[matchesIdx]) || 0,
+          wins: parseInt(r[winsIdx]) || 0
+        }));
 
         // Records
-        const topRating = [...data].sort((a,b) => parseFloat(b[ratingIdx]) - parseFloat(a[ratingIdx]))[0];
-        const topMatches = [...data].sort((a,b) => parseInt(b[matchesIdx]) - parseInt(a[matchesIdx]))[0];
-        const topWins = [...data].sort((a,b) => parseInt(b[winsIdx]) - parseInt(a[winsIdx]))[0];
-        const highWR = data.filter(r => parseInt(r[matchesIdx]) >= 10)
-          .sort((a,b) => (parseInt(b[winsIdx])/parseInt(b[matchesIdx])) - (parseInt(a[winsIdx])/parseInt(a[matchesIdx])))[0];
+        const topRating = players.reduce((a,b) => a.rating > b.rating ? a : b);
+        const topMatches = players.reduce((a,b) => a.matches > b.matches ? a : b);
+        const topWins = players.reduce((a,b) => a.wins > b.wins ? a : b);
+        const highWR = players.filter(p => p.matches >= 10)
+          .sort((a,b) => (b.wins/b.matches) - (a.wins/a.matches))[0];
 
         let html = '';
-        if (topRating) html += buildRecordCard('👑', 'Highest Rating Ever', topRating[nameIdx], parseFloat(topRating[ratingIdx]).toFixed(2));
-        if (topMatches) html += buildRecordCard('🎮', 'Most Matches Played', topMatches[nameIdx], topMatches[matchesIdx] + ' matches');
-        if (topWins) html += buildRecordCard('🏅', 'Most Wins', topWins[nameIdx], topWins[winsIdx] + ' wins');
-        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR[nameIdx], (parseInt(highWR[winsIdx])/parseInt(highWR[matchesIdx])*100).toFixed(1) + '%');
-        container.innerHTML = html || '<p>No records found.</p>';
+        html += buildRecordCard('👑', 'Highest Rating Ever', topRating.name, topRating.rating.toFixed(2));
+        html += buildRecordCard('🎮', 'Most Matches Played', topMatches.name, topMatches.matches + ' matches');
+        html += buildRecordCard('🏅', 'Most Wins', topWins.name, topWins.wins + ' wins');
+        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
+        container.innerHTML = html || '<p>Not enough data.</p>';
 
         // Chart: Top 10 players by rating
-        const top10 = [...data].sort((a,b) => parseFloat(b[ratingIdx]) - parseFloat(a[ratingIdx])).slice(0,10);
+        const top10 = players.sort((a,b) => b.rating - a.rating).slice(0,10);
         if (top10.length > 0) {
-          const names = top10.map(r => r[nameIdx]);
-          const ratings = top10.map(r => parseFloat(r[ratingIdx]));
+          const names = top10.map(p => p.name);
+          const ratings = top10.map(p => p.rating);
           const ctx = document.getElementById('topChart').getContext('2d');
           currentChart = new Chart(ctx, {
             type: 'bar',
@@ -136,12 +158,10 @@
               scales: {
                 y: { beginAtZero: false, title: { display: true, text: 'Rating' } }
               },
-              plugins: {
-                legend: { display: false }
-              }
+              plugins: { legend: { display: false } }
             }
           });
-          chartCaption.textContent = 'Top 10 Players by Rating (All-Time)';
+          chartCaption.textContent = 'Top 10 Players by Rating (All-Time, Ranked Only)';
           chartSection.style.display = 'block';
         }
       } catch (err) {
@@ -149,7 +169,7 @@
       }
     }
 
-    // ---------- MONTHLY RECORDS & CHART ----------
+    // ---------- MONTHLY RECORDS & CHART (excluding Unranked) ----------
     async function loadMonthlyRecords(sheetName) {
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
@@ -167,19 +187,24 @@
         const headers = data[2].map(h => (h||'').toString().trim());
         const nameIdx = headers.indexOf('Player');
         const ratingIdx = headers.indexOf('Rating');
-        const rdIdx = headers.indexOf('RD');
+        const rankIdx = headers.indexOf('Rank');
         const matchesIdx = headers.indexOf('Matches');
         const winsIdx = headers.indexOf('Wins');
-        const rows = data.slice(3).filter(r => r[nameIdx] && parseInt(r[matchesIdx]) > 0);
+
+        // Filter out Unranked and players with zero matches
+        const rows = data.slice(3).filter(r => {
+          const rank = (r[rankIdx] || '').toString().trim();
+          return r[nameIdx] && parseInt(r[matchesIdx]) > 0 && rank !== 'Unranked';
+        });
+
         if (rows.length === 0) {
-          container.innerHTML = '<p>No players with matches this month.</p>';
+          container.innerHTML = '<p>No ranked players with matches this month.</p>';
           return;
         }
 
         const players = rows.map(r => ({
           name: r[nameIdx],
           rating: parseFloat(r[ratingIdx]),
-          rd: parseFloat(r[rdIdx]),
           matches: parseInt(r[matchesIdx]),
           wins: parseInt(r[winsIdx])
         }));
@@ -196,10 +221,10 @@
         html += buildRecordCard('🎮', 'Most Matches This Month', topMatches.name, topMatches.matches + ' matches');
         html += buildRecordCard('🏅', 'Most Wins This Month', topWins.name, topWins.wins + ' wins');
         if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
-        container.innerHTML = html || '<p>Not enough data for records.</p>';
+        container.innerHTML = html || '<p>Not enough data.</p>';
 
         // Chart: Top 5 players of the month by rating
-        const top5 = [...players].sort((a,b) => b.rating - a.rating).slice(0,5);
+        const top5 = players.sort((a,b) => b.rating - a.rating).slice(0,5);
         if (top5.length > 0) {
           const names = top5.map(p => p.name);
           const ratings = top5.map(p => p.rating);
@@ -221,12 +246,10 @@
               scales: {
                 y: { beginAtZero: false, title: { display: true, text: 'Rating' } }
               },
-              plugins: {
-                legend: { display: false }
-              }
+              plugins: { legend: { display: false } }
             }
           });
-          chartCaption.textContent = `Top 5 Players by Rating (${sheetName.replace('LEADERBOARD_','')})`;
+          chartCaption.textContent = `Top 5 Players by Rating (${sheetName.replace('LEADERBOARD_','')}, Ranked Only)`;
           chartSection.style.display = 'block';
         }
       } catch (err) {
