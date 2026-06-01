@@ -11,9 +11,9 @@
     .profile-header .rank-badge { font-size: 1.5rem; padding: 8px 16px; border-radius: 8px; color: #000; font-weight: bold; }
     .chart-container { max-width: 800px; margin: 0 auto 20px; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
-    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
-    .stat-card h3 { margin: 0 0 5px; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-card .value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 8px 0; }
+    .stat-card h3 { margin: 0 0 8px; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); }
+    .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
   </style>
 </head>
 <body>
@@ -21,7 +21,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Player Profile</h1>
-      <p>Select a player to view detailed statistics.</p>
+      <p>Select a player to view detailed statistics and rating evolution.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -43,7 +43,7 @@
 
   <script src="../js/api-loader.js"></script>
   <script>
-    // ========== Player Profile Logic ==========
+    // ========== Player Profile Logic (FIXED) ==========
     let chart = null;
 
     async function init() {
@@ -83,29 +83,50 @@
         const lastMatch = playerRow[lastMatchIdx] ? new Date(playerRow[lastMatchIdx]) : null;
         const rank = getRankFromRating(rating);
 
-        // 2. Get match history from MATCHES
+        // 2. Get match history from MATCHES sheet
         const matchesAll = await fetchSheetData('MATCHES');
-        const matchHeader = matchesAll[1].map(h => (h||'').toString().trim()); // skip 1 row (MATCHES has 1 title row)
+        // MATCHES structure: row 0 = title? Actually from HEADER_ROWS_TO_SKIP we skip 2 rows (title + real header)
+        // So data starts at row index 2. The real header is row index 1.
+        // We'll use row index 1 as header.
+        if (matchesAll.length < 2) { container.innerHTML = '<p>No match data available.</p>'; return; }
+        const matchHeader = matchesAll[1].map(h => (h||'').toString().trim()); // index 1 is real header
         const p1Idx = matchHeader.indexOf('Player 1');
-        const p4Idx = matchHeader.indexOf('Player 4');
         const dateIdx = matchHeader.indexOf('Date');
         const statusIdx = matchHeader.indexOf('Status');
         const newRating1Idx = matchHeader.indexOf('New Rating 1');
-        const newRating4Idx = matchHeader.indexOf('New Rating 4');
         
+        if (p1Idx === -1 || dateIdx === -1 || statusIdx === -1 || newRating1Idx === -1) {
+          container.innerHTML = '<p>Match data columns not found.</p>';
+          return;
+        }
+
         const playerMatches = [];
         for (let i = 2; i < matchesAll.length; i++) {
           const row = matchesAll[i];
-          if (row[statusIdx] !== 'PROCESSED') continue;
-          const playersInMatch = [row[p1Idx], row[p1Idx+1], row[p1Idx+2], row[p3Idx]].map(v => (v||'').toString().trim());
-          const pIdx = playersInMatch.indexOf(playerId);
+          if (!row || row[statusIdx] !== 'PROCESSED') continue;
+          
+          // Build array of player IDs in the match (columns Player 1 to Player 4)
+          const matchPlayerIds = [];
+          for (let j = 0; j < 4; j++) {
+            matchPlayerIds.push((row[p1Idx + j] || '').toString().trim());
+          }
+          
+          const pIdx = matchPlayerIds.indexOf(playerId);
           if (pIdx === -1) continue;
-          const date = new Date(row[dateIdx]);
+          
+          const dateVal = row[dateIdx];
+          if (!dateVal) continue;
+          const date = new Date(dateVal);
+          if (isNaN(date.getTime())) continue;
+          
           const newRating = parseFloat(row[newRating1Idx + pIdx]);
+          if (isNaN(newRating)) continue;
+          
           playerMatches.push({ date, rating: newRating });
         }
+        
         playerMatches.sort((a,b) => a.date - b.date);
-
+        
         // 3. Build profile HTML
         const lastMatchStr = lastMatch ? lastMatch.toISOString().split('T')[0] : 'Never';
         const winRate = totalMatches ? (totalWins / totalMatches * 100).toFixed(1) : 0;
@@ -124,42 +145,55 @@
             <div class="stat-card"><h3>Wins</h3><div class="value">${totalWins} (${winRate}%)</div></div>
             <div class="stat-card"><h3>Last Match</h3><div class="value" style="font-size:1rem">${lastMatchStr}</div></div>
           </div>
-          <div class="chart-container">
-            <canvas id="ratingChart"></canvas>
-          </div>
-          <p style="text-align:center; color:var(--text-muted)">Rating evolution (last 50 matches)</p>
+          ${playerMatches.length > 0 ? `
+            <div class="chart-container">
+              <canvas id="ratingChart"></canvas>
+              <p style="text-align:center; color:var(--text-muted)">Rating evolution (last 50 matches)</p>
+            </div>
+          ` : '<p>No processed matches found for this player.</p>'}
         `;
 
-        // 4. Draw chart
-        const ctx = document.getElementById('ratingChart').getContext('2d');
-        const last50 = playerMatches.slice(-50);
-        const labels = last50.map(m => m.date.toISOString().split('T')[0]);
-        const dataPoints = last50.map(m => m.rating);
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Rating',
-              data: dataPoints,
-              borderColor: 'rgb(75, 192, 192)',
-              tension: 0.1,
-              fill: false
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: { y: { beginAtZero: false } }
-          }
-        });
+        // 4. Draw chart if we have data
+        if (playerMatches.length > 0) {
+          const ctx = document.getElementById('ratingChart').getContext('2d');
+          const last50 = playerMatches.slice(-50);
+          const labels = last50.map(m => m.date.toISOString().split('T')[0]);
+          const dataPoints = last50.map(m => m.rating);
+          
+          if (chart) chart.destroy();
+          chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Rating',
+                data: dataPoints,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                fill: false
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: { 
+                y: { 
+                  beginAtZero: false,
+                  title: { display: true, text: 'Rating' }
+                },
+                x: {
+                  title: { display: true, text: 'Date' }
+                }
+              }
+            }
+          });
+        }
 
       } catch (err) {
+        console.error(err);
         container.innerHTML = `<p>Error loading profile: ${err.message}</p>`;
       }
     }
 
-    // Helper to get rank color hex (from our thresholds)
     function getRankColorHex(rank) {
       const map = {
         'Grand Master': '#f1c232',
