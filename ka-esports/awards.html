@@ -15,9 +15,6 @@
     .award-player { font-size: 1.4rem; font-weight: 800; color: var(--text); }
     .award-stat { font-size: 0.95rem; color: var(--text-muted); margin-top: 4px; }
     .chart-container { max-width: 900px; margin: 20px auto; }
-    .top5-table { margin-top: 20px; }
-    .top5-table th { background: var(--accent); color: #fff; }
-    .top5-table td { padding: 8px 12px; }
   </style>
 </head>
 <body>
@@ -38,21 +35,18 @@
             </select>
           </div>
 
-          <!-- Awards cards -->
           <div class="awards-grid" id="awards-cards"></div>
 
-          <!-- Top 5 table -->
           <div id="top5-section" style="display:none;">
             <h3 style="margin-top:20px;">Top 5 Players of the Month</h3>
             <div class="table-responsive">
-              <table class="data-table top5-table" id="top5-table">
+              <table class="data-table" id="top5-table">
                 <thead><tr><th>#</th><th>Player</th><th>Rating</th><th>Wins</th><th>Matches</th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
           </div>
 
-          <!-- Rating evolution chart for top 5 -->
           <div class="chart-container" id="chart-section" style="display:none;">
             <canvas id="evolutionChart"></canvas>
             <p style="text-align:center; color:var(--text-muted)">Rating evolution of the Top 5 players during this month</p>
@@ -65,7 +59,6 @@
   <script>
     let evolutionChart = null;
 
-    // ========== Helpers ==========
     function getLastCompletedMonth(availableMonths) {
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -75,7 +68,26 @@
       return completed.length > 0 ? completed[0] : null;
     }
 
-    // ========== Load awards for a given month ==========
+    function getPreviousMonthKey(sheetName) {
+      const parts = sheetName.split('_');
+      if (parts.length < 2) return null;
+      const [year, month] = parts[1].split('-').map(Number);
+      if (!year || !month) return null;
+      if (month === 1) return `${year-1}-12`;
+      return `${year}-${String(month-1).padStart(2,'0')}`;
+    }
+
+    function buildAwardCard(icon, title, player, stat) {
+      return `
+        <div class="award-card">
+          <div class="award-icon">${icon}</div>
+          <div class="award-title">${title}</div>
+          <div class="award-player">${player}</div>
+          <div class="award-stat">${stat}</div>
+        </div>
+      `;
+    }
+
     async function loadAwards(sheetName) {
       const cardsContainer = document.getElementById('awards-cards');
       const top5Section = document.getElementById('top5-section');
@@ -85,7 +97,6 @@
       chartSection.style.display = 'none';
 
       try {
-        // 1. Load monthly leaderboard
         const data = await fetchSheetData(sheetName);
         if (data.length < 4) {
           cardsContainer.innerHTML = '<p>No data for this month.</p>';
@@ -110,15 +121,15 @@
           wins: parseInt(r[winsIdx])
         }));
 
-        // ---- Compute Awards ----
-        // MVP: highest rating
+        // MVP
         const mvp = players.reduce((a,b) => a.rating > b.rating ? a : b);
-        // Most Improved: we need previous month rating. We'll try to load it; if unavailable, fallback to player with highest rating (same as MVP)
+
+        // Most Improved
         let mostImproved = null;
-        const prevMonthKey = getPreviousMonthKey(sheetName);
-        if (prevMonthKey) {
+        const prevKey = getPreviousMonthKey(sheetName);
+        if (prevKey) {
           try {
-            const prevData = await fetchSheetData(`LEADERBOARD_${prevMonthKey}`);
+            const prevData = await fetchSheetData(`LEADERBOARD_${prevKey}`);
             if (prevData.length >= 4) {
               const prevHeaders = prevData[2].map(h => (h||'').toString().trim());
               const prevNameIdx = prevHeaders.indexOf('Player');
@@ -137,11 +148,11 @@
                 }
               });
             }
-          } catch (e) { /* ignore */ }
+          } catch (e) {}
         }
         if (!mostImproved) mostImproved = { ...mvp, improvement: 0 };
 
-        // Rising Star (best win rate among players with ≤10 matches)
+        // Rising Star
         const risingStars = players.filter(p => p.matches <= 10);
         let risingStar = null;
         if (risingStars.length > 0) {
@@ -152,21 +163,21 @@
           });
         }
 
-        // Iron Wall (lowest RD)
+        // Iron Wall
         const ironWall = players.reduce((a,b) => a.rd < b.rd ? a : b);
 
-        // ---- Display Awards ----
-        let awardsHTML = '';
-        awardsHTML += buildAwardCard('👑', 'MVP of the Month', mvp.name, `${mvp.rating.toFixed(2)} rating`);
-        awardsHTML += buildAwardCard('🚀', 'Most Improved', mostImproved.name, `+${mostImproved.improvement.toFixed(2)} points gained`);
+        // Display awards
+        let html = '';
+        html += buildAwardCard('👑', 'MVP of the Month', mvp.name, `${mvp.rating.toFixed(2)} rating`);
+        html += buildAwardCard('🚀', 'Most Improved', mostImproved.name, `+${mostImproved.improvement.toFixed(2)} points`);
         if (risingStar) {
           const wr = risingStar.matches ? (risingStar.wins/risingStar.matches*100).toFixed(0) : 0;
-          awardsHTML += buildAwardCard('🌟', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
+          html += buildAwardCard('🌟', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
         }
-        awardsHTML += buildAwardCard('🛡️', 'Iron Wall', ironWall.name, `RD ${ironWall.rd.toFixed(0)}`);
-        cardsContainer.innerHTML = awardsHTML;
+        html += buildAwardCard('🛡️', 'Iron Wall', ironWall.name, `RD ${ironWall.rd.toFixed(0)}`);
+        cardsContainer.innerHTML = html;
 
-        // ---- Top 5 Table ----
+        // Top 5 table
         const top5 = players.sort((a,b) => b.rating - a.rating).slice(0,5);
         const tbody = document.querySelector('#top5-table tbody');
         tbody.innerHTML = top5.map((p,i) => `
@@ -180,60 +191,52 @@
         `).join('');
         top5Section.style.display = 'block';
 
-        // ---- Rating Evolution Chart ----
+        // Evolution chart
         await drawEvolutionChart(sheetName, top5.map(p => p.name));
-
       } catch (err) {
         console.error(err);
-        cardsContainer.innerHTML = `<p>Error loading awards: ${err.message}</p>`;
+        cardsContainer.innerHTML = `<p>Error: ${err.message}</p>`;
       }
     }
 
-    function buildAwardCard(icon, title, player, stat) {
-      return `
-        <div class="award-card">
-          <div class="award-icon">${icon}</div>
-          <div class="award-title">${title}</div>
-          <div class="award-player">${player}</div>
-          <div class="award-stat">${stat}</div>
-        </div>
-      `;
-    }
-
-    function getPreviousMonthKey(sheetName) {
-      // sheetName like "LEADERBOARD_2025-11"
-      const parts = sheetName.split('_');
-      if (parts.length < 2) return null;
-      const [year, month] = parts[1].split('-').map(Number);
-      if (!year || !month) return null;
-      if (month === 1) return `${year-1}-12`;
-      return `${year}-${String(month-1).padStart(2,'0')}`;
-    }
-
-    // ========== Draw evolution chart for the top 5 players ==========
     async function drawEvolutionChart(sheetName, top5Names) {
       const chartSection = document.getElementById('chart-section');
       if (evolutionChart) { evolutionChart.destroy(); evolutionChart = null; }
-      if (!top5Names || top5Names.length === 0) return;
+      if (!top5Names.length) return;
 
-      // Load all matches for this month
       const matchesAll = await fetchSheetData('MATCHES');
-      if (matchesAll.length < 1) return;
+      if (matchesAll.length < 2) { console.warn('No MATCHES data'); return; }
 
-      // The first row is the real header
       const matchHeader = matchesAll[0].map(h => (h||'').toString().trim());
       const dateIdx = matchHeader.indexOf('Date');
       const p1Idx = matchHeader.indexOf('Player 1');
       const newRating1Idx = matchHeader.indexOf('New Rating 1');
-      if (dateIdx === -1 || p1Idx === -1 || newRating1Idx === -1) return;
+      if (dateIdx === -1 || p1Idx === -1 || newRating1Idx === -1) {
+        console.warn('Missing columns in MATCHES:', { dateIdx, p1Idx, newRating1Idx });
+        return;
+      }
 
-      // Filter matches that belong to this month (we use the sheet name to get YYYY-MM)
       const monthKey = sheetName.replace('LEADERBOARD_', '');
       const [y, m] = monthKey.split('-').map(Number);
       const startDate = new Date(y, m-1, 1);
       const endDate = new Date(y, m, 0, 23, 59, 59);
 
-      // Map: playerName -> array of { date, rating }
+      // ID -> Name mapping
+      const playersData = await fetchSheetData('PLAYERS');
+      const idToName = {};
+      if (playersData.length > 1) {
+        const pHeader = playersData[0].map(h => (h||'').toString().trim());
+        const idIdx = pHeader.indexOf('ID');
+        const nameIdx = pHeader.indexOf('Name');
+        if (idIdx !== -1 && nameIdx !== -1) {
+          for (let i = 1; i < playersData.length; i++) {
+            const r = playersData[i];
+            if (r[idIdx]) idToName[r[idIdx].toString().trim()] = r[nameIdx];
+          }
+        }
+      }
+
+      // Collect rating points per player within the month
       const ratingSeries = {};
       top5Names.forEach(n => { ratingSeries[n] = []; });
 
@@ -244,48 +247,8 @@
         const date = new Date(dateVal);
         if (isNaN(date.getTime()) || date < startDate || date > endDate) continue;
 
-        // collect player IDs for this match
-        const playerIds = [];
         for (let j = 0; j < 4; j++) {
-          playerIds.push((row[p1Idx+j] || '').toString().trim());
-        }
-
-        // Load PLAYERS sheet once to map ID->Name (we can cache outside, but for simplicity we do it here)
-        // Actually we need names, not IDs. So we must map IDs to names first.
-        // We'll load PLAYERS once outside this function.
-        // For performance, we'll fetch PLAYERS mapping now.
-        // (We'll refactor to pass a mapping later; quick solution: fetch inside)
-      }
-
-      // Refactored: we need a mapping from player ID to name. We'll fetch it.
-      const playersData = await fetchSheetData('PLAYERS');
-      const idToName = {};
-      if (playersData.length > 1) {
-        const header = playersData[0].map(h => (h||'').toString().trim());
-        const idIdx = header.indexOf('ID');
-        const nameIdx = header.indexOf('Name');
-        if (idIdx !== -1 && nameIdx !== -1) {
-          for (let i = 1; i < playersData.length; i++) {
-            const row = playersData[i];
-            if (row[idIdx]) idToName[row[idIdx].toString().trim()] = row[nameIdx];
-          }
-        }
-      }
-
-      // Now iterate matches again
-      for (let i = 1; i < matchesAll.length; i++) {
-        const row = matchesAll[i];
-        const dateVal = row[dateIdx];
-        if (!dateVal) continue;
-        const date = new Date(dateVal);
-        if (isNaN(date.getTime()) || date < startDate || date > endDate) continue;
-
-        const playerIds = [];
-        for (let j = 0; j < 4; j++) {
-          playerIds.push((row[p1Idx+j] || '').toString().trim());
-        }
-        for (let j = 0; j < 4; j++) {
-          const pid = playerIds[j];
+          const pid = (row[p1Idx + j] || '').toString().trim();
           const name = idToName[pid];
           if (name && top5Names.includes(name)) {
             const newRating = parseFloat(row[newRating1Idx + j]);
@@ -297,31 +260,51 @@
       }
 
       // Sort each series by date
-      Object.keys(ratingSeries).forEach(name => {
-        ratingSeries[name].sort((a,b) => a.date - b.date);
-      });
+      Object.values(ratingSeries).forEach(series => series.sort((a,b) => a.date - b.date));
 
-      // Build datasets for Chart.js
+      // We'll use a single set of labels based on all unique match dates across the top5
+      const allDates = new Set();
+      top5Names.forEach(name => {
+        ratingSeries[name].forEach(p => allDates.add(p.date.toISOString().split('T')[0]));
+      });
+      const sortedDates = Array.from(allDates).sort();
+
       const colors = ['#4a86e8','#e94560','#10b981','#f59e0b','#8b5cf6'];
-      const datasets = top5Names.map((name, idx) => ({
-        label: name,
-        data: ratingSeries[name].map(p => ({ x: p.date, y: p.rating })),
-        borderColor: colors[idx % colors.length],
-        backgroundColor: colors[idx % colors.length] + '33',
-        tension: 0.2,
-        fill: false
-      }));
+      const datasets = top5Names.map((name, idx) => {
+        // For each date, find the player's rating at or before that date (last known)
+        const series = ratingSeries[name];
+        const dataPoints = sortedDates.map(dateStr => {
+          const date = new Date(dateStr);
+          // find the latest point <= this date
+          let lastRating = null;
+          for (const point of series) {
+            if (point.date <= date) lastRating = point.rating;
+            else break;
+          }
+          return lastRating;
+        });
+        return {
+          label: name,
+          data: dataPoints,
+          borderColor: colors[idx % colors.length],
+          backgroundColor: colors[idx % colors.length] + '33',
+          tension: 0.2,
+          fill: false,
+          spanGaps: true
+        };
+      });
 
       const ctx = document.getElementById('evolutionChart').getContext('2d');
       evolutionChart = new Chart(ctx, {
         type: 'line',
-        data: { datasets },
+        data: {
+          labels: sortedDates,
+          datasets: datasets
+        },
         options: {
           responsive: true,
           scales: {
             x: {
-              type: 'time',
-              time: { unit: 'day', tooltipFormat: 'yyyy-MM-dd' },
               title: { display: true, text: 'Date' }
             },
             y: {
@@ -332,9 +315,9 @@
       });
 
       chartSection.style.display = 'block';
+      console.log('Chart drawn for month', sheetName, 'with top5', top5Names);
     }
 
-    // ========== Initialization ==========
     async function init() {
       await populateMonthSelector('award-month-select', 'LEADERBOARD_');
       const allSheets = await fetchSheetList();
@@ -346,7 +329,6 @@
       } else {
         document.getElementById('awards-cards').innerHTML = '<p>No completed seasons found.</p>';
       }
-
       document.getElementById('award-month-select').addEventListener('change', e => {
         if (e.target.value) loadAwards(e.target.value);
       });
