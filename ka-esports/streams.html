@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Streams – KA ESPORTS</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .stream-list { display: flex; flex-wrap: wrap; gap: 20px; }
+    .stream-card { width: 300px; background: var(--surface); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    .stream-card iframe { width: 100%; height: 169px; }
+    .stream-info { padding: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">KA ESPORTS</div>
+      <h1>Live Streams</h1>
+      <p>Watch Mario Kart 64 streams happening right now.</p>
+    </header>
+    <div class="grid">
+      <div id="sidebar-container"></div>
+      <main class="content">
+        <section class="panel">
+          <div class="section-heading">🔴 Live Now</div>
+          <div id="streams-container">
+            <p>Loading streams…</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script>
+    // Twitch: embed player using category "Mario Kart 64" (ID 11557)
+    // We'll just embed the Twitch directory page for MK64? Actually we can embed the player for a specific channel.
+    // Since we don't have a channel list, we'll show a simple embedded Twitch directory page for Mario Kart 64.
+    // For YouTube, we'll search for live videos with "Mario Kart 64".
+    // For simplicity, we'll embed a Twitch category player and a YouTube search result.
+    async function loadStreams() {
+      const container = document.getElementById('streams-container');
+      // Twitch: embed the category player
+      container.innerHTML = `
+        <div class="stream-card">
+          <iframe src="https://player.twitch.tv/?category=Mario%20Kart%2064&parent=denvar-labs.github.io" frameborder="0" allowfullscreen="true" scrolling="no" height="169" width="300"></iframe>
+          <div class="stream-info">Twitch: Mario Kart 64</div>
+        </div>
+        <div class="stream-card">
+          <!-- YouTube search for "Mario Kart 64 live" -->
+          <iframe width="300" height="169" src="https://www.youtube.com/embed?listType=search&list=Mario%20Kart%2064%20live" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope" allowfullscreen></iframe>
+          <div class="stream-info">YouTube: Mario Kart 64 live</div>
+        </div>
+      `;
+    }
+    document.addEventListener('DOMContentLoaded', loadStreams);
+  </script>
+  <script>
+    fetch("../sidebar.html").then(r => r.text()).then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
