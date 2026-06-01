@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hall of Fame – KA ESPORTS</title>
   <link rel="stylesheet" href="../css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    .records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .record-card { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
     .record-icon { font-size: 2.5rem; }
     .record-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin: 8px 0 4px; }
@@ -15,6 +16,7 @@
     .mode-switch { display: flex; gap: 8px; margin-bottom: 16px; }
     .mode-btn { padding: 8px 16px; border: 2px solid var(--border); background: var(--surface); border-radius: 6px; cursor: pointer; font-weight: 600; }
     .mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .chart-container { max-width: 800px; margin: 20px auto; }
   </style>
 </head>
 <body>
@@ -22,7 +24,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Hall of Fame</h1>
-      <p>All‑time legends and monthly champions. Choose your view.</p>
+      <p>All‑time legends and monthly champions. Now with visual stats.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -43,6 +45,11 @@
           <div class="records-grid" id="records-container">
             <p>Loading records…</p>
           </div>
+
+          <div class="chart-container" id="chart-section" style="display:none;">
+            <canvas id="topChart"></canvas>
+            <p style="text-align:center; color:var(--text-muted); margin-top:8px;" id="chart-caption"></p>
+          </div>
         </section>
       </main>
     </div>
@@ -50,6 +57,7 @@
   <script src="../js/api-loader.js"></script>
   <script>
     let currentMode = 'alltime';
+    let currentChart = null;
 
     function getLastCompletedMonth(months) {
       const now = new Date();
@@ -69,9 +77,18 @@
       `;
     }
 
+    function destroyChart() {
+      if (currentChart) { currentChart.destroy(); currentChart = null; }
+    }
+
+    // ---------- ALL-TIME RECORDS & CHART ----------
     async function loadAllTimeRecords() {
       const container = document.getElementById('records-container');
+      const chartSection = document.getElementById('chart-section');
+      const chartCaption = document.getElementById('chart-caption');
       container.innerHTML = '<p>Loading all‑time records…</p>';
+      chartSection.style.display = 'none';
+      destroyChart();
 
       try {
         const players = await fetchSheetData('PLAYERS');
@@ -82,13 +99,10 @@
         const winsIdx = header.indexOf('Wins');
         const data = players.slice(1).filter(r => r[nameIdx]);
 
-        // Highest rating ever
+        // Records
         const topRating = [...data].sort((a,b) => parseFloat(b[ratingIdx]) - parseFloat(a[ratingIdx]))[0];
-        // Most matches
         const topMatches = [...data].sort((a,b) => parseInt(b[matchesIdx]) - parseInt(a[matchesIdx]))[0];
-        // Most wins
         const topWins = [...data].sort((a,b) => parseInt(b[winsIdx]) - parseInt(a[winsIdx]))[0];
-        // Highest win rate (min 10 matches)
         const highWR = data.filter(r => parseInt(r[matchesIdx]) >= 10)
           .sort((a,b) => (parseInt(b[winsIdx])/parseInt(b[matchesIdx])) - (parseInt(a[winsIdx])/parseInt(a[matchesIdx])))[0];
 
@@ -98,14 +112,51 @@
         if (topWins) html += buildRecordCard('🏅', 'Most Wins', topWins[nameIdx], topWins[winsIdx] + ' wins');
         if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR[nameIdx], (parseInt(highWR[winsIdx])/parseInt(highWR[matchesIdx])*100).toFixed(1) + '%');
         container.innerHTML = html || '<p>No records found.</p>';
+
+        // Chart: Top 10 players by rating
+        const top10 = [...data].sort((a,b) => parseFloat(b[ratingIdx]) - parseFloat(a[ratingIdx])).slice(0,10);
+        if (top10.length > 0) {
+          const names = top10.map(r => r[nameIdx]);
+          const ratings = top10.map(r => parseFloat(r[ratingIdx]));
+          const ctx = document.getElementById('topChart').getContext('2d');
+          currentChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: names,
+              datasets: [{
+                label: 'Rating',
+                data: ratings,
+                backgroundColor: '#4a86e8cc',
+                borderColor: '#4a86e8',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: { beginAtZero: false, title: { display: true, text: 'Rating' } }
+              },
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+          chartCaption.textContent = 'Top 10 Players by Rating (All-Time)';
+          chartSection.style.display = 'block';
+        }
       } catch (err) {
         container.innerHTML = `<p>Error: ${err.message}</p>`;
       }
     }
 
+    // ---------- MONTHLY RECORDS & CHART ----------
     async function loadMonthlyRecords(sheetName) {
       const container = document.getElementById('records-container');
+      const chartSection = document.getElementById('chart-section');
+      const chartCaption = document.getElementById('chart-caption');
       container.innerHTML = '<p>Loading monthly records…</p>';
+      chartSection.style.display = 'none';
+      destroyChart();
 
       try {
         const data = await fetchSheetData(sheetName);
@@ -133,13 +184,10 @@
           wins: parseInt(r[winsIdx])
         }));
 
-        // Highest rating of the month
+        // Records
         const topRating = players.reduce((a,b) => a.rating > b.rating ? a : b);
-        // Most matches played this month
         const topMatches = players.reduce((a,b) => a.matches > b.matches ? a : b);
-        // Most wins this month
         const topWins = players.reduce((a,b) => a.wins > b.wins ? a : b);
-        // Best win rate (min 3 matches)
         const highWR = players.filter(p => p.matches >= 3)
           .sort((a,b) => (b.wins/b.matches) - (a.wins/a.matches))[0];
 
@@ -149,18 +197,51 @@
         html += buildRecordCard('🏅', 'Most Wins This Month', topWins.name, topWins.wins + ' wins');
         if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
         container.innerHTML = html || '<p>Not enough data for records.</p>';
+
+        // Chart: Top 5 players of the month by rating
+        const top5 = [...players].sort((a,b) => b.rating - a.rating).slice(0,5);
+        if (top5.length > 0) {
+          const names = top5.map(p => p.name);
+          const ratings = top5.map(p => p.rating);
+          const ctx = document.getElementById('topChart').getContext('2d');
+          currentChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: names,
+              datasets: [{
+                label: 'Rating',
+                data: ratings,
+                backgroundColor: '#e94560cc',
+                borderColor: '#e94560',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: { beginAtZero: false, title: { display: true, text: 'Rating' } }
+              },
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+          chartCaption.textContent = `Top 5 Players by Rating (${sheetName.replace('LEADERBOARD_','')})`;
+          chartSection.style.display = 'block';
+        }
       } catch (err) {
         container.innerHTML = `<p>Error: ${err.message}</p>`;
       }
     }
 
+    // ---------- MODE SWITCHING ----------
     async function switchMode(mode) {
       currentMode = mode;
       document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
 
       const monthSelector = document.getElementById('month-selector');
-      const recordsContainer = document.getElementById('records-container');
+      destroyChart();
 
       if (mode === 'alltime') {
         monthSelector.style.display = 'none';
@@ -174,23 +255,21 @@
           document.getElementById('hof-month-select').value = `LEADERBOARD_${defaultSheet}`;
           loadMonthlyRecords(`LEADERBOARD_${defaultSheet}`);
         } else {
-          recordsContainer.innerHTML = '<p>No completed seasons found.</p>';
+          document.getElementById('records-container').innerHTML = '<p>No completed seasons found.</p>';
+          document.getElementById('chart-section').style.display = 'none';
         }
       }
     }
 
     async function init() {
-      // Populate month selector for monthly mode
       await populateMonthSelector('hof-month-select', 'LEADERBOARD_');
 
-      // Mode switch buttons
       document.getElementById('mode-switch').addEventListener('click', e => {
         if (e.target.classList.contains('mode-btn')) {
           switchMode(e.target.dataset.mode);
         }
       });
 
-      // Month selector change
       document.getElementById('hof-month-select').addEventListener('change', e => {
         if (e.target.value) loadMonthlyRecords(e.target.value);
       });
