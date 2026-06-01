@@ -38,14 +38,14 @@
   </div>
 
   <script>
-    // Channels data – Twitch channels are embedded directly.
-    // YouTube handles will be checked for live status via API.
+    // Channels data
     const channels = [
       { name: "Grey0__", platform: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
       { name: "fx6400", platform: "Twitch", type: "twitch", id: "fx6400", url: "https://www.twitch.tv/fx6400" },
       { name: "devarsc", platform: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
       { name: "Red Buffalo", platform: "YouTube", type: "youtube", handle: "@redbuffalo2170", url: "https://www.youtube.com/@redbuffalo2170" },
-      { name: "El Super Cien", platform: "YouTube", type: "youtube", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" }
+      { name: "El Super Cien", platform: "YouTube", type: "youtube", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" },
+      { name: "Vena Monterrey", platform: "YouTube", type: "youtube", handle: "@venamonterrey3957", url: "https://www.youtube.com/@venamonterrey3957" }
     ];
 
     // Your Apps Script URL (same as API_BASE in api-loader.js)
@@ -64,7 +64,6 @@
           console.error('YouTube live check error:', data.error);
           return {};
         }
-        // Build a map handle -> live info
         const liveMap = {};
         data.live.forEach(item => {
           liveMap[item.handle] = item;
@@ -101,7 +100,6 @@
           const liveInfo = youtubeLiveMap[ch.handle];
           let liveHtml = "";
           if (liveInfo && liveInfo.isLive) {
-            // Show live video embed
             liveHtml = `
               <iframe
                 src="https://www.youtube.com/embed/${liveInfo.liveVideoId}?autoplay=0&mute=0"
@@ -115,7 +113,6 @@
               </div>
             `;
           } else {
-            // Offline: show channel link and embed latest video (optional)
             liveHtml = `
               <iframe
                 src="https://www.youtube.com/embed?listType=user_uploads&list=${ch.handle}"
