@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Profile – KA ESPORTS</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .profile-header .rank-badge { font-size: 1.5rem; padding: 8px 16px; border-radius: 8px; color: #000; font-weight: bold; }
+    .chart-container { max-width: 800px; margin: 0 auto 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-card h3 { margin: 0 0 5px; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">KA ESPORTS</div>
+      <h1>Player Profile</h1>
+      <p>Select a player to view detailed statistics.</p>
+    </header>
+    <div class="grid">
+      <div id="sidebar-container"></div>
+      <main class="content">
+        <section class="panel">
+          <div class="section-heading">
+            <label for="player-select">Player:</label>
+            <select id="player-select" style="margin-left:10px; padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+              <option value="">-- Choose a player --</option>
+            </select>
+          </div>
+          <div id="profile-content">
+            <p>Select a player to view their profile.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/api-loader.js"></script>
+  <script>
+    // ========== Player Profile Logic ==========
+    let chart = null;
+
+    async function init() {
+      const names = await fetchPlayerNames();
+      populateSelectFromList('player-select', names, '-- Choose a player --');
+      document.getElementById('player-select').addEventListener('change', e => {
+        if (e.target.value) loadProfile(e.target.value);
+      });
+    }
+
+    async function loadProfile(playerName) {
+      const container = document.getElementById('profile-content');
+      container.innerHTML = '<p>Loading profile…</p>';
+
+      try {
+        // 1. Get player info from PLAYERS sheet
+        const players = await fetchSheetData('PLAYERS');
+        const header = players[0].map(h => (h||'').toString().trim());
+        const nameIdx = header.indexOf('Name');
+        const idIdx = header.indexOf('ID');
+        const ratingIdx = header.indexOf('Rating');
+        const rdIdx = header.indexOf('RD');
+        const volIdx = header.indexOf('Volatility');
+        const matchesIdx = header.indexOf('Matches');
+        const winsIdx = header.indexOf('Wins');
+        const lastMatchIdx = header.indexOf('LastMatch');
+
+        const playerRow = players.find(row => (row[nameIdx]||'').toString().trim() === playerName);
+        if (!playerRow) { container.innerHTML = '<p>Player not found.</p>'; return; }
+
+        const playerId = playerRow[idIdx];
+        const rating = parseFloat(playerRow[ratingIdx]);
+        const rd = parseFloat(playerRow[rdIdx]);
+        const vol = parseFloat(playerRow[volIdx]);
+        const totalMatches = parseInt(playerRow[matchesIdx]);
+        const totalWins = parseInt(playerRow[winsIdx]);
+        const lastMatch = playerRow[lastMatchIdx] ? new Date(playerRow[lastMatchIdx]) : null;
+        const rank = getRankFromRating(rating);
+
+        // 2. Get match history from MATCHES
+        const matchesAll = await fetchSheetData('MATCHES');
+        const matchHeader = matchesAll[1].map(h => (h||'').toString().trim()); // skip 1 row (MATCHES has 1 title row)
+        const p1Idx = matchHeader.indexOf('Player 1');
+        const p4Idx = matchHeader.indexOf('Player 4');
+        const dateIdx = matchHeader.indexOf('Date');
+        const statusIdx = matchHeader.indexOf('Status');
+        const newRating1Idx = matchHeader.indexOf('New Rating 1');
+        const newRating4Idx = matchHeader.indexOf('New Rating 4');
+        
+        const playerMatches = [];
+        for (let i = 2; i < matchesAll.length; i++) {
+          const row = matchesAll[i];
+          if (row[statusIdx] !== 'PROCESSED') continue;
+          const playersInMatch = [row[p1Idx], row[p1Idx+1], row[p1Idx+2], row[p3Idx]].map(v => (v||'').toString().trim());
+          const pIdx = playersInMatch.indexOf(playerId);
+          if (pIdx === -1) continue;
+          const date = new Date(row[dateIdx]);
+          const newRating = parseFloat(row[newRating1Idx + pIdx]);
+          playerMatches.push({ date, rating: newRating });
+        }
+        playerMatches.sort((a,b) => a.date - b.date);
+
+        // 3. Build profile HTML
+        const lastMatchStr = lastMatch ? lastMatch.toISOString().split('T')[0] : 'Never';
+        const winRate = totalMatches ? (totalWins / totalMatches * 100).toFixed(1) : 0;
+        const rankClass = RANK_CLASS_MAP[rank] || '';
+        
+        container.innerHTML = `
+          <div class="profile-header">
+            <span class="rank-badge" style="background-color:${getRankColorHex(rank)}">${rank}</span>
+            <h2>${playerName}</h2>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card"><h3>Rating</h3><div class="value">${rating.toFixed(2)}</div></div>
+            <div class="stat-card"><h3>RD</h3><div class="value">${rd.toFixed(2)}</div></div>
+            <div class="stat-card"><h3>Volatility</h3><div class="value">${vol.toFixed(4)}</div></div>
+            <div class="stat-card"><h3>Matches</h3><div class="value">${totalMatches}</div></div>
+            <div class="stat-card"><h3>Wins</h3><div class="value">${totalWins} (${winRate}%)</div></div>
+            <div class="stat-card"><h3>Last Match</h3><div class="value" style="font-size:1rem">${lastMatchStr}</div></div>
+          </div>
+          <div class="chart-container">
+            <canvas id="ratingChart"></canvas>
+          </div>
+          <p style="text-align:center; color:var(--text-muted)">Rating evolution (last 50 matches)</p>
+        `;
+
+        // 4. Draw chart
+        const ctx = document.getElementById('ratingChart').getContext('2d');
+        const last50 = playerMatches.slice(-50);
+        const labels = last50.map(m => m.date.toISOString().split('T')[0]);
+        const dataPoints = last50.map(m => m.rating);
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Rating',
+              data: dataPoints,
+              borderColor: 'rgb(75, 192, 192)',
+              tension: 0.1,
+              fill: false
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: { y: { beginAtZero: false } }
+          }
+        });
+
+      } catch (err) {
+        container.innerHTML = `<p>Error loading profile: ${err.message}</p>`;
+      }
+    }
+
+    // Helper to get rank color hex (from our thresholds)
+    function getRankColorHex(rank) {
+      const map = {
+        'Grand Master': '#f1c232',
+        'Master': '#FFD966',
+        'Pro': '#CCE5FF',
+        'Expert': '#FF5C5C',
+        'Advanced': '#FFF38A',
+        'Amateur': '#9AFF7D',
+        'Padawan': '#C7C1C1'
+      };
+      return map[rank] || '#fff';
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+  <script>
+    fetch("../sidebar.html").then(r => r.text()).then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
