@@ -42,12 +42,16 @@
 
   <script>
     // ===== CONFIGURACIÓN =====
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVBjLSCxunlwsHt2Ou_grlUMUte5Z_J1t5tOICLkVknmMyIwz5HPmQxEO0yJRhuDLY/exec'; // ← tu URL real
+    // ⚠️ Reemplaza esta URL con la de tu Web App de Apps Script
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVBjLSCxunlwsHt2Ou_grlUMUte5Z_J1t5tOICLkVknmMyIwz5HPmQxEO0yJRhuDLY/exec';
 
     const channels = [
+      // Twitch
       { name: "Grey0__", plat: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
       { name: "fx6400", plat: "Twitch", type: "twitch", id: "fx6400", url: "https://www.twitch.tv/fx6400" },
       { name: "devarsc", plat: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
+      { name: "WahMaster", plat: "Twitch", type: "twitch", id: "wahmaster31", url: "https://www.twitch.tv/wahmaster31" },
+      // YouTube
       { name: "Red Buffalo", plat: "YouTube", type: "yt", handle: "@redbuffalo2170", url: "https://www.youtube.com/@redbuffalo2170" },
       { name: "El Super Cien", plat: "YouTube", type: "yt", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" },
       { name: "Vena Monterrey", plat: "YouTube", type: "yt", handle: "@venamonterrey3957", url: "https://www.youtube.com/@venamonterrey3957" },
@@ -57,7 +61,9 @@
       { name: "Tom (Wormkiller007)", plat: "YouTube", type: "yt", handle: "@Wormkiller007", url: "https://www.youtube.com/@Wormkiller007" },
       { name: "Yale", plat: "YouTube", type: "yt", handle: "@youngYale", url: "https://www.youtube.com/@youngYale" },
       { name: "Justase", plat: "YouTube", type: "yt", handle: "@justase64", url: "https://www.youtube.com/@justase64" },
-      { name: "Velizer0", plat: "YouTube", type: "yt", handle: "@velizer0", url: "https://www.youtube.com/@velizer0" }
+      { name: "Velizer0", plat: "YouTube", type: "yt", handle: "@velizer0", url: "https://www.youtube.com/@velizer0" },
+      { name: "NICOCRACK", plat: "YouTube", type: "yt", handle: "@NICOCRACK24", url: "https://www.youtube.com/@NICOCRACK24" },
+      { name: "WahMaster", plat: "YouTube", type: "yt", handle: "@wahmaster31", url: "https://www.youtube.com/@wahmaster31" }
     ];
 
     async function getLiveData() {
@@ -67,27 +73,24 @@
       try {
         const resp = await fetch(url);
         const data = await resp.json();
-        return data;
+        return { tw: data.tw || {}, yt: data.yt || {} };
       } catch (err) {
         console.error('Live check failed', err);
         return { tw: {}, yt: {} };
       }
     }
 
-    async function render() {
-      const container = document.getElementById('streams-container');
-      container.innerHTML = 'Checking live status…';
-      const live = await getLiveData();
+    function renderChannels(liveData) {
+      const { tw = {}, yt = {} } = liveData || {};
 
-      // Attach live info
       channels.forEach(ch => {
         if (ch.type === 'twitch') {
-          const info = live.tw[ch.id] || {};
+          const info = tw[ch.id] || {};
           ch.isLive = info.isLive || false;
           ch.viewers = info.viewers || 0;
           ch.liveTitle = info.title || '';
         } else {
-          const info = live.yt[ch.handle] || {};
+          const info = yt[ch.handle] || {};
           ch.isLive = info.isLive || false;
           ch.liveVideoId = info.videoId || null;
           ch.liveTitle = info.title || '';
@@ -138,10 +141,24 @@
             </div>`;
         }
       });
-      container.innerHTML = html;
+      return html;
     }
 
-    document.addEventListener('DOMContentLoaded', render);
+    async function init() {
+      const container = document.getElementById('streams-container');
+      // Mostrar canales inmediatamente (offline) mientras se consulta
+      container.innerHTML = renderChannels({ tw: {}, yt: {} });
+
+      try {
+        const liveData = await getLiveData();
+        container.innerHTML = renderChannels(liveData);
+      } catch (err) {
+        console.error('Error updating live status', err);
+        // Ya mostrados como offline, no hacer nada
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
   </script>
   <script>
     fetch("../sidebar.html").then(r => r.text()).then(html => {
