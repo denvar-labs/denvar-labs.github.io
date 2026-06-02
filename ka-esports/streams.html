@@ -65,39 +65,48 @@
       { name: "WahMaster", plat: "YouTube", type: "yt", handle: "@wahmaster31", url: "https://www.youtube.com/@wahmaster31" }
     ];
 
-    async function getLiveData() {
+    async function fetchLiveStatus() {
       const twNames = channels.filter(c => c.type === 'twitch').map(c => c.id).join(',');
       const ytNames = channels.filter(c => c.type === 'yt').map(c => c.handle).join(',');
       const url = `${SCRIPT_URL}?action=live&tw=${encodeURIComponent(twNames)}&yt=${encodeURIComponent(ytNames)}`;
       try {
         const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
         return { tw: data.tw || {}, yt: data.yt || {} };
       } catch (err) {
         console.error('Live check failed', err);
-        return { tw: {}, yt: {} };
+        return null;
       }
     }
 
-    function renderChannels(liveData) {
-      const { tw = {}, yt = {} } = liveData || {};
+    function renderAllChannels(liveData) {
+      // Start with a clean copy of channels (no leftover properties)
+      const channelsCopy = channels.map(ch => ({ ...ch, isLive: false, viewers: 0, liveTitle: '', liveVideoId: null }));
 
-      channels.forEach(ch => {
-        if (ch.type === 'twitch') {
-          const info = tw[ch.id] || {};
-          ch.isLive = info.isLive || false;
-          ch.viewers = info.viewers || 0;
-          ch.liveTitle = info.title || '';
-        } else {
-          const info = yt[ch.handle] || {};
-          ch.isLive = info.isLive || false;
-          ch.liveVideoId = info.videoId || null;
-          ch.liveTitle = info.title || '';
-        }
-      });
+      if (liveData) {
+        const { tw = {}, yt = {} } = liveData;
+        channelsCopy.forEach(ch => {
+          if (ch.type === 'twitch') {
+            const info = tw[ch.id];
+            if (info) {
+              ch.isLive = info.isLive || false;
+              ch.viewers = info.viewers || 0;
+              ch.liveTitle = info.title || '';
+            }
+          } else {
+            const info = yt[ch.handle];
+            if (info) {
+              ch.isLive = info.isLive || false;
+              ch.liveVideoId = info.videoId || null;
+              ch.liveTitle = info.title || '';
+            }
+          }
+        });
+      }
 
       // Sort: live first, then Twitch before YouTube, then alphabetical
-      channels.sort((a, b) => {
+      channelsCopy.sort((a, b) => {
         if (a.isLive && !b.isLive) return -1;
         if (!a.isLive && b.isLive) return 1;
         if (a.type === 'twitch' && b.type === 'yt') return -1;
@@ -106,7 +115,7 @@
       });
 
       let html = '';
-      channels.forEach(ch => {
+      channelsCopy.forEach(ch => {
         const liveBadge = ch.isLive ? '<span class="live-badge">LIVE</span>' : '<span class="offline-text">(Offline)</span>';
         const viewers = ch.isLive && ch.viewers ? `<span class="viewers">${ch.viewers} viewers</span>` : '';
         const titleLine = ch.isLive && ch.liveTitle ? `<div class="live-title">${ch.liveTitle}</div>` : '';
@@ -145,16 +154,21 @@
 
     async function init() {
       const container = document.getElementById('streams-container');
-      // Show all channels immediately (offline) while checking live status
-      container.innerHTML = renderChannels({ tw: {}, yt: {} });
+      // Show all channels immediately (offline) while we fetch the live status
+      container.innerHTML = renderAllChannels(null);
 
-      try {
-        const liveData = await getLiveData();
-        container.innerHTML = renderChannels(liveData);
-      } catch (err) {
-        console.error('Error updating live status', err);
-        // Already shown offline, nothing more to do
-      }
+      // Fetch live status with a short timeout to avoid hanging
+      const liveData = await fetchLiveStatus();
+      // Always re-render with the data we got (even if null, it will show offline)
+      container.innerHTML = renderAllChannels(liveData);
+
+      // Optionally, refresh every 2 minutes
+      setInterval(async () => {
+        const freshData = await fetchLiveStatus();
+        if (freshData) {
+          container.innerHTML = renderAllChannels(freshData);
+        }
+      }, 120000);
     }
 
     document.addEventListener('DOMContentLoaded', init);
