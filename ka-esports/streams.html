@@ -41,9 +41,8 @@
   </div>
 
   <script>
-    // ===== CONFIGURACIÓN =====
-    // ⚠️ Reemplaza esta URL con la de tu Web App de Apps Script
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVBjLSCxunlwsHt2Ou_grlUMUte5Z_J1t5tOICLkVknmMyIwz5HPmQxEO0yJRhuDLY/exec';
+    // ===== CONFIGURATION =====
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQYa5faqcaByVi0Yo4wTsTKhVui3DiFxvgqAn7GXvh6i991WmnGLJLyTtBUiCimZ1Y/exec';
 
     const channels = [
       // Twitch
@@ -146,7 +145,7 @@
 
     async function init() {
       const container = document.getElementById('streams-container');
-      // Mostrar canales inmediatamente (offline) mientras se consulta
+      // Show all channels immediately (offline) while checking live status
       container.innerHTML = renderChannels({ tw: {}, yt: {} });
 
       try {
@@ -154,7 +153,7 @@
         container.innerHTML = renderChannels(liveData);
       } catch (err) {
         console.error('Error updating live status', err);
-        // Ya mostrados como offline, no hacer nada
+        // Already shown offline, nothing more to do
       }
     }
 
