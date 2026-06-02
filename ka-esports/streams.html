@@ -11,9 +11,12 @@
     .stream-card iframe { width: 100%; height: 200px; border: 0; }
     .stream-info { padding: 12px; }
     .stream-name { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .live-badge { display: inline-block; background: #10b981; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+    .live-badge { background: #10b981; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
     .offline-text { font-size: 0.85rem; color: var(--text-muted); }
-    .stream-platform { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+    .viewers { font-size: 0.8rem; color: #10b981; margin-left: 4px; }
+    .live-title { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0; }
+    .stream-platform { font-size: 0.85rem; color: var(--text-muted); }
     .stream-link { display: inline-block; margin-top: 8px; color: var(--accent); font-weight: 600; }
   </style>
 </head>
@@ -22,7 +25,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Live Streams & Content</h1>
-      <p>Watch Mario Kart 64 action from our community streamers. Green badge = LIVE right now!</p>
+      <p>Community streamers. Green badge = LIVE now. Live streams appear first.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -30,7 +33,7 @@
         <section class="panel">
           <div class="section-heading">🔴 Community Channels</div>
           <div class="stream-grid" id="streams-container">
-            <!-- Filled by JavaScript -->
+            Loading streams…
           </div>
         </section>
       </main>
@@ -38,111 +41,107 @@
   </div>
 
   <script>
-    // Channels data – Add or remove entries as needed.
+    // ===== CONFIGURACIÓN =====
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVBjLSCxunlwsHt2Ou_grlUMUte5Z_J1t5tOICLkVknmMyIwz5HPmQxEO0yJRhuDLY/exec'; // ← tu URL real
+
     const channels = [
-      // Twitch
-      { name: "Grey0__", platform: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
-      { name: "fx6400", platform: "Twitch", type: "twitch", id: "fx6400", url: "https://www.twitch.tv/fx6400" },
-      { name: "devarsc", platform: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
-      // YouTube
-      { name: "Red Buffalo", platform: "YouTube", type: "youtube", handle: "@redbuffalo2170", url: "https://www.youtube.com/@redbuffalo2170" },
-      { name: "El Super Cien", platform: "YouTube", type: "youtube", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" },
-      { name: "Vena Monterrey", platform: "YouTube", type: "youtube", handle: "@venamonterrey3957", url: "https://www.youtube.com/@venamonterrey3957" },
-      { name: "Cheech", platform: "YouTube", type: "youtube", handle: "@Cheech331", url: "https://www.youtube.com/@Cheech331" },
-      { name: "Skedar", platform: "YouTube", type: "youtube", handle: "@DavidSkedarWarrior", url: "https://www.youtube.com/@DavidSkedarWarrior" },
-      { name: "Andrew MK64", platform: "YouTube", type: "youtube", handle: "@andrewMK64", url: "https://www.youtube.com/@andrewMK64" },
-      { name: "Tom (Wormkiller007)", platform: "YouTube", type: "youtube", handle: "@Wormkiller007", url: "https://www.youtube.com/@Wormkiller007" },
-      { name: "Yale", platform: "YouTube", type: "youtube", handle: "@youngYale", url: "https://www.youtube.com/@youngYale" },
-      { name: "Justase", platform: "YouTube", type: "youtube", handle: "@justase64", url: "https://www.youtube.com/@justase64" },
-      { name: "Velizer0", platform: "YouTube", type: "youtube", handle: "@velizer0", url: "https://www.youtube.com/@velizer0" }
+      { name: "Grey0__", plat: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
+      { name: "fx6400", plat: "Twitch", type: "twitch", id: "fx6400", url: "https://www.twitch.tv/fx6400" },
+      { name: "devarsc", plat: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
+      { name: "Red Buffalo", plat: "YouTube", type: "yt", handle: "@redbuffalo2170", url: "https://www.youtube.com/@redbuffalo2170" },
+      { name: "El Super Cien", plat: "YouTube", type: "yt", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" },
+      { name: "Vena Monterrey", plat: "YouTube", type: "yt", handle: "@venamonterrey3957", url: "https://www.youtube.com/@venamonterrey3957" },
+      { name: "Cheech", plat: "YouTube", type: "yt", handle: "@Cheech331", url: "https://www.youtube.com/@Cheech331" },
+      { name: "Skedar", plat: "YouTube", type: "yt", handle: "@DavidSkedarWarrior", url: "https://www.youtube.com/@DavidSkedarWarrior" },
+      { name: "Andrew MK64", plat: "YouTube", type: "yt", handle: "@andrewMK64", url: "https://www.youtube.com/@andrewMK64" },
+      { name: "Tom (Wormkiller007)", plat: "YouTube", type: "yt", handle: "@Wormkiller007", url: "https://www.youtube.com/@Wormkiller007" },
+      { name: "Yale", plat: "YouTube", type: "yt", handle: "@youngYale", url: "https://www.youtube.com/@youngYale" },
+      { name: "Justase", plat: "YouTube", type: "yt", handle: "@justase64", url: "https://www.youtube.com/@justase64" },
+      { name: "Velizer0", plat: "YouTube", type: "yt", handle: "@velizer0", url: "https://www.youtube.com/@velizer0" }
     ];
 
-    // Your Apps Script URL (same as API_BASE in api-loader.js)
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVBjLSCxunlwsHt2Ou_grlUMUte5Z_J1t5tOICLkVknmMyIwz5HPmQxEO0yJRhuDLY/exec';
-
-    async function checkYouTubeLive() {
-      const youTubeChannels = channels.filter(ch => ch.type === "youtube");
-      if (youTubeChannels.length === 0) return {};
-
-      const handles = youTubeChannels.map(ch => ch.handle).join(',');
-      const url = `${SCRIPT_URL}?action=youtube-live&handles=${encodeURIComponent(handles)}`;
+    async function getLiveData() {
+      const twNames = channels.filter(c => c.type === 'twitch').map(c => c.id).join(',');
+      const ytNames = channels.filter(c => c.type === 'yt').map(c => c.handle).join(',');
+      const url = `${SCRIPT_URL}?action=live&tw=${encodeURIComponent(twNames)}&yt=${encodeURIComponent(ytNames)}`;
       try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.error) {
-          console.error('YouTube live check error:', data.error);
-          return {};
-        }
-        const liveMap = {};
-        data.live.forEach(item => {
-          liveMap[item.handle] = item;
-        });
-        return liveMap;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        return data;
       } catch (err) {
-        console.error('Failed to fetch live status:', err);
-        return {};
+        console.error('Live check failed', err);
+        return { tw: {}, yt: {} };
       }
     }
 
-    async function renderStreams() {
-      const container = document.getElementById("streams-container");
-      const youtubeLiveMap = await checkYouTubeLive();
+    async function render() {
+      const container = document.getElementById('streams-container');
+      container.innerHTML = 'Checking live status…';
+      const live = await getLiveData();
 
-      let html = "";
+      // Attach live info
       channels.forEach(ch => {
-        if (ch.type === "twitch") {
-          html += `
-            <div class="stream-card">
-              <iframe
-                src="https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io&muted=true"
-                allowfullscreen="true"
-                scrolling="no">
-              </iframe>
-              <div class="stream-info">
-                <div class="stream-name">${ch.name}</div>
-                <div class="stream-platform">Twitch</div>
-                <a href="${ch.url}" target="_blank" rel="noopener" class="stream-link">Open channel ↗</a>
-              </div>
-            </div>
-          `;
-        } else if (ch.type === "youtube") {
-          const liveInfo = youtubeLiveMap[ch.handle];
-          let liveHtml = "";
-          if (liveInfo && liveInfo.isLive) {
-            liveHtml = `
-              <iframe
-                src="https://www.youtube.com/embed/${liveInfo.liveVideoId}?autoplay=0&mute=0"
-                allowfullscreen="true"
-                scrolling="no">
-              </iframe>
-              <div class="stream-info">
-                <div class="stream-name">${ch.name} <span class="live-badge">LIVE</span></div>
-                <div class="stream-platform">YouTube</div>
-                <a href="https://www.youtube.com/watch?v=${liveInfo.liveVideoId}" target="_blank" rel="noopener" class="stream-link">Watch live ↗</a>
-              </div>
-            `;
-          } else {
-            liveHtml = `
-              <iframe
-                src="https://www.youtube.com/embed?listType=user_uploads&list=${ch.handle}"
-                allowfullscreen="true"
-                scrolling="no">
-              </iframe>
-              <div class="stream-info">
-                <div class="stream-name">${ch.name} <span class="offline-text">(Offline)</span></div>
-                <div class="stream-platform">YouTube</div>
-                <a href="${ch.url}" target="_blank" rel="noopener" class="stream-link">Open channel ↗</a>
-              </div>
-            `;
-          }
-          html += `<div class="stream-card">${liveHtml}</div>`;
+        if (ch.type === 'twitch') {
+          const info = live.tw[ch.id] || {};
+          ch.isLive = info.isLive || false;
+          ch.viewers = info.viewers || 0;
+          ch.liveTitle = info.title || '';
+        } else {
+          const info = live.yt[ch.handle] || {};
+          ch.isLive = info.isLive || false;
+          ch.liveVideoId = info.videoId || null;
+          ch.liveTitle = info.title || '';
         }
       });
 
+      // Sort: live first, then Twitch before YouTube, then alphabetical
+      channels.sort((a, b) => {
+        if (a.isLive && !b.isLive) return -1;
+        if (!a.isLive && b.isLive) return 1;
+        if (a.type === 'twitch' && b.type === 'yt') return -1;
+        if (a.type === 'yt' && b.type === 'twitch') return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      let html = '';
+      channels.forEach(ch => {
+        const liveBadge = ch.isLive ? '<span class="live-badge">LIVE</span>' : '<span class="offline-text">(Offline)</span>';
+        const viewers = ch.isLive && ch.viewers ? `<span class="viewers">${ch.viewers} viewers</span>` : '';
+        const titleLine = ch.isLive && ch.liveTitle ? `<div class="live-title">${ch.liveTitle}</div>` : '';
+
+        if (ch.type === 'twitch') {
+          html += `
+            <div class="stream-card">
+              <iframe src="https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io&muted=true" allowfullscreen scrolling="no"></iframe>
+              <div class="stream-info">
+                <div class="stream-name">${ch.name} ${liveBadge}${viewers}</div>
+                ${titleLine}
+                <div class="stream-platform">Twitch</div>
+                <a href="${ch.url}" target="_blank" rel="noopener" class="stream-link">Open channel ↗</a>
+              </div>
+            </div>`;
+        } else {
+          const embedSrc = ch.isLive && ch.liveVideoId
+            ? `https://www.youtube.com/embed/${ch.liveVideoId}`
+            : `https://www.youtube.com/embed?listType=user_uploads&list=${ch.handle}`;
+          html += `
+            <div class="stream-card">
+              <iframe src="${embedSrc}" allowfullscreen scrolling="no"></iframe>
+              <div class="stream-info">
+                <div class="stream-name">${ch.name} ${liveBadge}</div>
+                ${titleLine}
+                <div class="stream-platform">YouTube</div>
+                <a href="${ch.isLive ? 'https://www.youtube.com/watch?v=' + ch.liveVideoId : ch.url}" target="_blank" rel="noopener" class="stream-link">
+                  ${ch.isLive ? 'Watch live ↗' : 'Open channel ↗'}
+                </a>
+              </div>
+            </div>`;
+        }
+      });
       container.innerHTML = html;
     }
 
-    document.addEventListener("DOMContentLoaded", renderStreams);
+    document.addEventListener('DOMContentLoaded', render);
   </script>
   <script>
     fetch("../sidebar.html").then(r => r.text()).then(html => {
