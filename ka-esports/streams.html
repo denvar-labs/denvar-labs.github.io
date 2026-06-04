@@ -8,8 +8,11 @@
   <style>
     .stream-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
     .stream-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; }
-    .stream-card iframe, .stream-card .offline-preview { width: 100%; height: 200px; border: 0; object-fit: cover; }
+    .stream-card iframe, .stream-card .offline-preview, .stream-card .live-preview { width: 100%; height: 200px; border: 0; object-fit: cover; }
     .offline-preview { background: #0b0f17; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 1.2rem; }
+    .live-preview { background: #0b0f17; display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; position: relative; }
+    .live-preview img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+    .play-button { position: absolute; background: rgba(0,0,0,0.7); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 1.1rem; }
     .stream-info { padding: 12px; }
     .stream-name { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     .live-badge { background: #10b981; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; animation: pulse 2s infinite; }
@@ -26,7 +29,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Live Streams & Content</h1>
-      <p>Community streamers. Green badge = LIVE now. Live streams appear first.</p>
+      <p>Community streamers. Green badge = LIVE now. Click the preview to start watching.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -45,7 +48,7 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSTtjN74DSUTTC47Zindyl_-zzLaQPsH3Z3qokhDwvPEG8T-ZOa5ZpdB87adYejh2g/exec';
 
     const channels = [
-      // Twitch (updated names: FX6400 and DenvarSC)
+      // Twitch
       { name: "Grey0__", plat: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
       { name: "FX6400",  plat: "Twitch", type: "twitch", id: "fx6400",  url: "https://www.twitch.tv/fx6400" },
       { name: "DenvarSC", plat: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
@@ -142,8 +145,14 @@
         let mediaHtml = '';
         if (ch.type === 'twitch') {
           if (ch.isLive) {
-            // Forzar que el usuario tenga que hacer clic para reproducir
-            mediaHtml = `<iframe src="https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io&autoplay=false" allowfullscreen scrolling="no"></iframe>`;
+            // Static preview with click-to-load iframe
+            const previewImg = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${ch.id}-640x360.jpg`;
+            mediaHtml = `
+              <div class="live-preview" onclick="this.innerHTML='<iframe src=\\'https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io\\' allowfullscreen scrolling=\\'no\\' style=\\'width:100%;height:200px;\\'></iframe>'">
+                <img src="${previewImg}" alt="${ch.name} stream preview" />
+                <div class="play-button">▶ Click to watch</div>
+              </div>
+            `;
           } else {
             mediaHtml = `<div class="offline-preview"><span>${ch.name}</span></div>`;
           }
