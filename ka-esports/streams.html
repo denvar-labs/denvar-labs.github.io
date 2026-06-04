@@ -45,10 +45,12 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSTtjN74DSUTTC47Zindyl_-zzLaQPsH3Z3qokhDwvPEG8T-ZOa5ZpdB87adYejh2g/exec';
 
     const channels = [
+      // Twitch (updated names: FX6400 and DenvarSC)
       { name: "Grey0__", plat: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
-      { name: "FX6400", plat: "Twitch", type: "twitch", id: "fx6400", url: "https://www.twitch.tv/fx6400" },
+      { name: "FX6400",  plat: "Twitch", type: "twitch", id: "fx6400",  url: "https://www.twitch.tv/fx6400" },
       { name: "DenvarSC", plat: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
       { name: "WahMaster", plat: "Twitch", type: "twitch", id: "wahmaster31", url: "https://www.twitch.tv/wahmaster31" },
+      // YouTube
       { name: "Red Buffalo", plat: "YouTube", type: "yt", handle: "@redbuffalo2170", url: "https://www.youtube.com/@redbuffalo2170" },
       { name: "El Super Cien", plat: "YouTube", type: "yt", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" },
       { name: "Vena Monterrey", plat: "YouTube", type: "yt", handle: "@venamonterrey3957", url: "https://www.youtube.com/@venamonterrey3957" },
@@ -74,7 +76,7 @@
           tw: {
             "denvarsc": { isLive: true, title: "TEST STREAM", viewers: 5 },
             "grey0__": { isLive: false },
-            "fx6400": { isLive: false },
+            "fx6400":  { isLive: false },
             "wahmaster31": { isLive: false }
           },
           yt: {
@@ -140,8 +142,8 @@
         let mediaHtml = '';
         if (ch.type === 'twitch') {
           if (ch.isLive) {
-            // REPRODUCTOR SIN AUTOPLAY (sin muted=true)
-            mediaHtml = `<iframe src="https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io" allowfullscreen scrolling="no"></iframe>`;
+            // Forzar que el usuario tenga que hacer clic para reproducir
+            mediaHtml = `<iframe src="https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io&autoplay=false" allowfullscreen scrolling="no"></iframe>`;
           } else {
             mediaHtml = `<div class="offline-preview"><span>${ch.name}</span></div>`;
           }
