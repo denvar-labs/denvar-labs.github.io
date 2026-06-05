@@ -23,11 +23,8 @@
               <option value="">-- Choose a month --</option>
             </select>
           </div>
-          <div class="table-responsive">
-            <table id="data-table" class="data-table">
-              <thead></thead>
-              <tbody><tr><td colspan="20">Select a month to view its match reports.</td></tr></tbody>
-            </table>
+          <div id="match-reports-container">
+            <p>Select a month to view its match reports.</p>
           </div>
         </section>
       </main>
@@ -38,7 +35,11 @@
     async function init() {
       await populateMonthSelector('report-select', 'MATCH_REPORTS_');
       document.getElementById('report-select').addEventListener('change', e => {
-        if (e.target.value) loadTableFromSheet(e.target.value, 'data-table', -1);
+        if (e.target.value) {
+          renderMatchReports(e.target.value, 'match-reports-container');
+        } else {
+          document.getElementById('match-reports-container').innerHTML = '<p>Select a month to view its match reports.</p>';
+        }
       });
     }
     document.addEventListener('DOMContentLoaded', init);
