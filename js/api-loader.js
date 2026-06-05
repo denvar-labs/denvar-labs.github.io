@@ -1,8 +1,8 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v11 – Delta coloring)
+//  KA ESPORTS – API Data Loader (v12 – Fixed Match Reports)
 // =====================================================
 
-const API_BASE = 'https://script.google.com/macros/s/AKfycbxQYa5faqcaByVi0Yo4wTsTKhVui3DiFxvgqAn7GXvh6i991WmnGLJLyTtBUiCimZ1Y/exec';
+const API_BASE = 'https://script.google.com/macros/s/AKfycbzSTtjN74DSUTTC47Zindyl_-zzLaQPsH3Z3qokhDwvPEG8T-ZOa5ZpdB87adYejh2g/exec';
 
 const HEADER_ROWS_TO_SKIP = {
   'LEADERBOARD_GLOBAL': 3,
@@ -58,6 +58,7 @@ async function fetchSheetData(sheetName) {
   return json.data || [];
 }
 
+// ========== TABLA GENÉRICA (para la mayoría de hojas) ==========
 function detectHeaderRow(allRows, isMatchReport = false) {
   for (let i = 0; i < Math.min(allRows.length, 10); i++) {
     const row = allRows[i].map(cell => (cell || '').toString().trim());
@@ -114,16 +115,10 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     });
 
     let playerColIndex = -1, ratingBeforeColIndex = -1, deltaColIndex = -1;
-
     if (isMatchReport) {
       playerColIndex = headerRow.findIndex(h => h.includes('Player'));
       ratingBeforeColIndex = headerRow.findIndex(h => h.includes('Rating Before'));
-      // Buscar la columna del cambio de rating (Δ Rating o Rating Change)
       deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
-      // Si no se encuentra, intentar con el texto exacto que aparece en los datos
-      if (deltaColIndex === -1) deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
-      console.log('📊 Match Report headers:', headerRow);
-      console.log('   Player column index:', playerColIndex, '| Rating Before index:', ratingBeforeColIndex, '| Delta index:', deltaColIndex);
     }
 
     tbody.innerHTML = dataRows.map(row => {
@@ -139,7 +134,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
         }
 
         let cellStyle = '';
-        // Color de rango en la celda Player
         if (isMatchReport && colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
           const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
           if (!isNaN(ratingBefore)) {
@@ -148,13 +142,9 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
             cellStyle = ` class="${cssClass}"`;
           }
         }
-        // Color verde/rojo para Δ Rating
         if (isMatchReport && colIdx === deltaColIndex && typeof cell === 'number') {
-          if (cell > 0) {
-            cellStyle = ' class="delta-positive"';
-          } else if (cell < 0) {
-            cellStyle = ' class="delta-negative"';
-          }
+          if (cell > 0) cellStyle = ' class="delta-positive"';
+          else if (cell < 0) cellStyle = ' class="delta-negative"';
         }
 
         rowHTML += `<td${cellStyle}>${display}</td>`;
@@ -168,7 +158,132 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
-// ----- Helper functions (unchanged) -----
+// ========== RENDERIZADO ESPECÍFICO PARA MATCH REPORTS ==========
+async function renderMatchReports(sheetName, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '<p>Loading match reports…</p>';
+
+  try {
+    const allRows = await fetchSheetData(sheetName);
+    if (allRows.length === 0) {
+      container.innerHTML = '<p>No match data for this month.</p>';
+      return;
+    }
+
+    // Clean up the rows: trim whitespace and remove invisible chars
+    const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
+
+    // Find all lines that start with "## Match ID:" – each starts a new match block
+    const matchStartIndices = [];
+    for (let i = 0; i < cleanRows.length; i++) {
+      if (cleanRows[i][0] && cleanRows[i][0].startsWith('## Match ID:')) {
+        matchStartIndices.push(i);
+      }
+    }
+
+    if (matchStartIndices.length === 0) {
+      container.innerHTML = '<p>No matches found in this sheet.</p>';
+      return;
+    }
+
+    let html = '';
+    for (let idx = 0; idx < matchStartIndices.length; idx++) {
+      const start = matchStartIndices[idx];
+      const end = (idx < matchStartIndices.length - 1) ? matchStartIndices[idx + 1] : cleanRows.length;
+      const block = cleanRows.slice(start, end);
+
+      // Extract match ID and date/quality
+      const matchIdRow = block[0];
+      const matchId = matchIdRow[0].replace('## Match ID:', '').trim();
+      const dateQualityRow = block[1] ? block[1][0] : '';
+      // dateQualityRow format: **Date:** ... | **Quality:** ...
+      let date = '', quality = '';
+      if (dateQualityRow) {
+        const dateMatch = dateQualityRow.match(/\*\*Date:\*\*\s*(.*?)\s*\|/);
+        const qualityMatch = dateQualityRow.match(/\*\*Quality:\*\*\s*(.*)/);
+        if (dateMatch) date = dateMatch[1].trim();
+        if (qualityMatch) quality = qualityMatch[1].trim();
+      }
+
+      // Find the sub‑header row (Player, Points, Pos, …) within this block
+      let headerRow = null;
+      let dataStart = 0;
+      for (let j = 0; j < block.length; j++) {
+        const row = block[j];
+        if (row.some(cell => cell.toLowerCase().includes('player'))) {
+          headerRow = row;
+          dataStart = j + 1;
+          break;
+        }
+      }
+      if (!headerRow) continue; // skip if no header
+
+      // Collect data rows until we hit a separator or end of block
+      const dataRows = [];
+      for (let j = dataStart; j < block.length; j++) {
+        const row = block[j];
+        if (row[0] === '---' || row[0] === '') break;
+        dataRows.push(row);
+      }
+
+      // Find column indices
+      const playerColIndex = headerRow.findIndex(h => h === 'Player');
+      const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
+      const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
+      // fallback for Rating Before Match typo
+      const ratingBeforeIdx = ratingBeforeColIndex >= 0 ? ratingBeforeColIndex : headerRow.findIndex(h => h === 'Rating Before Matcl');
+
+      // Build the match card
+      html += '<div style="margin-bottom:30px;">';
+      html += `<h3 style="margin:0 0 5px;">Match ID: ${matchId}</h3>`;
+      html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${date} | <strong>Quality:</strong> ${quality}</p>`;
+      html += '<div class="table-responsive"><table class="data-table"><thead><tr>';
+      headerRow.forEach(h => html += `<th>${h}</th>`);
+      html += '</tr></thead><tbody>';
+
+      dataRows.forEach(row => {
+        html += '<tr>';
+        row.forEach((cell, colIdx) => {
+          let display = cell;
+          // Format Δ Rating numbers
+          if (colIdx === deltaColIndex && typeof cell === 'number') {
+            display = cell.toFixed(2);
+          } else if (typeof cell === 'number' && !Number.isInteger(cell) && colIdx !== ratingBeforeIdx) {
+            display = parseFloat(cell.toFixed(2));
+          }
+
+          let cellStyle = '';
+          // Color de rango en Player
+          if (colIdx === playerColIndex && ratingBeforeIdx >= 0) {
+            const ratingBefore = parseFloat(row[ratingBeforeIdx]);
+            if (!isNaN(ratingBefore)) {
+              const rank = getRankFromRating(ratingBefore);
+              cellStyle = ` class="${RANK_CLASS_MAP[rank] || ''}"`;
+            }
+          }
+          // Color Δ Rating
+          if (colIdx === deltaColIndex && typeof cell === 'number') {
+            if (cell > 0) cellStyle = ' class="delta-positive"';
+            else if (cell < 0) cellStyle = ' class="delta-negative"';
+          }
+
+          html += `<td${cellStyle}>${display}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div></div>';
+    }
+
+    container.innerHTML = html || '<p>No matches found.</p>';
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<p>Error: ${err.message}</p>`;
+  }
+}
+
+// ----- Helpers -----
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
   const response = await fetch(url);
