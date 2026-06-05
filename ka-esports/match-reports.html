@@ -11,7 +11,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Match Reports</h1>
-      <p>Select a month to view detailed match reports.</p>
+      <p>Select a month to view detailed match reports. Use <code>?month=YYYY_MM</code> for a direct link (also accepts YYYY-MM).</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -33,7 +33,20 @@
   <script src="../js/api-loader.js"></script>
   <script>
     async function init() {
+      // Populate the month selector
       await populateMonthSelector('report-select', 'MATCH_REPORTS_');
+
+      // Check for direct link month parameter (accept both YYYY-MM and YYYY_MM)
+      const params = new URLSearchParams(window.location.search);
+      let monthParam = params.get('month');
+      if (monthParam) {
+        monthParam = monthParam.replace('-', '_');  // normalize to YYYY_MM
+        const sheetName = 'MATCH_REPORTS_' + monthParam;
+        document.getElementById('report-select').value = sheetName;
+        renderMatchReports(sheetName, 'match-reports-container');
+      }
+
+      // Manual change listener
       document.getElementById('report-select').addEventListener('change', e => {
         if (e.target.value) {
           renderMatchReports(e.target.value, 'match-reports-container');
@@ -42,6 +55,7 @@
         }
       });
     }
+
     document.addEventListener('DOMContentLoaded', init);
   </script>
   <script>
