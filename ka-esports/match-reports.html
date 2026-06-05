@@ -11,7 +11,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Match Reports</h1>
-      <p>Select a month to view detailed match reports. Use <code>?month=YYYY_MM</code> for a direct link (also accepts YYYY-MM).</p>
+      <p>Select a month to view detailed match reports. The URL updates automatically for easy sharing.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -32,26 +32,40 @@
   </div>
   <script src="../js/api-loader.js"></script>
   <script>
+    async function loadMonth(sheetName) {
+      // Show loading
+      document.getElementById('match-reports-container').innerHTML = '<p>Loading match reports…</p>';
+
+      // Render the reports
+      await renderMatchReports(sheetName, 'match-reports-container');
+
+      // Update the URL (the sheet name is MATCH_REPORTS_YYYY_MM)
+      const monthParam = sheetName.replace('MATCH_REPORTS_', '');   // "2026_05"
+      const newUrl = window.location.pathname + '?month=' + monthParam;
+      history.replaceState(null, '', newUrl);
+    }
+
     async function init() {
       // Populate the month selector
       await populateMonthSelector('report-select', 'MATCH_REPORTS_');
 
-      // Check for direct link month parameter (accept both YYYY-MM and YYYY_MM)
+      // Check for direct link (accept both YYYY-MM and YYYY_MM)
       const params = new URLSearchParams(window.location.search);
       let monthParam = params.get('month');
       if (monthParam) {
-        monthParam = monthParam.replace('-', '_');  // normalize to YYYY_MM
+        monthParam = monthParam.replace('-', '_');   // normalize to YYYY_MM
         const sheetName = 'MATCH_REPORTS_' + monthParam;
         document.getElementById('report-select').value = sheetName;
-        renderMatchReports(sheetName, 'match-reports-container');
+        loadMonth(sheetName);
       }
 
       // Manual change listener
       document.getElementById('report-select').addEventListener('change', e => {
         if (e.target.value) {
-          renderMatchReports(e.target.value, 'match-reports-container');
+          loadMonth(e.target.value);
         } else {
           document.getElementById('match-reports-container').innerHTML = '<p>Select a month to view its match reports.</p>';
+          history.replaceState(null, '', window.location.pathname);
         }
       });
     }
