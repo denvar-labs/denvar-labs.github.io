@@ -1,5 +1,5 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v12 – Fixed Match Reports)
+//  KA ESPORTS – API Data Loader (v13 – Uniform Match Report columns)
 // =====================================================
 
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzSTtjN74DSUTTC47Zindyl_-zzLaQPsH3Z3qokhDwvPEG8T-ZOa5ZpdB87adYejh2g/exec';
@@ -58,7 +58,7 @@ async function fetchSheetData(sheetName) {
   return json.data || [];
 }
 
-// ========== TABLA GENÉRICA (para la mayoría de hojas) ==========
+// ========== TABLA GENÉRICA ==========
 function detectHeaderRow(allRows, isMatchReport = false) {
   for (let i = 0; i < Math.min(allRows.length, 10); i++) {
     const row = allRows[i].map(cell => (cell || '').toString().trim());
@@ -158,7 +158,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
-// ========== RENDERIZADO ESPECÍFICO PARA MATCH REPORTS ==========
+// ========== MATCH REPORTS RENDERER (con columnas uniformes) ==========
 async function renderMatchReports(sheetName, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -171,10 +171,8 @@ async function renderMatchReports(sheetName, containerId) {
       return;
     }
 
-    // Clean up the rows: trim whitespace and remove invisible chars
     const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
 
-    // Find all lines that start with "## Match ID:" – each starts a new match block
     const matchStartIndices = [];
     for (let i = 0; i < cleanRows.length; i++) {
       if (cleanRows[i][0] && cleanRows[i][0].startsWith('## Match ID:')) {
@@ -193,11 +191,9 @@ async function renderMatchReports(sheetName, containerId) {
       const end = (idx < matchStartIndices.length - 1) ? matchStartIndices[idx + 1] : cleanRows.length;
       const block = cleanRows.slice(start, end);
 
-      // Extract match ID and date/quality
       const matchIdRow = block[0];
       const matchId = matchIdRow[0].replace('## Match ID:', '').trim();
       const dateQualityRow = block[1] ? block[1][0] : '';
-      // dateQualityRow format: **Date:** ... | **Quality:** ...
       let date = '', quality = '';
       if (dateQualityRow) {
         const dateMatch = dateQualityRow.match(/\*\*Date:\*\*\s*(.*?)\s*\|/);
@@ -206,7 +202,6 @@ async function renderMatchReports(sheetName, containerId) {
         if (qualityMatch) quality = qualityMatch[1].trim();
       }
 
-      // Find the sub‑header row (Player, Points, Pos, …) within this block
       let headerRow = null;
       let dataStart = 0;
       for (let j = 0; j < block.length; j++) {
@@ -217,9 +212,8 @@ async function renderMatchReports(sheetName, containerId) {
           break;
         }
       }
-      if (!headerRow) continue; // skip if no header
+      if (!headerRow) continue;
 
-      // Collect data rows until we hit a separator or end of block
       const dataRows = [];
       for (let j = dataStart; j < block.length; j++) {
         const row = block[j];
@@ -227,48 +221,64 @@ async function renderMatchReports(sheetName, containerId) {
         dataRows.push(row);
       }
 
-      // Find column indices
+      // Column names (fixed for match reports)
       const playerColIndex = headerRow.findIndex(h => h === 'Player');
       const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
       const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
-      // fallback for Rating Before Match typo
       const ratingBeforeIdx = ratingBeforeColIndex >= 0 ? ratingBeforeColIndex : headerRow.findIndex(h => h === 'Rating Before Matcl');
 
-      // Build the match card
+      // CSS classes for each column: numeric columns get 'align-right'
+      const colClasses = {
+        'Player': 'col-player',
+        'Points': 'col-points align-right',
+        'Pos': 'col-pos',
+        'Rating Before Match': 'col-rating-before align-right',
+        'RD Before Match': 'col-rd-before align-right',
+        'Δ Rating': 'col-delta align-right',
+        'New Rating': 'col-new-rating align-right',
+        'New RD': 'col-new-rd align-right'
+      };
+
       html += '<div style="margin-bottom:30px;">';
       html += `<h3 style="margin:0 0 5px;">Match ID: ${matchId}</h3>`;
       html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${date} | <strong>Quality:</strong> ${quality}</p>`;
-      html += '<div class="table-responsive"><table class="data-table"><thead><tr>';
-      headerRow.forEach(h => html += `<th>${h}</th>`);
+      html += '<div class="table-responsive"><table class="data-table match-report-table"><thead><tr>';
+      headerRow.forEach(h => {
+        const colClass = colClasses[h] || '';
+        html += `<th class="${colClass}">${h}</th>`;
+      });
       html += '</tr></thead><tbody>';
 
       dataRows.forEach(row => {
         html += '<tr>';
         row.forEach((cell, colIdx) => {
+          const headerName = headerRow[colIdx] || '';
+          const colClass = colClasses[headerName] || '';
           let display = cell;
-          // Format Δ Rating numbers
-          if (colIdx === deltaColIndex && typeof cell === 'number') {
-            display = cell.toFixed(2);
-          } else if (typeof cell === 'number' && !Number.isInteger(cell) && colIdx !== ratingBeforeIdx) {
-            display = parseFloat(cell.toFixed(2));
+          let cellStyle = '';
+
+          const numVal = parseFloat(cell);
+          const isNumber = !isNaN(numVal) && String(cell).trim() !== '';
+
+          // Δ Rating formatting and coloring
+          if (colIdx === deltaColIndex && isNumber) {
+            display = numVal.toFixed(2);
+            if (numVal > 0) cellStyle += ' delta-positive';
+            else if (numVal < 0) cellStyle += ' delta-negative';
+          } else if (isNumber && !Number.isInteger(numVal) && colIdx !== ratingBeforeIdx) {
+            display = numVal.toFixed(2);
           }
 
-          let cellStyle = '';
-          // Color de rango en Player
+          // Player rank coloring
           if (colIdx === playerColIndex && ratingBeforeIdx >= 0) {
             const ratingBefore = parseFloat(row[ratingBeforeIdx]);
             if (!isNaN(ratingBefore)) {
               const rank = getRankFromRating(ratingBefore);
-              cellStyle = ` class="${RANK_CLASS_MAP[rank] || ''}"`;
+              cellStyle += ` ${RANK_CLASS_MAP[rank] || ''}`;
             }
           }
-          // Color Δ Rating
-          if (colIdx === deltaColIndex && typeof cell === 'number') {
-            if (cell > 0) cellStyle = ' class="delta-positive"';
-            else if (cell < 0) cellStyle = ' class="delta-negative"';
-          }
 
-          html += `<td${cellStyle}>${display}</td>`;
+          html += `<td class="${colClass}${cellStyle}">${display}</td>`;
         });
         html += '</tr>';
       });
@@ -283,7 +293,7 @@ async function renderMatchReports(sheetName, containerId) {
   }
 }
 
-// ----- Helpers -----
+// ----- Helpers (unchanged) -----
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
   const response = await fetch(url);
