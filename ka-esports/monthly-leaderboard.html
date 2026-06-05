@@ -11,7 +11,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Monthly Leaderboard</h1>
-      <p>Select a season to view its leaderboard.</p>
+      <p>Select a season to view its leaderboard. You can also link directly to a month using <code>?month=YYYY-MM</code> in the URL.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -36,11 +36,28 @@
   <script src="../js/api-loader.js"></script>
   <script>
     async function init() {
+      // Populate the month selector
       await populateMonthSelector('month-select', 'LEADERBOARD_');
+
+      // Check for direct link month parameter
+      const params = new URLSearchParams(window.location.search);
+      const monthParam = params.get('month');
+      if (monthParam) {
+        const sheetName = 'LEADERBOARD_' + monthParam;
+        document.getElementById('month-select').value = sheetName;
+        loadTableFromSheet(sheetName, 'data-table');
+      }
+
+      // Manual change listener
       document.getElementById('month-select').addEventListener('change', e => {
-        if (e.target.value) loadTableFromSheet(e.target.value, 'data-table');
+        if (e.target.value) {
+          loadTableFromSheet(e.target.value, 'data-table');
+        } else {
+          document.querySelector('#data-table tbody').innerHTML = '<tr><td colspan="20">Select a month to view its leaderboard.</td></tr>';
+        }
       });
     }
+
     document.addEventListener('DOMContentLoaded', init);
   </script>
   <script>
