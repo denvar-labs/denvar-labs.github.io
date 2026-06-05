@@ -244,3 +244,7 @@ td.rank-padawan      { background-color: #C7C1C1; }
 /* Simulator */
 .sim-row select, .sim-row input { width: 140px; }
 button { margin: 10px 0; }
+
+/* Colores pastel para Δ Rating */
+td.delta-positive { background-color: #c8e6c9; }  /* verde claro */
+td.delta-negative { background-color: #ffcdd2; }  /* rojo claro */
