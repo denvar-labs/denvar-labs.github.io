@@ -1,4 +1,4 @@
-/* ===== KA ESPORTS – Google Sheets Inspired Light Theme (adaptable) ===== */
+/* ===== KA ESPORTS – Google Sheets Inspired Light Theme ===== */
 
 :root {
   --bg: #f5f7fa;
@@ -141,14 +141,14 @@ h1 {
   color: var(--text);
 }
 
-/* ===== Contenedor para scroll horizontal ===== */
+/* ===== Responsive Table Wrapper ===== */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* ===== Data Table ===== */
+/* ===== Generic Data Table ===== */
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -185,7 +185,7 @@ h1 {
   background-color: #f0f4ff;
 }
 
-/* ===== Leaderboard: filas con color de rango ===== */
+/* ===== Leaderboard row rank background ===== */
 tr.rank-grand-master td { background-color: var(--rank-gm); }
 tr.rank-master td       { background-color: var(--rank-master); }
 tr.rank-pro td          { background-color: var(--rank-pro); }
@@ -194,6 +194,7 @@ tr.rank-advanced td     { background-color: var(--rank-advanced); }
 tr.rank-amateur td      { background-color: var(--rank-amateur); }
 tr.rank-padawan td      { background-color: var(--rank-padawan); }
 
+/* Leaderboard left border accent */
 tr.rank-grand-master td:first-child { border-left: 3px solid #d4a017; }
 tr.rank-master td:first-child       { border-left: 3px solid #e6a800; }
 tr.rank-pro td:first-child          { border-left: 3px solid #5b9bd5; }
@@ -202,7 +203,7 @@ tr.rank-advanced td:first-child     { border-left: 3px solid #e6d740; }
 tr.rank-amateur td:first-child      { border-left: 3px solid #5fbf5f; }
 tr.rank-padawan td:first-child      { border-left: 3px solid #9b9b9b; }
 
-/* ===== Match Reports: celdas individuales ===== */
+/* ===== Match Reports: individual cell rank background ===== */
 td.rank-grand-master { background-color: #f1c232; }
 td.rank-master       { background-color: #FFD966; }
 td.rank-pro          { background-color: #CCE5FF; }
@@ -210,6 +211,30 @@ td.rank-expert       { background-color: #FF5C5C; }
 td.rank-advanced     { background-color: #FFF38A; }
 td.rank-amateur      { background-color: #9AFF7D; }
 td.rank-padawan      { background-color: #C7C1C1; }
+
+/* Prevent hover from removing rank color on individual cells */
+.data-table tbody td[class*="rank-"]:hover {
+  background-color: inherit !important;
+}
+
+/* ===== Delta Rating colors (pastel green / red) ===== */
+td.delta-positive { background-color: #c8e6c9; }
+td.delta-negative { background-color: #ffcdd2; }
+
+/* ===== Match Report column widths and alignment ===== */
+.match-report-table .col-player          { width: 220px; }
+.match-report-table .col-points          { width: 70px; }
+.match-report-table .col-pos             { width: 60px; }
+.match-report-table .col-rating-before   { width: 140px; }
+.match-report-table .col-rd-before       { width: 120px; }
+.match-report-table .col-delta           { width: 100px; }
+.match-report-table .col-new-rating      { width: 120px; }
+.match-report-table .col-new-rd          { width: 100px; }
+
+/* Right-align numeric columns */
+.align-right {
+  text-align: right !important;
+}
 
 /* ===== Footer ===== */
 .site-footer {
@@ -229,22 +254,3 @@ td.rank-padawan      { background-color: #C7C1C1; }
   .data-table { min-width: 100%; }
   .data-table td, .data-table th { padding: 8px 10px; font-size: 13px; }
 }
-
-/* Stat cards for profile, awards, hall of fame */
-.stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-  margin: 8px 0;
-}
-.stat-card h3 { margin: 0 0 8px; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); }
-.stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
-
-/* Simulator */
-.sim-row select, .sim-row input { width: 140px; }
-button { margin: 10px 0; }
-
-/* Colores pastel para Δ Rating */
-td.delta-positive { background-color: #c8e6c9; }  /* verde claro */
-td.delta-negative { background-color: #ffcdd2; }  /* rojo claro */
