@@ -1,8 +1,8 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v10 – Auto-detect header row)
+//  KA ESPORTS – API Data Loader (v11 – Delta coloring)
 // =====================================================
 
-const API_BASE = 'https://script.google.com/macros/s/AKfycbyVBjLSCxunlwsHt2Ou_grlUMUte5Z_J1t5tOICLkVknmMyIwz5HPmQxEO0yJRhuDLY/exec';
+const API_BASE = 'https://script.google.com/macros/s/AKfycbxQYa5faqcaByVi0Yo4wTsTKhVui3DiFxvgqAn7GXvh6i991WmnGLJLyTtBUiCimZ1Y/exec';
 
 const HEADER_ROWS_TO_SKIP = {
   'LEADERBOARD_GLOBAL': 3,
@@ -109,12 +109,21 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     }
 
     const percentColumns = new Set();
-    headerRow.forEach((h, idx) => { if (h.includes('%')) percentColumns.add(idx); });
+    headerRow.forEach((h, idx) => {
+      if (h.includes('%')) percentColumns.add(idx);
+    });
 
-    let playerColIndex = -1, ratingBeforeColIndex = -1;
+    let playerColIndex = -1, ratingBeforeColIndex = -1, deltaColIndex = -1;
+
     if (isMatchReport) {
       playerColIndex = headerRow.findIndex(h => h.includes('Player'));
       ratingBeforeColIndex = headerRow.findIndex(h => h.includes('Rating Before'));
+      // Buscar la columna del cambio de rating (Δ Rating o Rating Change)
+      deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
+      // Si no se encuentra, intentar con el texto exacto que aparece en los datos
+      if (deltaColIndex === -1) deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
+      console.log('📊 Match Report headers:', headerRow);
+      console.log('   Player column index:', playerColIndex, '| Rating Before index:', ratingBeforeColIndex, '| Delta index:', deltaColIndex);
     }
 
     tbody.innerHTML = dataRows.map(row => {
@@ -123,17 +132,31 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       let rowHTML = `<tr class="${rowClass}">`;
       row.forEach((cell, colIdx) => {
         let display = cell ?? '';
-        if (percentColumns.has(colIdx) && typeof cell === 'number') display = (cell * 100).toFixed(1) + '%';
-        else if (typeof cell === 'number' && !Number.isInteger(cell)) display = parseFloat(cell.toFixed(2));
+        if (percentColumns.has(colIdx) && typeof cell === 'number') {
+          display = (cell * 100).toFixed(1) + '%';
+        } else if (typeof cell === 'number' && !Number.isInteger(cell)) {
+          display = parseFloat(cell.toFixed(2));
+        }
 
         let cellStyle = '';
+        // Color de rango en la celda Player
         if (isMatchReport && colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
           const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
           if (!isNaN(ratingBefore)) {
             const rank = getRankFromRating(ratingBefore);
-            cellStyle = ` class="${RANK_CLASS_MAP[rank] || ''}"`;
+            const cssClass = RANK_CLASS_MAP[rank] || '';
+            cellStyle = ` class="${cssClass}"`;
           }
         }
+        // Color verde/rojo para Δ Rating
+        if (isMatchReport && colIdx === deltaColIndex && typeof cell === 'number') {
+          if (cell > 0) {
+            cellStyle = ' class="delta-positive"';
+          } else if (cell < 0) {
+            cellStyle = ' class="delta-negative"';
+          }
+        }
+
         rowHTML += `<td${cellStyle}>${display}</td>`;
       });
       rowHTML += '</tr>';
@@ -145,6 +168,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
+// ----- Helper functions (unchanged) -----
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
   const response = await fetch(url);
@@ -160,9 +184,10 @@ async function populateMonthSelector(selectId, prefix) {
     const filtered = allSheets.filter(name => name.startsWith(prefix)).sort().reverse();
     select.innerHTML = '<option value="">-- Select a month --</option>';
     filtered.forEach(name => {
+      const display = name.replace(prefix, '').replace(/_/g, '-');
       const option = document.createElement('option');
       option.value = name;
-      option.textContent = name.replace(prefix, '').replace(/_/g, '-');
+      option.textContent = display;
       select.appendChild(option);
     });
   } catch (err) { console.error('Error populating month selector:', err); }
@@ -172,7 +197,12 @@ function populateSelectFromList(selectId, items, defaultText = '-- Select --') {
   const select = document.getElementById(selectId);
   if (!select) return;
   select.innerHTML = `<option value="">${defaultText}</option>`;
-  items.forEach(item => { const opt = document.createElement('option'); opt.value = item; opt.textContent = item; select.appendChild(opt); });
+  items.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item;
+    opt.textContent = item;
+    select.appendChild(opt);
+  });
 }
 
 async function fetchPlayerNames() {
@@ -182,7 +212,8 @@ async function fetchPlayerNames() {
     const header = playersSheet[0].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
     const nameCol = header.indexOf('Name');
     if (nameCol === -1) return [];
-    return [...new Set(playersSheet.slice(1).map(row => row[nameCol]).filter(Boolean))].sort();
+    const names = playersSheet.slice(1).map(row => row[nameCol]).filter(Boolean);
+    return [...new Set(names)].sort();
   } catch (err) { return []; }
 }
 
