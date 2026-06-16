@@ -1,5 +1,5 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v13 – Uniform Match Report columns)
+//  KA ESPORTS – API Data Loader (v14 – Exclude inactive players from dropdowns)
 // =====================================================
 
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzSTtjN74DSUTTC47Zindyl_-zzLaQPsH3Z3qokhDwvPEG8T-ZOa5ZpdB87adYejh2g/exec';
@@ -158,7 +158,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
-// ========== MATCH REPORTS RENDERER (con columnas uniformes) ==========
+// ========== MATCH REPORTS RENDERER ==========
 async function renderMatchReports(sheetName, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -221,13 +221,11 @@ async function renderMatchReports(sheetName, containerId) {
         dataRows.push(row);
       }
 
-      // Column names (fixed for match reports)
       const playerColIndex = headerRow.findIndex(h => h === 'Player');
       const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
       const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
       const ratingBeforeIdx = ratingBeforeColIndex >= 0 ? ratingBeforeColIndex : headerRow.findIndex(h => h === 'Rating Before Matcl');
 
-      // CSS classes for each column: numeric columns get 'align-right'
       const colClasses = {
         'Player': 'col-player',
         'Points': 'col-points align-right',
@@ -260,7 +258,6 @@ async function renderMatchReports(sheetName, containerId) {
           const numVal = parseFloat(cell);
           const isNumber = !isNaN(numVal) && String(cell).trim() !== '';
 
-          // Δ Rating formatting and coloring
           if (colIdx === deltaColIndex && isNumber) {
             display = numVal.toFixed(2);
             if (numVal > 0) cellStyle += ' delta-positive';
@@ -269,7 +266,6 @@ async function renderMatchReports(sheetName, containerId) {
             display = numVal.toFixed(2);
           }
 
-          // Player rank coloring
           if (colIdx === playerColIndex && ratingBeforeIdx >= 0) {
             const ratingBefore = parseFloat(row[ratingBeforeIdx]);
             if (!isNaN(ratingBefore)) {
@@ -293,7 +289,7 @@ async function renderMatchReports(sheetName, containerId) {
   }
 }
 
-// ----- Helpers (unchanged) -----
+// ========== HELPERS ==========
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
   const response = await fetch(url);
@@ -330,16 +326,35 @@ function populateSelectFromList(selectId, items, defaultText = '-- Select --') {
   });
 }
 
+/**
+ * Fetch all active player names (players marked as ACTIVE).
+ * This is used by dropdowns in H2H, profile, comparison, etc.
+ * Inactive players are automatically hidden from the web interface.
+ */
 async function fetchPlayerNames() {
   try {
     const playersSheet = await fetchSheetData('PLAYERS');
     if (playersSheet.length < 2) return [];
     const header = playersSheet[0].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
     const nameCol = header.indexOf('Name');
+    const activeCol = header.indexOf('Active');
     if (nameCol === -1) return [];
-    const names = playersSheet.slice(1).map(row => row[nameCol]).filter(Boolean);
+    const dataRows = playersSheet.slice(1);
+    const names = dataRows
+      .filter(row => {
+        // If there's an Active column, only include players marked as ACTIVE.
+        // If the column doesn't exist, include everyone.
+        if (activeCol === -1) return true;
+        const activeStatus = (row[activeCol] || '').toString().trim().toUpperCase();
+        return activeStatus === 'ACTIVE';
+      })
+      .map(row => row[nameCol])
+      .filter(Boolean);
     return [...new Set(names)].sort();
-  } catch (err) { return []; }
+  } catch (err) {
+    console.error('Error fetching player names:', err);
+    return [];
+  }
 }
 
 async function loadPlainText(sheetName, containerId) {
