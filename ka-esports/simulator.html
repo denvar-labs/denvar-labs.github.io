@@ -8,7 +8,7 @@
   <style>
     .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .sim-row select, .sim-row input { padding: 6px; border-radius: 4px; border: 1px solid var(--border); }
-    button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+    button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin: 10px 0; }
     #sim-result { margin-top: 15px; padding: 15px; background: var(--surface); border-radius: 4px; }
     .player-card { border: 1px solid var(--border); padding: 10px; border-radius: 4px; margin-bottom: 10px; }
   </style>
@@ -18,7 +18,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Rating Simulator</h1>
-      <p>Predict rating changes for a 4‑player match.</p>
+      <p>Predict rating changes for a 4‑player match. Only active players are shown.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -38,7 +38,6 @@
   <script src="../js/api-loader.js"></script>
   <script>
     // ========== Glicko-2 Simplified Simulator ==========
-    // Uses same formulas as your Apps Script, but simplified (no volatility update).
     function g(phi) { return 1 / Math.sqrt(1 + 3*phi*phi/(Math.PI*Math.PI)); }
     function E(mu, muJ, phiJ) { return 1 / (1 + Math.exp(-g(phiJ)*(mu - muJ))); }
 
@@ -69,19 +68,42 @@
     }
 
     let playerPool = [];
+
+    // Load only active players and build the pool
     async function loadPlayers() {
-      const all = await fetchSheetData('PLAYERS');
-      const header = all[0].map(h => (h||'').toString().trim());
-      const nameIdx = header.indexOf('Name');
-      const ratingIdx = header.indexOf('Rating');
-      const rdIdx = header.indexOf('RD');
-      const volIdx = header.indexOf('Volatility');
-      playerPool = all.slice(1).map(row => ({
-        name: row[nameIdx],
-        rating: parseFloat(row[ratingIdx]),
-        rd: parseFloat(row[rdIdx]),
-        vol: parseFloat(row[volIdx])
-      })).filter(p => p.name);
+      try {
+        const all = await fetchSheetData('PLAYERS');
+        const header = all[0].map(h => (h||'').toString().trim());
+        const nameIdx = header.indexOf('Name');
+        const ratingIdx = header.indexOf('Rating');
+        const rdIdx = header.indexOf('RD');
+        const volIdx = header.indexOf('Volatility');
+        const activeIdx = header.indexOf('Active');
+
+        // Get inactive set to filter
+        const inactiveNames = await getInactivePlayerNames();
+
+        playerPool = all.slice(1)
+          .filter(row => {
+            if (activeIdx !== -1) {
+              const status = (row[activeIdx] || '').toString().trim().toUpperCase();
+              if (status !== 'ACTIVE') return false;
+            }
+            // Double-check with inactive set (in case column missing or inconsistent)
+            const name = (row[nameIdx] || '').toString().trim();
+            return name && !inactiveNames.has(name);
+          })
+          .map(row => ({
+            name: row[nameIdx],
+            rating: parseFloat(row[ratingIdx]),
+            rd: parseFloat(row[rdIdx]),
+            vol: parseFloat(row[volIdx])
+          }))
+          .filter(p => p.name);
+      } catch (err) {
+        console.error('Error loading players:', err);
+        playerPool = [];
+      }
     }
 
     function buildSelects() {
@@ -104,12 +126,11 @@
         const player = playerPool.find(p => p.name === sel);
         if (!player) { alert('Select all players'); return; }
         const pos = parseInt(document.getElementById(`pos${i}`).value);
+        if (isNaN(pos) || pos < 1 || pos > 4) { alert(`Invalid position for Player ${i}`); return; }
         selected.push({ ...player, position: pos });
       }
-      // Check duplicate players
       if (new Set(selected.map(p => p.name)).size < 4) { alert('Duplicate players'); return; }
 
-      // Build result matrix: 1 for higher position, 0.5 for tie, 0 for lower
       const results = selected.map((p, i) =>
         selected.map((q, j) => {
           if (i === j) return 0;
