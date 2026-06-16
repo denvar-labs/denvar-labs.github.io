@@ -108,11 +108,21 @@
         const rdIdx = headers.indexOf('RD');
         const matchesIdx = headers.indexOf('Matches');
         const winsIdx = headers.indexOf('Wins');
-        const rows = data.slice(3).filter(r => r[nameIdx] && parseInt(r[matchesIdx]) > 0);
+
+        const inactiveNames = await getInactivePlayerNames();
+
+        const rows = data.slice(3).filter(r => {
+          const name = r[nameIdx];
+          if (!name) return false;
+          if (inactiveNames.has(name.toString().trim())) return false;
+          return parseInt(r[matchesIdx]) > 0;
+        });
+
         if (rows.length === 0) {
-          cardsContainer.innerHTML = '<p>No players with matches this month.</p>';
+          cardsContainer.innerHTML = '<p>No active players with matches this month.</p>';
           return;
         }
+
         const players = rows.map(r => ({
           name: r[nameIdx],
           rating: parseFloat(r[ratingIdx]),
@@ -166,7 +176,6 @@
         // Iron Wall
         const ironWall = players.reduce((a,b) => a.rd < b.rd ? a : b);
 
-        // Display awards
         let html = '';
         html += buildAwardCard('👑', 'MVP of the Month', mvp.name, `${mvp.rating.toFixed(2)} rating`);
         html += buildAwardCard('🚀', 'Most Improved', mostImproved.name, `+${mostImproved.improvement.toFixed(2)} points`);
@@ -191,7 +200,7 @@
         `).join('');
         top5Section.style.display = 'block';
 
-        // Evolution chart
+        // Evolution chart (unchanged, but uses top5 names which are already active)
         await drawEvolutionChart(sheetName, top5.map(p => p.name));
       } catch (err) {
         console.error(err);
@@ -221,7 +230,6 @@
       const startDate = new Date(y, m-1, 1);
       const endDate = new Date(y, m, 0, 23, 59, 59);
 
-      // ID -> Name mapping
       const playersData = await fetchSheetData('PLAYERS');
       const idToName = {};
       if (playersData.length > 1) {
@@ -236,7 +244,6 @@
         }
       }
 
-      // Collect rating points per player within the month
       const ratingSeries = {};
       top5Names.forEach(n => { ratingSeries[n] = []; });
 
@@ -259,10 +266,8 @@
         }
       }
 
-      // Sort each series by date
       Object.values(ratingSeries).forEach(series => series.sort((a,b) => a.date - b.date));
 
-      // We'll use a single set of labels based on all unique match dates across the top5
       const allDates = new Set();
       top5Names.forEach(name => {
         ratingSeries[name].forEach(p => allDates.add(p.date.toISOString().split('T')[0]));
@@ -271,11 +276,9 @@
 
       const colors = ['#4a86e8','#e94560','#10b981','#f59e0b','#8b5cf6'];
       const datasets = top5Names.map((name, idx) => {
-        // For each date, find the player's rating at or before that date (last known)
         const series = ratingSeries[name];
         const dataPoints = sortedDates.map(dateStr => {
           const date = new Date(dateStr);
-          // find the latest point <= this date
           let lastRating = null;
           for (const point of series) {
             if (point.date <= date) lastRating = point.rating;
@@ -297,25 +300,17 @@
       const ctx = document.getElementById('evolutionChart').getContext('2d');
       evolutionChart = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels: sortedDates,
-          datasets: datasets
-        },
+        data: { labels: sortedDates, datasets },
         options: {
           responsive: true,
           scales: {
-            x: {
-              title: { display: true, text: 'Date' }
-            },
-            y: {
-              title: { display: true, text: 'Rating' }
-            }
+            x: { title: { display: true, text: 'Date' } },
+            y: { title: { display: true, text: 'Rating' } }
           }
         }
       });
 
       chartSection.style.display = 'block';
-      console.log('Chart drawn for month', sheetName, 'with top5', top5Names);
     }
 
     async function init() {
