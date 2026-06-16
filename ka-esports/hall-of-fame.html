@@ -24,7 +24,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Hall of Fame</h1>
-      <p>All‑time legends and monthly champions (ranked players only).</p>
+      <p>All‑time legends and monthly champions (ranked players only, inactive hidden).</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -67,21 +67,19 @@
     }
 
     function buildRecordCard(icon, title, player, value) {
-      return `
-        <div class="record-card">
-          <div class="record-icon">${icon}</div>
-          <div class="record-title">${title}</div>
-          <div class="record-value">${value}</div>
-          <div class="record-player">${player}</div>
-        </div>
-      `;
+      return `<div class="record-card">
+        <div class="record-icon">${icon}</div>
+        <div class="record-title">${title}</div>
+        <div class="record-value">${value}</div>
+        <div class="record-player">${player}</div>
+      </div>`;
     }
 
     function destroyChart() {
       if (currentChart) { currentChart.destroy(); currentChart = null; }
     }
 
-    // ---------- ALL-TIME RECORDS & CHART (from Global Leaderboard, excluding Unranked) ----------
+    // ---------- ALL-TIME (filter out inactives) ----------
     async function loadAllTimeRecords() {
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
@@ -92,11 +90,7 @@
 
       try {
         const data = await fetchSheetData('LEADERBOARD_GLOBAL');
-        // Global leaderboard: row 0 title, row 1 subtitle, row 2 headers, data from row 3
-        if (data.length < 4) {
-          container.innerHTML = '<p>No data available.</p>';
-          return;
-        }
+        if (data.length < 4) { container.innerHTML = '<p>No data available.</p>'; return; }
         const headers = data[2].map(h => (h||'').toString().trim());
         const nameIdx = headers.indexOf('Player');
         const ratingIdx = headers.indexOf('Rating');
@@ -104,15 +98,14 @@
         const matchesIdx = headers.indexOf('Matches');
         const winsIdx = headers.indexOf('Wins');
 
+        const inactiveNames = await getInactivePlayerNames();
         const rows = data.slice(3).filter(r => {
           const rank = (r[rankIdx] || '').toString().trim();
-          return r[nameIdx] && rank !== 'Unranked';
+          const name = (r[nameIdx] || '').toString().trim();
+          return name && rank !== 'Unranked' && !inactiveNames.has(name);
         });
 
-        if (rows.length === 0) {
-          container.innerHTML = '<p>No ranked players found.</p>';
-          return;
-        }
+        if (rows.length === 0) { container.innerHTML = '<p>No ranked active players found.</p>'; return; }
 
         const players = rows.map(r => ({
           name: r[nameIdx],
@@ -121,7 +114,6 @@
           wins: parseInt(r[winsIdx]) || 0
         }));
 
-        // Records
         const topRating = players.reduce((a,b) => a.rating > b.rating ? a : b);
         const topMatches = players.reduce((a,b) => a.matches > b.matches ? a : b);
         const topWins = players.reduce((a,b) => a.wins > b.wins ? a : b);
@@ -135,7 +127,6 @@
         if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
         container.innerHTML = html || '<p>Not enough data.</p>';
 
-        // Chart: Top 10 players by rating
         const top10 = players.sort((a,b) => b.rating - a.rating).slice(0,10);
         if (top10.length > 0) {
           const names = top10.map(p => p.name);
@@ -153,23 +144,15 @@
                 borderWidth: 1
               }]
             },
-            options: {
-              responsive: true,
-              scales: {
-                y: { beginAtZero: false, title: { display: true, text: 'Rating' } }
-              },
-              plugins: { legend: { display: false } }
-            }
+            options: { responsive: true, scales: { y: { beginAtZero: false, title: { display: true, text: 'Rating' } } }, plugins: { legend: { display: false } } }
           });
-          chartCaption.textContent = 'Top 10 Players by Rating (All-Time, Ranked Only)';
+          chartCaption.textContent = 'Top 10 Players by Rating (All-Time, Ranked & Active Only)';
           chartSection.style.display = 'block';
         }
-      } catch (err) {
-        container.innerHTML = `<p>Error: ${err.message}</p>`;
-      }
+      } catch (err) { container.innerHTML = `<p>Error: ${err.message}</p>`; }
     }
 
-    // ---------- MONTHLY RECORDS & CHART (excluding Unranked) ----------
+    // ---------- MONTHLY ----------
     async function loadMonthlyRecords(sheetName) {
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
@@ -180,10 +163,7 @@
 
       try {
         const data = await fetchSheetData(sheetName);
-        if (data.length < 4) {
-          container.innerHTML = '<p>No data for this month.</p>';
-          return;
-        }
+        if (data.length < 4) { container.innerHTML = '<p>No data for this month.</p>'; return; }
         const headers = data[2].map(h => (h||'').toString().trim());
         const nameIdx = headers.indexOf('Player');
         const ratingIdx = headers.indexOf('Rating');
@@ -191,16 +171,14 @@
         const matchesIdx = headers.indexOf('Matches');
         const winsIdx = headers.indexOf('Wins');
 
-        // Filter out Unranked and players with zero matches
+        const inactiveNames = await getInactivePlayerNames();
         const rows = data.slice(3).filter(r => {
           const rank = (r[rankIdx] || '').toString().trim();
-          return r[nameIdx] && parseInt(r[matchesIdx]) > 0 && rank !== 'Unranked';
+          const name = (r[nameIdx] || '').toString().trim();
+          return name && parseInt(r[matchesIdx]) > 0 && rank !== 'Unranked' && !inactiveNames.has(name);
         });
 
-        if (rows.length === 0) {
-          container.innerHTML = '<p>No ranked players with matches this month.</p>';
-          return;
-        }
+        if (rows.length === 0) { container.innerHTML = '<p>No ranked active players with matches this month.</p>'; return; }
 
         const players = rows.map(r => ({
           name: r[nameIdx],
@@ -209,7 +187,6 @@
           wins: parseInt(r[winsIdx])
         }));
 
-        // Records
         const topRating = players.reduce((a,b) => a.rating > b.rating ? a : b);
         const topMatches = players.reduce((a,b) => a.matches > b.matches ? a : b);
         const topWins = players.reduce((a,b) => a.wins > b.wins ? a : b);
@@ -223,7 +200,6 @@
         if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
         container.innerHTML = html || '<p>Not enough data.</p>';
 
-        // Chart: Top 5 players of the month by rating
         const top5 = players.sort((a,b) => b.rating - a.rating).slice(0,5);
         if (top5.length > 0) {
           const names = top5.map(p => p.name);
@@ -241,31 +217,20 @@
                 borderWidth: 1
               }]
             },
-            options: {
-              responsive: true,
-              scales: {
-                y: { beginAtZero: false, title: { display: true, text: 'Rating' } }
-              },
-              plugins: { legend: { display: false } }
-            }
+            options: { responsive: true, scales: { y: { beginAtZero: false, title: { display: true, text: 'Rating' } } }, plugins: { legend: { display: false } } }
           });
-          chartCaption.textContent = `Top 5 Players by Rating (${sheetName.replace('LEADERBOARD_','')}, Ranked Only)`;
+          chartCaption.textContent = `Top 5 Players by Rating (${sheetName.replace('LEADERBOARD_','')}, Ranked & Active Only)`;
           chartSection.style.display = 'block';
         }
-      } catch (err) {
-        container.innerHTML = `<p>Error: ${err.message}</p>`;
-      }
+      } catch (err) { container.innerHTML = `<p>Error: ${err.message}</p>`; }
     }
 
-    // ---------- MODE SWITCHING ----------
     async function switchMode(mode) {
       currentMode = mode;
       document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
-
       const monthSelector = document.getElementById('month-selector');
       destroyChart();
-
       if (mode === 'alltime') {
         monthSelector.style.display = 'none';
         loadAllTimeRecords();
@@ -286,18 +251,12 @@
 
     async function init() {
       await populateMonthSelector('hof-month-select', 'LEADERBOARD_');
-
       document.getElementById('mode-switch').addEventListener('click', e => {
-        if (e.target.classList.contains('mode-btn')) {
-          switchMode(e.target.dataset.mode);
-        }
+        if (e.target.classList.contains('mode-btn')) switchMode(e.target.dataset.mode);
       });
-
       document.getElementById('hof-month-select').addEventListener('change', e => {
         if (e.target.value) loadMonthlyRecords(e.target.value);
       });
-
-      // Load all-time by default
       loadAllTimeRecords();
     }
 
