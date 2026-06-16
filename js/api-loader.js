@@ -1,5 +1,5 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v14 – Exclude inactive players from dropdowns)
+//  KA ESPORTS – API Data Loader (v15 – Hide inactive players everywhere)
 // =====================================================
 
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzSTtjN74DSUTTC47Zindyl_-zzLaQPsH3Z3qokhDwvPEG8T-ZOa5ZpdB87adYejh2g/exec';
@@ -58,7 +58,43 @@ async function fetchSheetData(sheetName) {
   return json.data || [];
 }
 
-// ========== TABLA GENÉRICA ==========
+// ----- Cache for inactive player names -----
+let inactiveNamesPromise = null;
+function getInactivePlayerNames() {
+  if (!inactiveNamesPromise) {
+    inactiveNamesPromise = (async () => {
+      try {
+        const players = await fetchSheetData('PLAYERS');
+        if (players.length < 2) return new Set();
+        const header = players[0].map(h => (h || '').toString().trim());
+        const nameIdx = header.indexOf('Name');
+        const activeIdx = header.indexOf('Active');
+        if (nameIdx === -1 || activeIdx === -1) return new Set();
+        const inactiveNames = new Set();
+        for (let i = 1; i < players.length; i++) {
+          const row = players[i];
+          const status = (row[activeIdx] || '').toString().trim().toUpperCase();
+          if (status === 'INACTIVE') {
+            const name = (row[nameIdx] || '').toString().trim();
+            if (name) inactiveNames.add(name);
+          }
+        }
+        return inactiveNames;
+      } catch (e) {
+        console.error('Error fetching inactive players:', e);
+        return new Set();
+      }
+    })();
+  }
+  return inactiveNamesPromise;
+}
+
+// Clear cache (call if data changes, e.g. after a rebuild)
+function clearInactiveCache() {
+  inactiveNamesPromise = null;
+}
+
+// ----- TABLE RENDERER (with inactive filtering) -----
 function detectHeaderRow(allRows, isMatchReport = false) {
   for (let i = 0; i < Math.min(allRows.length, 10); i++) {
     const row = allRows[i].map(cell => (cell || '').toString().trim());
@@ -99,10 +135,23 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     thead.innerHTML = headerRow.length ? '<tr>' + headerRow.map(h => `<th>${h}</th>`).join('') + '</tr>' : '';
 
     const dataStartIndex = headerRowIndex + 1;
-    const dataRows = allRows.slice(dataStartIndex).filter(row => {
+    let dataRows = allRows.slice(dataStartIndex).filter(row => {
       const firstCell = (row[0] || '').toString().trim();
       return firstCell !== '---' && firstCell !== '' && firstCell !== 'undefined';
     });
+
+    // ----- FILTER INACTIVE PLAYERS -----
+    // Detect the "Player" column (if exists)
+    const playerColIndex = headerRow.findIndex(h => h === 'Player' || h === 'Name');
+    if (playerColIndex !== -1) {
+      const inactiveNames = await getInactivePlayerNames();
+      if (inactiveNames.size > 0) {
+        dataRows = dataRows.filter(row => {
+          const playerName = (row[playerColIndex] || '').toString().trim();
+          return !inactiveNames.has(playerName);
+        });
+      }
+    }
 
     if (dataRows.length === 0) {
       tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
@@ -114,9 +163,8 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       if (h.includes('%')) percentColumns.add(idx);
     });
 
-    let playerColIndex = -1, ratingBeforeColIndex = -1, deltaColIndex = -1;
+    let ratingBeforeColIndex = -1, deltaColIndex = -1;
     if (isMatchReport) {
-      playerColIndex = headerRow.findIndex(h => h.includes('Player'));
       ratingBeforeColIndex = headerRow.findIndex(h => h.includes('Rating Before'));
       deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
     }
@@ -158,7 +206,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
-// ========== MATCH REPORTS RENDERER ==========
+// ----- MATCH REPORTS RENDERER (with inactive filtering) -----
 async function renderMatchReports(sheetName, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -172,6 +220,7 @@ async function renderMatchReports(sheetName, containerId) {
     }
 
     const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
+    const inactiveNames = await getInactivePlayerNames();
 
     const matchStartIndices = [];
     for (let i = 0; i < cleanRows.length; i++) {
@@ -214,14 +263,28 @@ async function renderMatchReports(sheetName, containerId) {
       }
       if (!headerRow) continue;
 
-      const dataRows = [];
+      let dataRows = [];
       for (let j = dataStart; j < block.length; j++) {
         const row = block[j];
         if (row[0] === '---' || row[0] === '') break;
         dataRows.push(row);
       }
 
+      // Remove rows belonging to inactive players
       const playerColIndex = headerRow.findIndex(h => h === 'Player');
+      if (playerColIndex !== -1 && inactiveNames.size > 0) {
+        dataRows = dataRows.filter(row => {
+          const playerName = (row[playerColIndex] || '').toString().trim();
+          return !inactiveNames.has(playerName);
+        });
+      }
+
+      // Skip match entirely if all rows were removed? Let's keep the match header even if no players shown
+      if (dataRows.length === 0) {
+        // Option: skip the whole match. We'll skip.
+        continue;
+      }
+
       const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
       const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
       const ratingBeforeIdx = ratingBeforeColIndex >= 0 ? ratingBeforeColIndex : headerRow.findIndex(h => h === 'Rating Before Matcl');
@@ -289,7 +352,7 @@ async function renderMatchReports(sheetName, containerId) {
   }
 }
 
-// ========== HELPERS ==========
+// ----- HELPERS (unchanged) -----
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
   const response = await fetch(url);
@@ -328,8 +391,7 @@ function populateSelectFromList(selectId, items, defaultText = '-- Select --') {
 
 /**
  * Fetch all active player names (players marked as ACTIVE).
- * This is used by dropdowns in H2H, profile, comparison, etc.
- * Inactive players are automatically hidden from the web interface.
+ * Inactive players are automatically hidden from dropdowns.
  */
 async function fetchPlayerNames() {
   try {
@@ -342,11 +404,9 @@ async function fetchPlayerNames() {
     const dataRows = playersSheet.slice(1);
     const names = dataRows
       .filter(row => {
-        // If there's an Active column, only include players marked as ACTIVE.
-        // If the column doesn't exist, include everyone.
         if (activeCol === -1) return true;
-        const activeStatus = (row[activeCol] || '').toString().trim().toUpperCase();
-        return activeStatus === 'ACTIVE';
+        const status = (row[activeCol] || '').toString().trim().toUpperCase();
+        return status === 'ACTIVE';
       })
       .map(row => row[nameCol])
       .filter(Boolean);
