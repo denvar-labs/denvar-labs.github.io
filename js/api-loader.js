@@ -1,5 +1,5 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v16 – Omit entire matches with inactive players)
+//  KA ESPORTS – API Data Loader (v17 – Strip flag emojis for inactive check)
 // =====================================================
 
 const API_BASE = 'https://script.google.com/macros/s/AKfycbzSTtjN74DSUTTC47Zindyl_-zzLaQPsH3Z3qokhDwvPEG8T-ZOa5ZpdB87adYejh2g/exec';
@@ -89,7 +89,18 @@ function getInactivePlayerNames() {
   return inactiveNamesPromise;
 }
 
-// ----- TABLE RENDERER (unchanged) -----
+/**
+ * Extracts the base player name by removing flag emojis and any trailing spaces.
+ * Converts "Denvar 🇲🇽" → "Denvar", "Jabon 🇨🇴" → "Jabon", etc.
+ */
+function extractPlayerName(cell) {
+  if (!cell) return '';
+  // Remove flag emojis (regional indicator symbols and other flags)
+  // Also remove any trailing whitespace
+  return cell.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}]+/gu, '').trim();
+}
+
+// ----- TABLE RENDERER (unchanged, but uses extractPlayerName for filtering) -----
 function detectHeaderRow(allRows, isMatchReport = false) {
   for (let i = 0; i < Math.min(allRows.length, 10); i++) {
     const row = allRows[i].map(cell => (cell || '').toString().trim());
@@ -141,8 +152,9 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       const inactiveNames = await getInactivePlayerNames();
       if (inactiveNames.size > 0) {
         dataRows = dataRows.filter(row => {
-          const playerName = (row[playerColIndex] || '').toString().trim();
-          return !inactiveNames.has(playerName);
+          const rawName = (row[playerColIndex] || '').toString().trim();
+          const cleanName = extractPlayerName(rawName);
+          return !inactiveNames.has(cleanName);
         });
       }
     }
@@ -200,7 +212,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
-// ========== MATCH REPORTS RENDERER (now skips entire match if any player is inactive) ==========
+// ========== MATCH REPORTS RENDERER (now strips flags for inactive detection) ==========
 async function renderMatchReports(sheetName, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -265,24 +277,26 @@ async function renderMatchReports(sheetName, containerId) {
       }
 
       const playerColIndex = headerRow.findIndex(h => h === 'Player');
-      // If any player in this match is inactive, skip the whole match
+      // If any player in this match is inactive (after stripping flag), skip the whole match
       if (playerColIndex !== -1 && inactiveNames.size > 0) {
         const hasInactive = dataRows.some(row => {
-          const playerName = (row[playerColIndex] || '').toString().trim();
-          return inactiveNames.has(playerName);
+          const rawName = (row[playerColIndex] || '').toString().trim();
+          const cleanName = extractPlayerName(rawName);
+          return inactiveNames.has(cleanName);
         });
         if (hasInactive) continue;   // skip this match entirely
       }
 
-      // Now remove rows of inactive players (shouldn't happen because we already skip, but keep for safety)
+      // Now remove rows of inactive players (just in case)
       if (playerColIndex !== -1 && inactiveNames.size > 0) {
         dataRows = dataRows.filter(row => {
-          const playerName = (row[playerColIndex] || '').toString().trim();
-          return !inactiveNames.has(playerName);
+          const rawName = (row[playerColIndex] || '').toString().trim();
+          const cleanName = extractPlayerName(rawName);
+          return !inactiveNames.has(cleanName);
         });
       }
 
-      if (dataRows.length === 0) continue; // just in case
+      if (dataRows.length === 0) continue;
 
       const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
       const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
@@ -351,7 +365,7 @@ async function renderMatchReports(sheetName, containerId) {
   }
 }
 
-// ========== HELPERS ==========
+// ----- HELPERS (unchanged) -----
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
   const response = await fetch(url);
