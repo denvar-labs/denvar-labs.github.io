@@ -11,7 +11,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Player Head-to-Head</h1>
-      <p>Select a player to view their match history against others.</p>
+      <p>Select a player to view their match history against others. Inactive players are hidden.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -39,7 +39,7 @@
   <script>
     async function initPlayerDropdown() {
       try {
-        const playerNames = await fetchPlayerNames();
+        const playerNames = await fetchPlayerNames(); // already filters inactives
         if (playerNames.length === 0) {
           document.getElementById('player-select').innerHTML = '<option value="">No players found</option>';
           return;
@@ -51,9 +51,10 @@
     async function loadH2HForPlayer(playerName) {
       const tbody = document.querySelector('#h2h-table tbody');
       tbody.innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+
       try {
-        const h2hRows = await fetchSheetData('_H2H_DATA');
-        const dataRows = h2hRows.slice(1);
+        const inactiveNames = await getInactivePlayerNames();
+        // Build ID->Name map (only active players)
         const playersSheet = await fetchSheetData('PLAYERS');
         const idToName = {};
         if (playersSheet.length > 1) {
@@ -61,11 +62,29 @@
           const idCol = header.indexOf('ID');
           const nameCol = header.indexOf('Name');
           if (idCol !== -1 && nameCol !== -1) {
-            playersSheet.slice(1).forEach(row => { if (row[idCol] && row[nameCol]) idToName[row[idCol]] = row[nameCol]; });
+            playersSheet.slice(1).forEach(row => {
+              if (row[idCol] && row[nameCol]) {
+                const name = row[nameCol].toString().trim();
+                // Only include if active
+                if (!inactiveNames.has(name)) {
+                  idToName[row[idCol]] = name;
+                }
+              }
+            });
           }
         }
-        const playerRows = dataRows.filter(row => idToName[row[0]] === playerName || idToName[row[1]] === playerName);
-        if (playerRows.length === 0) { tbody.innerHTML = '<tr><td colspan="7">No H2H data found.</td></tr>'; return; }
+
+        const h2hRows = await fetchSheetData('_H2H_DATA');
+        const dataRows = h2hRows.slice(1);
+        const playerRows = dataRows.filter(row => {
+          const idA = row[0], idB = row[1];
+          return idToName[idA] === playerName || idToName[idB] === playerName;
+        });
+
+        if (playerRows.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7">No H2H data found for this player.</td></tr>';
+          return;
+        }
 
         const oppStats = {};
         playerRows.forEach(row => {
@@ -73,14 +92,18 @@
           const isPlayerA = idToName[idA] === playerName;
           const oppId = isPlayerA ? idB : idA;
           const oppName = idToName[oppId] || oppId;
+          // Skip if opponent is inactive
+          if (inactiveNames.has(oppName)) return;
           const wins = isPlayerA ? winsA : winsB;
           const losses = matches - wins - ties;
           const totalPts = isPlayerA ? ptsA : ptsB;
+
           if (!oppStats[oppName]) oppStats[oppName] = { matches: 0, wins: 0, losses: 0, ties: 0, totalPts: 0 };
           const st = oppStats[oppName];
           st.matches += matches; st.wins += wins; st.losses += losses; st.ties += ties; st.totalPts += totalPts;
         });
-        const opponents = Object.entries(oppStats).sort((a, b) => b[1].matches - a[1].matches);
+        const opponents = Object.entries(oppStats).sort((a,b) => b[1].matches - a[1].matches);
+
         tbody.innerHTML = opponents.map(([name, st]) => {
           const winPercent = st.matches ? ((st.wins / st.matches) * 100).toFixed(1) : '0.0';
           const avgPts = st.matches ? (st.totalPts / st.matches).toFixed(2) : '0.00';
