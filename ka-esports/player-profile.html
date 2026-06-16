@@ -43,7 +43,6 @@
 
   <script src="../js/api-loader.js"></script>
   <script>
-    // ========== Player Profile Logic (FIXED v2) ==========
     let chart = null;
 
     async function init() {
@@ -59,6 +58,13 @@
       container.innerHTML = '<p>Loading profile…</p>';
 
       try {
+        // ---- Check if player is active ----
+        const inactiveNames = await getInactivePlayerNames();
+        if (inactiveNames.has(playerName)) {
+          container.innerHTML = '<p>This player is currently inactive and their profile is not available.</p>';
+          return;
+        }
+
         // 1. Get player info from PLAYERS sheet
         const players = await fetchSheetData('PLAYERS');
         const header = players[0].map(h => (h||'').toString().trim());
@@ -83,11 +89,9 @@
         const lastMatch = playerRow[lastMatchIdx] ? new Date(playerRow[lastMatchIdx]) : null;
         const rank = getRankFromRating(rating);
 
-        // 2. Get match history from MATCHES sheet
+        // 2. Get match history from MATCHES sheet (unchanged)
         const matchesAll = await fetchSheetData('MATCHES');
         if (matchesAll.length < 2) { container.innerHTML = '<p>No match data available.</p>'; return; }
-
-        // The real header row is at index 0 (no title row in MATCHES)
         const matchHeader = matchesAll[0].map(h => (h||'').toString().trim());
         const p1Idx = matchHeader.indexOf('Player 1');
         const dateIdx = matchHeader.indexOf('Date');
@@ -95,40 +99,30 @@
         const newRating1Idx = matchHeader.indexOf('New Rating 1');
 
         if (p1Idx === -1 || dateIdx === -1 || statusIdx === -1 || newRating1Idx === -1) {
-          console.error('MATCHES headers:', matchHeader);
           container.innerHTML = '<p>Match data columns not found.</p>';
           return;
         }
 
         const playerMatches = [];
-        // Data rows start at index 1
         for (let i = 1; i < matchesAll.length; i++) {
           const row = matchesAll[i];
           if (!row || row[statusIdx] !== 'PROCESSED') continue;
-
-          // Collect player IDs from Player 1 to Player 4
           const matchPlayerIds = [];
           for (let j = 0; j < 4; j++) {
             matchPlayerIds.push((row[p1Idx + j] || '').toString().trim());
           }
-
           const pIdx = matchPlayerIds.indexOf(playerId);
           if (pIdx === -1) continue;
-
           const dateVal = row[dateIdx];
           if (!dateVal) continue;
           const date = new Date(dateVal);
           if (isNaN(date.getTime())) continue;
-
           const newRating = parseFloat(row[newRating1Idx + pIdx]);
           if (isNaN(newRating)) continue;
-
           playerMatches.push({ date, rating: newRating });
         }
-
         playerMatches.sort((a,b) => a.date - b.date);
 
-        // 3. Build profile HTML
         const lastMatchStr = lastMatch ? lastMatch.toISOString().split('T')[0] : 'Never';
         const winRate = totalMatches ? (totalWins / totalMatches * 100).toFixed(1) : 0;
 
@@ -153,13 +147,11 @@
           ` : '<p>No processed matches found for this player.</p>'}
         `;
 
-        // 4. Draw chart if we have data
         if (playerMatches.length > 0) {
           const ctx = document.getElementById('ratingChart').getContext('2d');
           const last50 = playerMatches.slice(-50);
           const labels = last50.map(m => m.date.toISOString().split('T')[0]);
           const dataPoints = last50.map(m => m.rating);
-
           if (chart) chart.destroy();
           chart = new Chart(ctx, {
             type: 'line',
@@ -175,19 +167,13 @@
             },
             options: {
               responsive: true,
-              scales: {
-                y: {
-                  beginAtZero: false,
-                  title: { display: true, text: 'Rating' }
-                },
-                x: {
-                  title: { display: true, text: 'Date' }
-                }
+              scales: { 
+                y: { beginAtZero: false, title: { display: true, text: 'Rating' } },
+                x: { title: { display: true, text: 'Date' } }
               }
             }
           });
         }
-
       } catch (err) {
         console.error(err);
         container.innerHTML = `<p>Error loading profile: ${err.message}</p>`;
