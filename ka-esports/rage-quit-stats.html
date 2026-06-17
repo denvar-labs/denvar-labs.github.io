@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rage Quit Statistics – KA ESPORTS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">KA ESPORTS</div>
+      <h1>Rage Quit Statistics</h1>
+      <p>Total rage quit penalties per player. Think twice before abandoning a match.</p>
+    </header>
+    <div class="grid">
+      <div id="sidebar-container"></div>
+      <main class="content">
+        <section class="panel">
+          <div class="section-heading">🚫 Rage Quit Counter</div>
+          <div class="table-responsive">
+            <table id="rq-table" class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Player</th>
+                  <th>Country</th>
+                  <th>Rage Quits</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="4">Loading data…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/api-loader.js"></script>
+  <script>
+    async function loadRageQuitStats() {
+      const tbody = document.querySelector('#rq-table tbody');
+      tbody.innerHTML = '<tr><td colspan="4">Loading…</td></tr>';
+
+      try {
+        // Load penalties and players
+        const [penaltiesData, playersData] = await Promise.all([
+          fetchSheetData('PENALTIES'),
+          fetchSheetData('PLAYERS')
+        ]);
+
+        // Build player ID → name and country map
+        const playerMap = {};
+        if (playersData && playersData.length > 1) {
+          const header = playersData[0].map(h => (h || '').toString().trim());
+          const idIdx = header.indexOf('ID');
+          const nameIdx = header.indexOf('Name');
+          const countryIdx = header.indexOf('Country');
+          playersData.slice(1).forEach(row => {
+            const id = (row[idIdx] || '').toString().trim();
+            if (id) {
+              playerMap[id] = {
+                name: (row[nameIdx] || '').toString().trim(),
+                country: (row[countryIdx] || 'XX').toString().trim()
+              };
+            }
+          });
+        }
+
+        // Count rage quits per player (only 'Applied' ones)
+        const rageQuitCount = {};
+        if (penaltiesData) {
+          penaltiesData.forEach(row => {
+            const type = (row[4] || '').toString().trim();
+            const status = (row[9] || '').toString().trim();
+            if (type === 'RAGE_QUIT' && status === 'Applied') {
+              const playerId = (row[1] || '').toString().trim();
+              if (playerId) {
+                rageQuitCount[playerId] = (rageQuitCount[playerId] || 0) + 1;
+              }
+            }
+          });
+        }
+
+        // Convert to array and sort by count descending
+        const stats = Object.entries(rageQuitCount)
+          .map(([id, count]) => {
+            const info = playerMap[id] || { name: id, country: 'XX' };
+            return { id, name: info.name, country: info.country, count };
+          })
+          .sort((a, b) => b.count - a.count);
+
+        if (stats.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">No rage quits recorded yet. Keep it clean! 🎮</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = stats.map((s, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${s.name}</td>
+            <td>${getFlagEmoji(s.country)}</td>
+            <td><strong>${s.count}</strong></td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="4">Error loading data: ${err.message}</td></tr>`;
+      }
+    }
+
+    // Helper to get flag emoji (same as in Utils)
+    function getFlagEmoji(code) {
+      const flags = {
+        'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
+        'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
+        'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
+        'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
+        'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
+        'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
+        'XX': '🏁'
+      };
+      return flags[code] || '🏁';
+    }
+
+    document.addEventListener('DOMContentLoaded', loadRageQuitStats);
+  </script>
+  <script>
+    fetch("../sidebar.html").then(r => r.text()).then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
