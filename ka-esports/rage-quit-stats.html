@@ -11,13 +11,13 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Rage Quit Statistics</h1>
-      <p>Total rage quit penalties per player. Think twice before abandoning a match.</p>
+      <p>Each penalty is recorded with date and time. Clean play is rewarded.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
       <main class="content">
         <section class="panel">
-          <div class="section-heading">🚫 Rage Quit Counter</div>
+          <div class="section-heading">🚫 Rage Quit Counter (with latest occurrence)</div>
           <div class="table-responsive">
             <table id="rq-table" class="data-table">
               <thead>
@@ -26,10 +26,11 @@
                   <th>Player</th>
                   <th>Country</th>
                   <th>Rage Quits</th>
+                  <th>Last Rage Quit</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4">Loading data…</td></tr>
+                <tr><td colspan="5">Loading data…</td></tr>
               </tbody>
             </table>
           </div>
@@ -42,7 +43,7 @@
   <script>
     async function loadRageQuitStats() {
       const tbody = document.querySelector('#rq-table tbody');
-      tbody.innerHTML = '<tr><td colspan="4">Loading…</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
 
       try {
         // Load penalties and players
@@ -69,46 +70,64 @@
           });
         }
 
-        // Count rage quits per player (only 'Applied' ones)
-        const rageQuitCount = {};
+        // Process each row, build per-player stats (count + latest timestamp)
+        const playerStats = {}; // playerId -> { count, lastDate }
         if (penaltiesData) {
           penaltiesData.forEach(row => {
             const type = (row[4] || '').toString().trim();
             const status = (row[9] || '').toString().trim();
             if (type === 'RAGE_QUIT' && status === 'Applied') {
               const playerId = (row[1] || '').toString().trim();
+              const timestamp = new Date(row[0]);
               if (playerId) {
-                rageQuitCount[playerId] = (rageQuitCount[playerId] || 0) + 1;
+                if (!playerStats[playerId]) {
+                  playerStats[playerId] = { count: 0, lastDate: null };
+                }
+                playerStats[playerId].count++;
+                if (!playerStats[playerId].lastDate || timestamp > playerStats[playerId].lastDate) {
+                  playerStats[playerId].lastDate = timestamp;
+                }
               }
             }
           });
         }
 
         // Convert to array and sort by count descending
-        const stats = Object.entries(rageQuitCount)
-          .map(([id, count]) => {
+        const stats = Object.entries(playerStats)
+          .map(([id, data]) => {
             const info = playerMap[id] || { name: id, country: 'XX' };
-            return { id, name: info.name, country: info.country, count };
+            return {
+              name: info.name,
+              country: info.country,
+              count: data.count,
+              lastDate: data.lastDate
+            };
           })
           .sort((a, b) => b.count - a.count);
 
         if (stats.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4">No rage quits recorded yet. Keep it clean! 🎮</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5">No rage quits recorded yet. Keep it clean! 🎮</td></tr>';
           return;
         }
 
-        tbody.innerHTML = stats.map((s, i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${s.name}</td>
-            <td>${getFlagEmoji(s.country)}</td>
-            <td><strong>${s.count}</strong></td>
-          </tr>
-        `).join('');
+        tbody.innerHTML = stats.map((s, i) => {
+          const lastStr = s.lastDate
+            ? s.lastDate.toISOString().replace('T', ' ').substring(0, 19)
+            : '—';
+          return `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${s.name}</td>
+              <td>${getFlagEmoji(s.country)}</td>
+              <td><strong>${s.count}</strong></td>
+              <td>${lastStr}</td>
+            </tr>
+          `;
+        }).join('');
 
       } catch (err) {
         console.error(err);
-        tbody.innerHTML = `<tr><td colspan="4">Error loading data: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5">Error loading data: ${err.message}</td></tr>`;
       }
     }
 
