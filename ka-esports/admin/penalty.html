@@ -3,62 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apply Penalty – KA ESPORTS Admin</title>
+  <title>Admin Panel – KA ESPORTS</title>
   <link rel="stylesheet" href="../../css/style.css">
   <style>
-    .admin-box { max-width: 500px; margin: 30px auto; }
-    input, select { width: 100%; padding: 8px; margin: 6px 0; border-radius: 4px; border: 1px solid var(--border); }
-    button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    .admin-box { max-width: 600px; margin: 30px auto; }
+    .section { margin-bottom: 30px; }
+    input, select, textarea { width: 100%; padding: 8px; margin: 6px 0; border-radius: 4px; border: 1px solid var(--border); }
+    button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+    .result { margin-top: 16px; padding: 10px; border-radius: 4px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
-      <h1>Admin – Apply Rage Quit Penalty</h1>
+      <h1>Admin Panel</h1>
     </header>
+
     <div class="admin-box panel">
-      <label>Player ID (or select name)</label>
-      <select id="player-select">
-        <option value="">-- Choose player --</option>
-      </select>
-      <br>
-      <label>Or enter Player ID manually:</label>
-      <input type="text" id="player-id" placeholder="P_...">
-      <br>
-      <label>Admin Key</label>
-      <input type="password" id="admin-key" placeholder="Secret key">
-      <br><br>
-      <button onclick="apply()">Apply -40 Penalty</button>
-      <div id="result" style="margin-top:16px;"></div>
+      <!-- Rage Quit Penalty -->
+      <div class="section">
+        <h3>Apply Rage Quit Penalty (-40)</h3>
+        <label>Player</label>
+        <select id="player-select">
+          <option value="">-- Choose player --</option>
+        </select>
+        <br>
+        <label>Or Player ID manually:</label>
+        <input type="text" id="player-id" placeholder="P_...">
+        <br>
+        <label>Admin Key</label>
+        <input type="password" id="admin-key" placeholder="Secret key">
+        <br><br>
+        <button onclick="applyPenalty()">Apply -40 Penalty</button>
+        <div id="penalty-result" class="result"></div>
+      </div>
+
+      <hr>
+
+      <!-- Manual Suspension -->
+      <div class="section">
+        <h3>Add Manual Suspension</h3>
+        <label>Player</label>
+        <select id="susp-player-select">
+          <option value="">-- Choose player --</option>
+        </select>
+        <br>
+        <label>Or Player ID manually:</label>
+        <input type="text" id="susp-player-id" placeholder="P_...">
+        <br>
+        <label>Start Date & Time</label>
+        <input type="datetime-local" id="susp-start">
+        <br>
+        <label>End Date & Time</label>
+        <input type="datetime-local" id="susp-end">
+        <br>
+        <label>Reason</label>
+        <input type="text" id="susp-reason" placeholder="Conducta antideportiva, etc.">
+        <br>
+        <label>Admin Key</label>
+        <input type="password" id="susp-admin-key" placeholder="Secret key">
+        <br><br>
+        <button onclick="addSuspension()">Add Suspension</button>
+        <div id="suspension-result" class="result"></div>
+      </div>
     </div>
   </div>
 
   <script>
-    // ===== NUEVA URL DE LA WEB APP =====
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMYv9MCqIj4EV_p0W25WcYZnCsBXYTQyugxCVjqFgA8YYFIy66VCOWRFjWgp5l2AiO/exec';
 
+    // Load player list for both selects
     async function loadPlayers() {
-      const players = await fetch(`${SCRIPT_URL}?sheet=PLAYERS`).then(r => r.json());
-      if (!players || !players.data) return;
-      const header = players.data[0].map(h => h.trim());
-      const idIdx = header.indexOf('ID');
-      const nameIdx = header.indexOf('Name');
-      const rows = players.data.slice(1);
-      const select = document.getElementById('player-select');
-      rows.forEach(row => {
-        const id = row[idIdx];
-        const name = row[nameIdx];
-        if (id && name) {
-          const opt = document.createElement('option');
-          opt.value = id;
-          opt.textContent = `${name} (${id})`;
-          select.appendChild(opt);
-        }
-      });
+      try {
+        const resp = await fetch(`${SCRIPT_URL}?sheet=PLAYERS`);
+        const json = await resp.json();
+        if (!json || !json.data) return;
+        const header = json.data[0].map(h => h.trim());
+        const idIdx = header.indexOf('ID');
+        const nameIdx = header.indexOf('Name');
+        const rows = json.data.slice(1);
+        const optionsHtml = rows.map(row => {
+          const id = row[idIdx];
+          const name = row[nameIdx];
+          return id && name ? `<option value="${id}">${name} (${id})</option>` : '';
+        }).join('');
+        document.getElementById('player-select').innerHTML = '<option value="">-- Choose player --</option>' + optionsHtml;
+        document.getElementById('susp-player-select').innerHTML = '<option value="">-- Choose player --</option>' + optionsHtml;
+      } catch (err) {
+        console.error('Error loading players:', err);
+      }
     }
 
-    async function apply() {
+    // Apply Rage Quit Penalty
+    async function applyPenalty() {
       const key = document.getElementById('admin-key').value.trim();
       let playerId = document.getElementById('player-id').value.trim();
       if (!playerId) {
@@ -76,13 +114,49 @@
       try {
         const resp = await fetch(url);
         const data = await resp.json();
+        const resultDiv = document.getElementById('penalty-result');
         if (data.error) {
-          document.getElementById('result').innerHTML = `<p style="color:red;">${data.error}</p>`;
+          resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
         } else {
-          document.getElementById('result').innerHTML = `<p style="color:green;">${data.message}</p>`;
+          resultDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
         }
       } catch (err) {
-        document.getElementById('result').innerHTML = `<p style="color:red;">Request failed</p>`;
+        document.getElementById('penalty-result').innerHTML = `<p style="color:red;">Request failed</p>`;
+      }
+    }
+
+    // Add manual suspension
+    async function addSuspension() {
+      const key = document.getElementById('susp-admin-key').value.trim();
+      let playerId = document.getElementById('susp-player-id').value.trim();
+      if (!playerId) {
+        playerId = document.getElementById('susp-player-select').value;
+      }
+      const startDate = document.getElementById('susp-start').value;
+      const endDate = document.getElementById('susp-end').value;
+      const reason = document.getElementById('susp-reason').value.trim() || 'Manual suspension';
+
+      if (!playerId || !startDate || !endDate) {
+        alert('Please fill all fields: player, start date, end date.');
+        return;
+      }
+      if (!key) {
+        alert('Enter the admin key');
+        return;
+      }
+
+      const url = `${SCRIPT_URL}?action=addSuspension&playerId=${encodeURIComponent(playerId)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&reason=${encodeURIComponent(reason)}&key=${encodeURIComponent(key)}`;
+      try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const resultDiv = document.getElementById('suspension-result');
+        if (data.error) {
+          resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          resultDiv.innerHTML = `<p style="color:green;">${data.message}</p>`;
+        }
+      } catch (err) {
+        document.getElementById('suspension-result').innerHTML = `<p style="color:red;">Request failed</p>`;
       }
     }
 
