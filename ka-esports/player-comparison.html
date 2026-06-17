@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Comparison – KA ESPORTS</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .comparison-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .stat-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-light); }
+    .stat-label { font-weight: 600; }
+    .stat-value { font-weight: 700; color: var(--accent); }
+    .h2h-box { margin-top: 20px; }
+    .chart-box { margin-top: 20px; max-width: 500px; margin-left: auto; margin-right: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">KA ESPORTS</div>
+      <h1>Player Comparison</h1>
+      <p>Compare two active players side by side. Inactive players are not available.</p>
+    </header>
+    <div class="grid">
+      <div id="sidebar-container"></div>
+      <main class="content">
+        <section class="panel">
+          <div style="display:flex; gap:20px; margin-bottom:20px; flex-wrap:wrap;">
+            <div>
+              <label for="player1-select">Player 1:</label>
+              <select id="player1-select" style="padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+                <option value="">-- Choose a player --</option>
+              </select>
+            </div>
+            <div>
+              <label for="player2-select">Player 2:</label>
+              <select id="player2-select" style="padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+                <option value="">-- Choose a player --</option>
+              </select>
+            </div>
+          </div>
+          <div id="comparison-content">
+            <p>Select two players to compare.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="../js/api-loader.js"></script>
+  <script>
+    let chart = null;
+
+    async function init() {
+      const names = await fetchPlayerNames(); // only active
+      populateSelectFromList('player1-select', names, '-- Choose a player --');
+      populateSelectFromList('player2-select', names, '-- Choose a player --');
+      document.getElementById('player1-select').addEventListener('change', compare);
+      document.getElementById('player2-select').addEventListener('change', compare);
+    }
+
+    async function compare() {
+      const p1 = document.getElementById('player1-select').value;
+      const p2 = document.getElementById('player2-select').value;
+      const container = document.getElementById('comparison-content');
+      if (!p1 || !p2) {
+        container.innerHTML = '<p>Select two players to compare.</p>';
+        return;
+      }
+      if (p1 === p2) {
+        container.innerHTML = '<p>Please select two different players.</p>';
+        return;
+      }
+
+      container.innerHTML = '<p>Loading comparison…</p>';
+
+      try {
+        // Additional safety: block inactive players even if they somehow bypass the dropdown
+        const inactiveNames = await getInactivePlayerNames();
+        if (inactiveNames.has(p1) || inactiveNames.has(p2)) {
+          container.innerHTML = '<p>One of the selected players is currently inactive and cannot be compared.</p>';
+          return;
+        }
+
+        const [data1, data2] = await Promise.all([
+          getPlayerStats(p1),
+          getPlayerStats(p2)
+        ]);
+
+        let html = '<div class="comparison-container">';
+        html += buildPlayerCard(p1, data1);
+        html += buildPlayerCard(p2, data2);
+        html += '</div>';
+
+        const h2h = await getH2H(p1, p2);
+        html += `<div class="h2h-box"><h3>Head-to-Head</h3>`;
+        if (h2h) {
+          html += `<p>Matches: ${h2h.matches} | ${p1} wins: ${h2h.winsA} | ${p2} wins: ${h2h.winsB} | Ties: ${h2h.ties}</p>`;
+        } else {
+          html += `<p>No direct matches found.</p>`;
+        }
+        html += `</div>`;
+
+        html += `<div class="chart-box"><canvas id="comparisonChart" width="400" height="300"></canvas></div>`;
+
+        container.innerHTML = html;
+
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: ['Rating', 'RD', 'Volatility', 'Win Rate', 'Avg Position', 'SOS'],
+            datasets: [
+              {
+                label: p1,
+                data: [
+                  data1.rating,
+                  data1.rd,
+                  data1.volatility * 1000,
+                  data1.winRate,
+                  data1.avgPosition,
+                  data1.sos
+                ],
+                borderColor: '#4a86e8',
+                backgroundColor: '#4a86e866'
+              },
+              {
+                label: p2,
+                data: [
+                  data2.rating,
+                  data2.rd,
+                  data2.volatility * 1000,
+                  data2.winRate,
+                  data2.avgPosition,
+                  data2.sos
+                ],
+                borderColor: '#e94560',
+                backgroundColor: '#e9456066'
+              }
+            ]
+          },
+          options: {
+            scales: {
+              r: {
+                beginAtZero: true,
+                ticks: { display: false }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        container.innerHTML = `<p>Error: ${err.message}</p>`;
+        console.error(err);
+      }
+    }
+
+    function buildPlayerCard(name, stats) {
+      return `
+        <div class="player-card">
+          <h3>${name}</h3>
+          <div class="stat-row"><span class="stat-label">Rating</span><span class="stat-value">${stats.rating.toFixed(2)}</span></div>
+          <div class="stat-row"><span class="stat-label">RD</span><span class="stat-value">${stats.rd.toFixed(2)}</span></div>
+          <div class="stat-row"><span class="stat-label">Volatility</span><span class="stat-value">${stats.volatility.toFixed(4)}</span></div>
+          <div class="stat-row"><span class="stat-label">Matches</span><span class="stat-value">${stats.matches}</span></div>
+          <div class="stat-row"><span class="stat-label">Wins</span><span class="stat-value">${stats.wins}</span></div>
+          <div class="stat-row"><span class="stat-label">Win Rate</span><span class="stat-value">${stats.winRate.toFixed(1)}%</span></div>
+          <div class="stat-row"><span class="stat-label">Avg Position</span><span class="stat-value">${stats.avgPosition.toFixed(2)}</span></div>
+          <div class="stat-row"><span class="stat-label">SOS</span><span class="stat-value">${stats.sos.toFixed(0)}</span></div>
+        </div>
+      `;
+    }
+
+    async function getPlayerStats(playerName) {
+      const players = await fetchSheetData('PLAYERS');
+      const header = players[0].map(h => (h || '').toString().trim());
+      const nameIdx = header.indexOf('Name');
+      const ratingIdx = header.indexOf('Rating');
+      const rdIdx = header.indexOf('RD');
+      const volIdx = header.indexOf('Volatility');
+      const matchesIdx = header.indexOf('Matches');
+      const winsIdx = header.indexOf('Wins');
+      const sumPosIdx = header.indexOf('SumPositions');
+      const recentOppIdx = header.indexOf('RecentOpponents');
+
+      const row = players.find(r => (r[nameIdx] || '').toString().trim() === playerName);
+      if (!row) throw new Error('Player not found');
+
+      const rating = parseFloat(row[ratingIdx]) || 0;
+      const rd = parseFloat(row[rdIdx]) || 0;
+      const volatility = parseFloat(row[volIdx]) || 0;
+      const matches = parseInt(row[matchesIdx]) || 0;
+      const wins = parseInt(row[winsIdx]) || 0;
+      const sumPositions = parseFloat(row[sumPosIdx]) || 0;
+      const winRate = matches > 0 ? (wins / matches) * 100 : 0;
+      const avgPosition = matches > 0 ? sumPositions / matches : 0;
+
+      let sos = 0;
+      try {
+        const recentOpp = JSON.parse(row[recentOppIdx] || '[]');
+        sos = recentOpp.length > 0 ? recentOpp.reduce((a, b) => a + b, 0) / recentOpp.length : 0;
+      } catch (e) {}
+
+      return { rating, rd, volatility, matches, wins, winRate, avgPosition, sos };
+    }
+
+    async function getH2H(p1, p2) {
+      const h2hData = await fetchSheetData('_H2H_DATA');
+      if (!h2hData || h2hData.length < 2) return null;
+      const header = h2hData[0].map(h => (h || '').toString().trim());
+      const idAIdx = header.indexOf('Player1_ID');
+      const idBIdx = header.indexOf('Player2_ID');
+      if (idAIdx === -1 || idBIdx === -1) return null;
+
+      const players = await fetchSheetData('PLAYERS');
+      const nameToId = {};
+      players.slice(1).forEach(row => {
+        const id = row[0];
+        const name = (row[1] || '').toString().trim();
+        if (id && name) nameToId[name] = id;
+      });
+      const id1 = nameToId[p1];
+      const id2 = nameToId[p2];
+      if (!id1 || !id2) return null;
+
+      const matchRow = h2hData.slice(1).find(row => {
+        return (row[idAIdx] === id1 && row[idBIdx] === id2) || (row[idAIdx] === id2 && row[idBIdx] === id1);
+      });
+      if (!matchRow) return null;
+
+      const matches = matchRow[2];
+      const winsA = matchRow[3];
+      const winsB = matchRow[4];
+      const ties = matchRow[5];
+      const p1IsA = matchRow[idAIdx] === id1;
+
+      return {
+        matches,
+        winsA: p1IsA ? winsA : winsB,
+        winsB: p1IsA ? winsB : winsA,
+        ties
+      };
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+  <script>
+    fetch("../sidebar.html").then(r => r.text()).then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
