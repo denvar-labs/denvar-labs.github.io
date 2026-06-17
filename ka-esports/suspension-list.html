@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suspension List – KA ESPORTS</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .suspension-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .suspension-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .suspension-player {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    .suspension-status {
+      background: #e53935;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .suspension-dates {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin: 4px 0;
+    }
+    .suspension-reason {
+      margin-top: 8px;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">KA ESPORTS</div>
+      <h1>🚫 Suspension List</h1>
+      <p>Players currently suspended from official competitions.</p>
+    </header>
+    <div class="grid">
+      <div id="sidebar-container"></div>
+      <main class="content">
+        <section class="panel">
+          <div class="section-heading">📋 Suspended Players</div>
+          <div id="suspensions-container">
+            <p>Loading data…</p>
+          </div>
+        </section>
+
+        <section class="panel" style="margin-top:20px;">
+          <div class="section-heading">ℹ️ Important Considerations</div>
+          <ul style="list-style-type: disc; margin-left: 20px; color: var(--text-muted);">
+            <li>Suspensions are temporary unless the administration states otherwise.</li>
+            <li>Players may rejoin competitions once the sanction period ends.</li>
+            <li>Any appeal must be submitted to the KA ESPORTS administrative team.</li>
+            <li>All sanctions are recorded to guarantee transparency and competitive integrity.</li>
+          </ul>
+          <p style="margin-top: 12px; color: var(--text-muted);">
+            Fair competition, respect, and sportsmanship are fundamental pillars of our community.
+          </p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/api-loader.js"></script>
+  <script>
+    async function loadSuspensions() {
+      const container = document.getElementById('suspensions-container');
+      container.innerHTML = '<p>Loading…</p>';
+
+      try {
+        const [penaltiesData, playersData] = await Promise.all([
+          fetchSheetData('PENALTIES'),
+          fetchSheetData('PLAYERS')
+        ]);
+
+        // Build player ID → name and country map
+        const playerMap = {};
+        if (playersData && playersData.length > 1) {
+          const header = playersData[0].map(h => (h || '').toString().trim());
+          const idIdx = header.indexOf('ID');
+          const nameIdx = header.indexOf('Name');
+          const countryIdx = header.indexOf('Country');
+          playersData.slice(1).forEach(row => {
+            const id = (row[idIdx] || '').toString().trim();
+            if (id) {
+              playerMap[id] = {
+                name: (row[nameIdx] || '').toString().trim(),
+                country: (row[countryIdx] || 'XX').toString().trim()
+              };
+            }
+          });
+        }
+
+        // Filter active suspensions
+        const now = new Date();
+        const suspensions = [];
+        if (penaltiesData) {
+          penaltiesData.forEach(row => {
+            const status = (row[9] || '').toString().trim();
+            const suspensionEnd = row[8] ? new Date(row[8]) : null;
+            const suspensionStart = row[7] ? new Date(row[7]) : null;
+            if (status === 'Applied' && suspensionStart && suspensionEnd && now >= suspensionStart && now <= suspensionEnd) {
+              const playerId = (row[1] || '').toString().trim();
+              const info = playerMap[playerId] || { name: playerId, country: 'XX' };
+              suspensions.push({
+                playerName: info.name,
+                playerCountry: info.country,
+                reason: (row[3] || 'Rage quit / abandonment').toString().trim(),
+                start: suspensionStart,
+                end: suspensionEnd
+              });
+            }
+          });
+        }
+
+        if (suspensions.length === 0) {
+          container.innerHTML = '<p>No active suspensions. The community is clean! 🎮</p>';
+          return;
+        }
+
+        container.innerHTML = suspensions.map(s => {
+          const flag = getFlagEmoji(s.playerCountry);
+          const startStr = s.start.toISOString().split('T')[0];
+          const endStr = s.end.toISOString().split('T')[0];
+          return `
+            <div class="suspension-card">
+              <div class="suspension-header">
+                <span class="suspension-player">${s.playerName} ${flag}</span>
+                <span class="suspension-status">⛔ Active</span>
+              </div>
+              <div class="suspension-dates">
+                <strong>Period:</strong> ${startStr} → ${endStr}
+              </div>
+              <div class="suspension-reason">
+                <strong>Reason:</strong> ${s.reason}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p>Error loading data: ${err.message}</p>`;
+      }
+    }
+
+    function getFlagEmoji(code) {
+      const flags = {
+        'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
+        'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
+        'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
+        'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
+        'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
+        'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
+        'XX': '🏁'
+      };
+      return flags[code] || '🏁';
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSuspensions);
+  </script>
+  <script>
+    fetch("../sidebar.html").then(r => r.text()).then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
