@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rage Quit Penalty Rule – KA ESPORTS</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .rule-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .rule-box h2 { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">KA ESPORTS</div>
+      <h1>Rage Quit Penalty Rule</h1>
+      <p>Official rules regarding unjustified match abandonment.</p>
+    </header>
+
+    <div class="grid">
+      <div id="sidebar-container"></div>
+      <main class="content">
+        <div class="rule-box">
+          <h2>📢 OFFICIAL NEW RULE — RAGE QUIT PENALTY</h2>
+          <p>In order to maintain competitiveness, respect between players, and the integrity of the monthly ranking, the following rules will now apply to unjustified quits in 4vs matches.</p>
+
+          <h3>⚠️ UNJUSTIFIED QUIT = -40 RATING</h3>
+          <p>Any player who leaves a round without a valid reason will automatically receive a penalty of -40 Rating points.</p>
+          <p>For the penalty to be applied:</p>
+          <ul>
+            <li>✅ The 3 remaining players must agree that it was effectively a rage quit / unjustified abandonment.</li>
+            <li>✅ This must be indicated through a note alongside the posted score.</li>
+          </ul>
+
+          <h3>🚫 RANKING SUSPENSION</h3>
+          <p>If a player accumulates 3 unjustified quits during the same ranking month:</p>
+          <p>⛔ The player will be suspended from the ranking for 3 weeks.</p>
+          <p>This means:</p>
+          <ul>
+            <li>The player may continue playing.</li>
+            <li>However, any rounds they participate in during the suspension period will NOT count toward the monthly ranking.</li>
+          </ul>
+
+          <h3>🏁 ROUND VALIDATION OR CANCELLATION</h3>
+          <p>📍 If the quit happens after Track 8 or later:</p>
+          <ul>
+            <li>The 3 remaining players may agree to:
+              <ul>
+                <li>continue playing 3vs,</li>
+                <li>recalculate the final score,</li>
+                <li>or completely void the round.</li>
+              </ul>
+            </li>
+          </ul>
+          <p>📍 If the quit happens before Track 8:</p>
+          <ul>
+            <li>The round is automatically canceled.</li>
+            <li>The quitting player will still receive the -40 Rating penalty.</li>
+          </ul>
+          <p>In both situations, the offending player will not receive any additional points in the final score.</p>
+
+          <h3>🎯 PURPOSE OF THIS RULE</h3>
+          <p>These measures are intended to:</p>
+          <ul>
+            <li>protect ladder competitiveness,</li>
+            <li>prevent result manipulation,</li>
+            <li>encourage commitment once a round begins,</li>
+            <li>and maintain a serious and fair environment for all players.</li>
+          </ul>
+          <p>Thank you for supporting the competitive growth of the community. 🏆</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    fetch("../sidebar.html").then(r => r.text()).then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
