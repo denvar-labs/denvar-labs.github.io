@@ -45,10 +45,11 @@
   </div>
 
   <script>
+    // ===== NUEVA URL DE LA WEB APP =====
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMYv9MCqIj4EV_p0W25WcYZnCsBXYTQyugxCVjqFgA8YYFIy66VCOWRFjWgp5l2AiO/exec';
 
     const channels = [
-      // Twitch
+      // Twitch (updated names)
       { name: "Grey0__", plat: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
       { name: "FX6400",  plat: "Twitch", type: "twitch", id: "fx6400",  url: "https://www.twitch.tv/fx6400" },
       { name: "DenvarSC", plat: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
@@ -145,7 +146,6 @@
         let mediaHtml = '';
         if (ch.type === 'twitch') {
           if (ch.isLive) {
-            // Static preview with click-to-load iframe
             const previewImg = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${ch.id}-640x360.jpg`;
             mediaHtml = `
               <div class="live-preview" onclick="this.innerHTML='<iframe src=\\'https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io\\' allowfullscreen scrolling=\\'no\\' style=\\'width:100%;height:200px;\\'></iframe>'">
