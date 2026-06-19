@@ -10,15 +10,18 @@
     .comparison-setup { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
     .player-selector { flex: 1; min-width: 200px; }
     .player-selector select { width: 100%; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border); }
-    .radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
-    .radar-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
-    .radar-card h4 { text-align: center; margin: 0 0 8px; color: var(--accent); font-size: 0.95rem; }
-    .player-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
-    .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-    .player-card h3 { margin-top: 0; }
-    .stat-row { display: flex; justify-content: space-between; padding: 2px 0; }
-    .stat-label { color: var(--text-muted); }
-    .stat-value { font-weight: 600; }
+    .bar-chart-container { max-width: 900px; margin: 20px auto; }
+    .player-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 30px; }
+    .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+    .player-card h3 { margin: 0 0 15px; font-size: 1.2rem; }
+    .gauge-row { display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; }
+    .gauge-item { text-align: center; }
+    .gauge-circle { position: relative; width: 70px; height: 70px; margin: 0 auto 5px; }
+    .gauge-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .gauge-circle .bg { fill: none; stroke: var(--border); stroke-width: 6; }
+    .gauge-circle .fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+    .gauge-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    .gauge-value { font-size: 0.9rem; font-weight: 700; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
   </style>
 </head>
 <body>
@@ -26,7 +29,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Player Comparison</h1>
-      <p>Compare up to 4 active players. One radar per metric for clear comparison.</p>
+      <p>Compare up to 4 active players. Professional esports dashboard.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -59,12 +62,7 @@
   </div>
   <script src="../js/api-loader.js"></script>
   <script>
-    const chartInstances = [];
-
-    function destroyAllCharts() {
-      chartInstances.forEach(c => c.destroy());
-      chartInstances.length = 0;
-    }
+    let barChart = null;
 
     async function init() {
       const names = await fetchPlayerNames();
@@ -84,7 +82,7 @@
 
       if (chosen.length < 2) {
         container.innerHTML = '<p>Select at least two players.</p>';
-        destroyAllCharts();
+        if (barChart) { barChart.destroy(); barChart = null; }
         return;
       }
       if (new Set(chosen).size !== chosen.length) {
@@ -103,107 +101,70 @@
 
         const playersData = await Promise.all(chosen.map(name => getPlayerStats(name)));
 
-        // Build player cards
+        // Build bar chart
+        const metrics = ['rating', 'rd', 'winRate', 'avgPosition', 'sos'];
+        const labels = ['Rating', 'RD', 'Win Rate %', 'Avg Position', 'SOS'];
+        const colors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
+        const datasets = playersData.map((p, idx) => ({
+          label: chosen[idx],
+          data: metrics.map(m => p[m]),
+          backgroundColor: colors[idx % colors.length],
+          borderRadius: 4
+        }));
+
+        let barHtml = '<div class="bar-chart-container"><canvas id="barChart" width="800" height="400"></canvas></div>';
+
+        // Build player cards with circular gauges
         let cardsHtml = '<div class="player-cards">';
         playersData.forEach((p, idx) => {
-          cardsHtml += `
-            <div class="player-card">
-              <h3>${chosen[idx]}</h3>
-              <div class="stat-row"><span class="stat-label">Rating</span><span class="stat-value">${p.rating.toFixed(2)}</span></div>
-              <div class="stat-row"><span class="stat-label">RD</span><span class="stat-value">${p.rd.toFixed(2)}</span></div>
-              <div class="stat-row"><span class="stat-label">Win Rate</span><span class="stat-value">${p.winRate.toFixed(1)}%</span></div>
-              <div class="stat-row"><span class="stat-label">Avg Position</span><span class="stat-value">${p.avgPosition.toFixed(2)}</span></div>
-              <div class="stat-row"><span class="stat-label">SOS</span><span class="stat-value">${p.sos.toFixed(0)}</span></div>
-            </div>`;
+          const maxVals = { rating: 2500, rd: 350, winRate: 100, avgPosition: 4, sos: 2500 };
+          cardsHtml += `<div class="player-card"><h3>${chosen[idx]}</h3><div class="gauge-row">`;
+          const metricKeys = ['rating', 'rd', 'winRate', 'avgPosition', 'sos'];
+          const metricLabels = ['Rating', 'RD', 'Win%', 'AvgPos', 'SOS'];
+          metricKeys.forEach((key, i) => {
+            let raw = p[key];
+            let max = maxVals[key];
+            let pct = Math.min(100, (raw / max) * 100);
+            if (key === 'avgPosition') pct = Math.min(100, ((4 - raw) / 4) * 100); // invert
+            if (key === 'rd') pct = Math.min(100, ((350 - raw) / 350) * 100); // lower RD better
+            const circumference = 2 * Math.PI * 28;
+            const dashOffset = circumference * (1 - pct / 100);
+            cardsHtml += `
+              <div class="gauge-item">
+                <div class="gauge-circle">
+                  <svg viewBox="0 0 70 70">
+                    <circle class="bg" cx="35" cy="35" r="28"/>
+                    <circle class="fill" cx="35" cy="35" r="28"
+                            style="stroke:${colors[idx % colors.length]}; stroke-dasharray:${circumference}; stroke-dashoffset:${dashOffset};"/>
+                  </svg>
+                  <div class="gauge-value">${key === 'winRate' ? raw.toFixed(1)+'%' : (key === 'rating' || key === 'rd' ? raw.toFixed(0) : (key === 'avgPosition' ? raw.toFixed(2) : raw.toFixed(0)))}</div>
+                </div>
+                <div class="gauge-label">${metricLabels[i]}</div>
+              </div>`;
+          });
+          cardsHtml += `</div></div>`;
         });
         cardsHtml += '</div>';
 
-        // Generate radars HTML
-        let radarsHtml = '<div class="radar-grid" id="radar-grid"></div>';
+        container.innerHTML = barHtml + cardsHtml;
 
-        container.innerHTML = radarsHtml + cardsHtml;
-
-        // Prepare metrics
-        const metrics = [
-          { key: 'rating', label: 'Rating' },
-          { key: 'rd', label: 'RD' },
-          { key: 'winRate', label: 'Win Rate %' },
-          { key: 'avgPosition', label: 'Avg Position' },
-          { key: 'sos', label: 'SOS' }
-        ];
-
-        const colors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
-        const grid = document.getElementById('radar-grid');
-
-        destroyAllCharts();
-
-        // Create one radar per metric
-        metrics.forEach(metric => {
-          const card = document.createElement('div');
-          card.className = 'radar-card';
-          card.innerHTML = `<h4>${metric.label}</h4><canvas id="radar-${metric.key}" width="250" height="250"></canvas>`;
-          grid.appendChild(card);
-
-          const ctx = document.getElementById(`radar-${metric.key}`).getContext('2d');
-          const labels = chosen; // each player is an axis
-
-          // Determine max value for this metric to set radar scale
-          const values = playersData.map(p => p[metric.key]);
-          const maxVal = Math.max(...values) * 1.1 || 1;
-
-          const datasets = playersData.map((p, idx) => ({
-            label: chosen[idx],
-            data: [p[metric.key]], // single data point, but radar needs array per player with same length as labels? Actually for radar with multiple axes, each dataset should have one value per axis. We have N axes (players) and one dataset per player. Each dataset will have a single value (the metric value), but repeated for each axis? No: in a radar chart, the number of axes = number of labels. If we have 4 players, we have 4 axes. A dataset represents one player? Wait: we want to compare players across a metric, so each player is a separate dataset, and the axes are the players themselves? That would be a radar with one point per player (the metric value) on the axis representing that player. But then the shape doesn't make sense. Better: use a radar where each axis is a player, and each player's dataset is just a point at its own axis? That's odd.
-
-            // Alternative: for metric radars, we can use a single dataset where each point is the metric value of that player, and the labels are the player names. Then we'd have one dataset (the metric) and the radar would show the metric value for each player. But the user asked for a hexagon per metric, probably meaning a radar chart where you see the metric value for each player, forming a polygon. So each metric radar has one dataset (the metric) with one value per player. The labels are the player names. This makes perfect sense and is clean.
-
-            // I'll implement: each radar has one dataset (the metric) with data = [player1.metric, player2.metric, ...]. The labels are the player names.
-          }));
-
-          // Let's do it simpler: one dataset, labels = players, data = metric values.
-          const dataValues = playersData.map(p => p[metric.key]);
-          const singleDataset = {
-            label: metric.label,
-            data: dataValues,
-            backgroundColor: colors.map(c => c + '44'),
-            borderColor: colors.map(c => c),
-            borderWidth: 2,
-            pointBackgroundColor: colors,
-            pointRadius: 5
-          };
-
-          new Chart(ctx, {
-            type: 'radar',
-            data: {
-              labels: chosen,
-              datasets: [singleDataset]
+        // Draw bar chart
+        const ctx = document.getElementById('barChart').getContext('2d');
+        if (barChart) barChart.destroy();
+        barChart = new Chart(ctx, {
+          type: 'bar',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top' },
+              tooltip: { mode: 'index', intersect: false }
             },
-            options: {
-              responsive: true,
-              maintainAspectRatio: true,
-              scales: {
-                r: {
-                  beginAtZero: true,
-                  max: maxVal,
-                  ticks: { display: false }
-                }
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx) => {
-                      const raw = ctx.raw;
-                      if (metric.key === 'winRate') return `${ctx.label}: ${raw.toFixed(1)}%`;
-                      if (metric.key === 'rating' || metric.key === 'rd' || metric.key === 'avgPosition') return `${ctx.label}: ${raw.toFixed(2)}`;
-                      return `${ctx.label}: ${raw.toFixed(0)}`;
-                    }
-                  }
-                }
-              }
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+              x: { grid: { display: false } }
             }
-          });
-          chartInstances.push(this); // will be replaced by correct reference below
+          }
         });
       } catch (err) {
         container.innerHTML = `<p>Error: ${err.message}</p>`;
@@ -217,7 +178,6 @@
       const nameIdx = header.indexOf('Name');
       const ratingIdx = header.indexOf('Rating');
       const rdIdx = header.indexOf('RD');
-      const volIdx = header.indexOf('Volatility');
       const matchesIdx = header.indexOf('Matches');
       const winsIdx = header.indexOf('Wins');
       const sumPosIdx = header.indexOf('SumPositions');
@@ -228,7 +188,6 @@
 
       const rating = parseFloat(row[ratingIdx]) || 0;
       const rd = parseFloat(row[rdIdx]) || 0;
-      const volatility = parseFloat(row[volIdx]) || 0;
       const matches = parseInt(row[matchesIdx]) || 0;
       const wins = parseInt(row[winsIdx]) || 0;
       const sumPositions = parseFloat(row[sumPosIdx]) || 0;
@@ -241,7 +200,7 @@
         sos = recentOpp.length > 0 ? recentOpp.reduce((a, b) => a + b, 0) / recentOpp.length : 0;
       } catch (e) {}
 
-      return { rating, rd, volatility, matches, wins, winRate, avgPosition, sos };
+      return { rating, rd, winRate, avgPosition, sos };
     }
 
     document.addEventListener('DOMContentLoaded', init);
