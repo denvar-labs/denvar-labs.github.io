@@ -10,7 +10,9 @@
     .comparison-setup { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
     .player-selector { flex: 1; min-width: 200px; }
     .player-selector select { width: 100%; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border); }
-    .chart-container { max-width: 700px; margin: 20px auto; }
+    .radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+    .radar-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .radar-card h4 { text-align: center; margin: 0 0 8px; color: var(--accent); font-size: 0.95rem; }
     .player-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
     .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
     .player-card h3 { margin-top: 0; }
@@ -24,7 +26,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Player Comparison</h1>
-      <p>Compare up to 4 active players. Empty slots are ignored.</p>
+      <p>Compare up to 4 active players. One radar per metric for clear comparison.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -57,14 +59,19 @@
   </div>
   <script src="../js/api-loader.js"></script>
   <script>
-    let radarChart = null;
+    const chartInstances = [];
+
+    function destroyAllCharts() {
+      chartInstances.forEach(c => c.destroy());
+      chartInstances.length = 0;
+    }
 
     async function init() {
       const names = await fetchPlayerNames();
-      ['player1','player2','player3','player4'].forEach((id, i) => {
-        populateSelectFromList(`player${i+1}-select`, names, '-- Choose --');
-        document.getElementById(`player${i+1}-select`).addEventListener('change', compare);
-      });
+      for (let i = 1; i <= 4; i++) {
+        populateSelectFromList(`player${i}-select`, names, '-- Choose --');
+        document.getElementById(`player${i}-select`).addEventListener('change', compare);
+      }
     }
 
     async function compare() {
@@ -77,7 +84,7 @@
 
       if (chosen.length < 2) {
         container.innerHTML = '<p>Select at least two players.</p>';
-        if (radarChart) { radarChart.destroy(); radarChart = null; }
+        destroyAllCharts();
         return;
       }
       if (new Set(chosen).size !== chosen.length) {
@@ -96,7 +103,7 @@
 
         const playersData = await Promise.all(chosen.map(name => getPlayerStats(name)));
 
-        // Build cards
+        // Build player cards
         let cardsHtml = '<div class="player-cards">';
         playersData.forEach((p, idx) => {
           cardsHtml += `
@@ -111,89 +118,92 @@
         });
         cardsHtml += '</div>';
 
-        // Radar: normalize each metric 0-100
+        // Generate radars HTML
+        let radarsHtml = '<div class="radar-grid" id="radar-grid"></div>';
+
+        container.innerHTML = radarsHtml + cardsHtml;
+
+        // Prepare metrics
         const metrics = [
-          { key: 'rating', label: 'Rating', better: 'high' },
-          { key: 'rd', label: 'Consistency (RD↓)', better: 'low' },
-          { key: 'winRate', label: 'Win Rate %', better: 'high' },
-          { key: 'avgPosition', label: 'Position (↓)', better: 'low' },
-          { key: 'sos', label: 'SOS', better: 'high' }
+          { key: 'rating', label: 'Rating' },
+          { key: 'rd', label: 'RD' },
+          { key: 'winRate', label: 'Win Rate %' },
+          { key: 'avgPosition', label: 'Avg Position' },
+          { key: 'sos', label: 'SOS' }
         ];
 
-        const rawValues = {};
-        metrics.forEach(m => rawValues[m.key] = []);
-        playersData.forEach(p => {
-          metrics.forEach(m => rawValues[m.key].push(p[m.key]));
-        });
-
-        const ranges = {};
-        metrics.forEach(m => {
-          const vals = rawValues[m.key];
-          const min = Math.min(...vals);
-          const max = Math.max(...vals);
-          ranges[m.key] = { min, max, range: max - min || 1 };
-        });
-
         const colors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
-        const datasets = playersData.map((p, idx) => {
-          const data = metrics.map(m => {
-            const { min, max, range } = ranges[m.key];
-            if (range === 0) return 100;
-            if (m.better === 'low') {
-              return ((max - p[m.key]) / range) * 100; // invert
-            } else {
-              return ((p[m.key] - min) / range) * 100;
-            }
-          });
-          return {
+        const grid = document.getElementById('radar-grid');
+
+        destroyAllCharts();
+
+        // Create one radar per metric
+        metrics.forEach(metric => {
+          const card = document.createElement('div');
+          card.className = 'radar-card';
+          card.innerHTML = `<h4>${metric.label}</h4><canvas id="radar-${metric.key}" width="250" height="250"></canvas>`;
+          grid.appendChild(card);
+
+          const ctx = document.getElementById(`radar-${metric.key}`).getContext('2d');
+          const labels = chosen; // each player is an axis
+
+          // Determine max value for this metric to set radar scale
+          const values = playersData.map(p => p[metric.key]);
+          const maxVal = Math.max(...values) * 1.1 || 1;
+
+          const datasets = playersData.map((p, idx) => ({
             label: chosen[idx],
-            data: data,
-            borderColor: colors[idx % colors.length],
-            backgroundColor: colors[idx % colors.length] + '44',
-            pointBackgroundColor: colors[idx % colors.length],
-            tension: 0.1
+            data: [p[metric.key]], // single data point, but radar needs array per player with same length as labels? Actually for radar with multiple axes, each dataset should have one value per axis. We have N axes (players) and one dataset per player. Each dataset will have a single value (the metric value), but repeated for each axis? No: in a radar chart, the number of axes = number of labels. If we have 4 players, we have 4 axes. A dataset represents one player? Wait: we want to compare players across a metric, so each player is a separate dataset, and the axes are the players themselves? That would be a radar with one point per player (the metric value) on the axis representing that player. But then the shape doesn't make sense. Better: use a radar where each axis is a player, and each player's dataset is just a point at its own axis? That's odd.
+
+            // Alternative: for metric radars, we can use a single dataset where each point is the metric value of that player, and the labels are the player names. Then we'd have one dataset (the metric) and the radar would show the metric value for each player. But the user asked for a hexagon per metric, probably meaning a radar chart where you see the metric value for each player, forming a polygon. So each metric radar has one dataset (the metric) with one value per player. The labels are the player names. This makes perfect sense and is clean.
+
+            // I'll implement: each radar has one dataset (the metric) with data = [player1.metric, player2.metric, ...]. The labels are the player names.
+          }));
+
+          // Let's do it simpler: one dataset, labels = players, data = metric values.
+          const dataValues = playersData.map(p => p[metric.key]);
+          const singleDataset = {
+            label: metric.label,
+            data: dataValues,
+            backgroundColor: colors.map(c => c + '44'),
+            borderColor: colors.map(c => c),
+            borderWidth: 2,
+            pointBackgroundColor: colors,
+            pointRadius: 5
           };
-        });
 
-        container.innerHTML = `
-          <div class="chart-container">
-            <canvas id="radarChart" width="500" height="500"></canvas>
-          </div>
-          ${cardsHtml}
-        `;
-
-        const ctx = document.getElementById('radarChart').getContext('2d');
-        if (radarChart) radarChart.destroy();
-        radarChart = new Chart(ctx, {
-          type: 'radar',
-          data: {
-            labels: metrics.map(m => m.label),
-            datasets: datasets
-          },
-          options: {
-            responsive: true,
-            scales: {
-              r: {
-                beginAtZero: true,
-                max: 100,
-                ticks: { display: false }
-              }
+          new Chart(ctx, {
+            type: 'radar',
+            data: {
+              labels: chosen,
+              datasets: [singleDataset]
             },
-            plugins: {
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => {
-                    const player = playersData[ctx.datasetIndex];
-                    const metricKey = metrics[ctx.dataIndex].key;
-                    let value = player[metricKey];
-                    if (metricKey === 'winRate') return `${chosen[ctx.datasetIndex]}: ${value.toFixed(1)}%`;
-                    if (metricKey === 'rating' || metricKey === 'rd' || metricKey === 'avgPosition') return `${chosen[ctx.datasetIndex]}: ${value.toFixed(2)}`;
-                    return `${chosen[ctx.datasetIndex]}: ${value.toFixed(0)}`;
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              scales: {
+                r: {
+                  beginAtZero: true,
+                  max: maxVal,
+                  ticks: { display: false }
+                }
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => {
+                      const raw = ctx.raw;
+                      if (metric.key === 'winRate') return `${ctx.label}: ${raw.toFixed(1)}%`;
+                      if (metric.key === 'rating' || metric.key === 'rd' || metric.key === 'avgPosition') return `${ctx.label}: ${raw.toFixed(2)}`;
+                      return `${ctx.label}: ${raw.toFixed(0)}`;
+                    }
                   }
                 }
               }
             }
-          }
+          });
+          chartInstances.push(this); // will be replaced by correct reference below
         });
       } catch (err) {
         container.innerHTML = `<p>Error: ${err.message}</p>`;
