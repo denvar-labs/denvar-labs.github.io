@@ -10,10 +10,13 @@
     .comparison-setup { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
     .player-selector { flex: 1; min-width: 200px; }
     .player-selector select { width: 100%; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border); }
-    .chart-container { max-width: 800px; margin: 20px auto; }
-    .stats-table { margin-top: 20px; }
-    .stats-table th { background: var(--accent); color: #fff; padding: 8px 12px; }
-    .stats-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .chart-container { max-width: 700px; margin: 20px auto; }
+    .player-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
+    .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .player-card h3 { margin-top: 0; }
+    .stat-row { display: flex; justify-content: space-between; padding: 2px 0; }
+    .stat-label { color: var(--text-muted); }
+    .stat-value { font-weight: 600; }
   </style>
 </head>
 <body>
@@ -21,7 +24,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Player Comparison</h1>
-      <p>Compare up to 4 active players. Leave empty any field you don't need.</p>
+      <p>Compare up to 4 active players. Empty slots are ignored.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -54,25 +57,27 @@
   </div>
   <script src="../js/api-loader.js"></script>
   <script>
-    let barChart = null;
+    let radarChart = null;
 
     async function init() {
       const names = await fetchPlayerNames();
-      const selectIds = ['player1-select', 'player2-select', 'player3-select', 'player4-select'];
-      selectIds.forEach(id => {
-        populateSelectFromList(id, names, '-- Choose --');
-        document.getElementById(id).addEventListener('change', compare);
+      ['player1','player2','player3','player4'].forEach((id, i) => {
+        populateSelectFromList(`player${i+1}-select`, names, '-- Choose --');
+        document.getElementById(`player${i+1}-select`).addEventListener('change', compare);
       });
     }
 
     async function compare() {
       const container = document.getElementById('comparison-content');
-      const selects = ['player1-select', 'player2-select', 'player3-select', 'player4-select'];
-      const chosen = selects.map(id => document.getElementById(id).value).filter(Boolean);
+      const chosen = [];
+      for (let i = 1; i <= 4; i++) {
+        const sel = document.getElementById(`player${i}-select`).value;
+        if (sel) chosen.push(sel);
+      }
 
       if (chosen.length < 2) {
         container.innerHTML = '<p>Select at least two players.</p>';
-        if (barChart) { barChart.destroy(); barChart = null; }
+        if (radarChart) { radarChart.destroy(); radarChart = null; }
         return;
       }
       if (new Set(chosen).size !== chosen.length) {
@@ -85,82 +90,107 @@
       try {
         const inactiveNames = await getInactivePlayerNames();
         if (chosen.some(name => inactiveNames.has(name))) {
-          container.innerHTML = '<p>One of the selected players is inactive and cannot be compared.</p>';
+          container.innerHTML = '<p>One of the selected players is inactive.</p>';
           return;
         }
 
-        const statsPromises = chosen.map(name => getPlayerStats(name));
-        const playersData = await Promise.all(statsPromises);
+        const playersData = await Promise.all(chosen.map(name => getPlayerStats(name)));
 
-        // Define metrics and their raw values
+        // Build cards
+        let cardsHtml = '<div class="player-cards">';
+        playersData.forEach((p, idx) => {
+          cardsHtml += `
+            <div class="player-card">
+              <h3>${chosen[idx]}</h3>
+              <div class="stat-row"><span class="stat-label">Rating</span><span class="stat-value">${p.rating.toFixed(2)}</span></div>
+              <div class="stat-row"><span class="stat-label">RD</span><span class="stat-value">${p.rd.toFixed(2)}</span></div>
+              <div class="stat-row"><span class="stat-label">Win Rate</span><span class="stat-value">${p.winRate.toFixed(1)}%</span></div>
+              <div class="stat-row"><span class="stat-label">Avg Position</span><span class="stat-value">${p.avgPosition.toFixed(2)}</span></div>
+              <div class="stat-row"><span class="stat-label">SOS</span><span class="stat-value">${p.sos.toFixed(0)}</span></div>
+            </div>`;
+        });
+        cardsHtml += '</div>';
+
+        // Radar: normalize each metric 0-100
         const metrics = [
-          { key: 'rating', label: 'Rating' },
-          { key: 'rd', label: 'RD' },
-          { key: 'volatility', label: 'Volatility' },
-          { key: 'winRate', label: 'Win Rate %' },
-          { key: 'avgPosition', label: 'Avg Position' },
-          { key: 'sos', label: 'SOS' }
+          { key: 'rating', label: 'Rating', better: 'high' },
+          { key: 'rd', label: 'Consistency (RD↓)', better: 'low' },
+          { key: 'winRate', label: 'Win Rate %', better: 'high' },
+          { key: 'avgPosition', label: 'Position (↓)', better: 'low' },
+          { key: 'sos', label: 'SOS', better: 'high' }
         ];
 
-        // Colors for each player
-        const colors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
-
-        // Build datasets for grouped bar chart
-        const datasets = playersData.map((p, idx) => ({
-          label: chosen[idx],
-          data: metrics.map(m => p[m.key]),
-          backgroundColor: colors[idx % colors.length],
-          borderColor: colors[idx % colors.length],
-          borderWidth: 1
-        }));
-
-        // Build table
-        let tableHtml = '<div class="stats-table"><table class="data-table"><thead><tr><th>Player</th>';
-        metrics.forEach(m => tableHtml += `<th>${m.label}</th>`);
-        tableHtml += '</tr></thead><tbody>';
-        playersData.forEach((p, i) => {
-          tableHtml += `<tr><td>${chosen[i]}</td>`;
-          metrics.forEach(m => {
-            let val = p[m.key];
-            if (m.key === 'volatility') val = val.toFixed(4);
-            else if (m.key === 'winRate') val = val.toFixed(1) + '%';
-            else if (m.key === 'rating' || m.key === 'rd' || m.key === 'avgPosition') val = val.toFixed(2);
-            else val = val.toFixed(0);
-            tableHtml += `<td>${val}</td>`;
-          });
-          tableHtml += '</tr>';
+        const rawValues = {};
+        metrics.forEach(m => rawValues[m.key] = []);
+        playersData.forEach(p => {
+          metrics.forEach(m => rawValues[m.key].push(p[m.key]));
         });
-        tableHtml += '</tbody></table></div>';
+
+        const ranges = {};
+        metrics.forEach(m => {
+          const vals = rawValues[m.key];
+          const min = Math.min(...vals);
+          const max = Math.max(...vals);
+          ranges[m.key] = { min, max, range: max - min || 1 };
+        });
+
+        const colors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
+        const datasets = playersData.map((p, idx) => {
+          const data = metrics.map(m => {
+            const { min, max, range } = ranges[m.key];
+            if (range === 0) return 100;
+            if (m.better === 'low') {
+              return ((max - p[m.key]) / range) * 100; // invert
+            } else {
+              return ((p[m.key] - min) / range) * 100;
+            }
+          });
+          return {
+            label: chosen[idx],
+            data: data,
+            borderColor: colors[idx % colors.length],
+            backgroundColor: colors[idx % colors.length] + '44',
+            pointBackgroundColor: colors[idx % colors.length],
+            tension: 0.1
+          };
+        });
 
         container.innerHTML = `
           <div class="chart-container">
-            <canvas id="barChart" width="800" height="400"></canvas>
+            <canvas id="radarChart" width="500" height="500"></canvas>
           </div>
-          ${tableHtml}
+          ${cardsHtml}
         `;
 
-        const ctx = document.getElementById('barChart').getContext('2d');
-        if (barChart) barChart.destroy();
-        barChart = new Chart(ctx, {
-          type: 'bar',
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        if (radarChart) radarChart.destroy();
+        radarChart = new Chart(ctx, {
+          type: 'radar',
           data: {
             labels: metrics.map(m => m.label),
             datasets: datasets
           },
           options: {
             responsive: true,
-            plugins: {
-              legend: { position: 'top' },
-              tooltip: { mode: 'index', intersect: false }
-            },
             scales: {
-              y: {
+              r: {
                 beginAtZero: true,
-                title: { display: true, text: 'Value' },
-                grid: { color: 'rgba(0,0,0,0.05)' }
-              },
-              x: {
-                grid: { display: false }
+                max: 100,
+                ticks: { display: false }
+              }
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const player = playersData[ctx.datasetIndex];
+                    const metricKey = metrics[ctx.dataIndex].key;
+                    let value = player[metricKey];
+                    if (metricKey === 'winRate') return `${chosen[ctx.datasetIndex]}: ${value.toFixed(1)}%`;
+                    if (metricKey === 'rating' || metricKey === 'rd' || metricKey === 'avgPosition') return `${chosen[ctx.datasetIndex]}: ${value.toFixed(2)}`;
+                    return `${chosen[ctx.datasetIndex]}: ${value.toFixed(0)}`;
+                  }
+                }
               }
             }
           }
