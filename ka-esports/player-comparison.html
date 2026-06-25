@@ -24,6 +24,8 @@
     .gauge-circle .fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
     .gauge-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
     .gauge-value { font-size: 0.9rem; font-weight: 700; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .evolution-container { margin-top: 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .evolution-container h4 { text-align: center; margin: 0 0 15px; color: var(--accent); }
   </style>
 </head>
 <body>
@@ -31,7 +33,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Player Comparison</h1>
-      <p>Compare up to 4 active players. Independent charts for each metric.</p>
+      <p>Compare up to 4 active players. Includes rating evolution chart.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -66,6 +68,7 @@
   <script>
     // Store chart instances to destroy them before creating new ones
     const chartInstances = [];
+    let evolutionChart = null;
 
     function destroyAllCharts() {
       chartInstances.forEach(c => c.destroy());
@@ -91,6 +94,7 @@
       if (chosen.length < 2) {
         container.innerHTML = '<p>Select at least two players.</p>';
         destroyAllCharts();
+        if (evolutionChart) { evolutionChart.destroy(); evolutionChart = null; }
         return;
       }
       if (new Set(chosen).size !== chosen.length) {
@@ -112,6 +116,11 @@
         // Build HTML for charts
         let html = '<div class="charts-grid" id="charts-grid"></div>';
         html += '<div class="player-cards" id="player-cards"></div>';
+        html += `
+          <div class="evolution-container">
+            <h4>Rating Evolution (last 50 matches)</h4>
+            <canvas id="evolutionChart" width="800" height="300"></canvas>
+          </div>`;
         container.innerHTML = html;
 
         // Colors per player
@@ -128,6 +137,7 @@
 
         // Build one bar chart per metric
         destroyAllCharts();
+        if (evolutionChart) { evolutionChart.destroy(); evolutionChart = null; }
         const chartsGrid = document.getElementById('charts-grid');
         metricsDef.forEach(metric => {
           const box = document.createElement('div');
@@ -189,7 +199,6 @@
             let raw = p[metric.key];
             let max = metric.max;
             let pct = Math.min(100, (raw / max) * 100);
-            // Invert metrics where lower is better
             if (metric.key === 'avgPosition') pct = Math.min(100, ((4 - raw) / 4) * 100);
             if (metric.key === 'rd') pct = Math.min(100, ((350 - raw) / 350) * 100);
             const circumference = 2 * Math.PI * 28;
@@ -217,10 +226,118 @@
           cardsContainer.appendChild(card);
         });
 
+        // --- Rating Evolution Chart ---
+        await drawEvolutionChart(chosen, playerColors);
+
       } catch (err) {
         container.innerHTML = `<p>Error: ${err.message}</p>`;
         console.error(err);
       }
+    }
+
+    async function drawEvolutionChart(playerNames, colors) {
+      // Fetch MATCHES data
+      const allMatches = await fetchSheetData('MATCHES');
+      if (!allMatches || allMatches.length < 2) return;
+
+      const header = allMatches[0].map(h => (h || '').toString().trim());
+      const dateIdx = header.indexOf('Date');
+      const p1Idx = header.indexOf('Player 1');
+      const statusIdx = header.indexOf('Status');
+      const newRating1Idx = header.indexOf('New Rating 1');
+      if (dateIdx === -1 || p1Idx === -1 || statusIdx === -1 || newRating1Idx === -1) return;
+
+      // Map player names to IDs
+      const playersData = await fetchSheetData('PLAYERS');
+      const nameToId = {};
+      if (playersData && playersData.length > 1) {
+        const pHeader = playersData[0].map(h => (h || '').toString().trim());
+        const idIdx = pHeader.indexOf('ID');
+        const nameIdx = pHeader.indexOf('Name');
+        if (idIdx !== -1 && nameIdx !== -1) {
+          for (let i = 1; i < playersData.length; i++) {
+            const row = playersData[i];
+            if (row[idIdx] && row[nameIdx]) {
+              nameToId[row[nameIdx].toString().trim()] = row[idIdx].toString().trim();
+            }
+          }
+        }
+      }
+
+      // Collect rating series for each player
+      const series = {};
+      playerNames.forEach(name => { series[name] = []; });
+
+      for (let i = 1; i < allMatches.length; i++) {
+        const row = allMatches[i];
+        if (!row || row[statusIdx] !== 'PROCESSED') continue;
+        const date = new Date(row[dateIdx]);
+        if (isNaN(date.getTime())) continue;
+        for (let j = 0; j < 4; j++) {
+          const pid = (row[p1Idx + j] || '').toString().trim();
+          // Find the player name for this ID
+          let playerName = null;
+          for (const [name, id] of Object.entries(nameToId)) {
+            if (id === pid) {
+              playerName = name;
+              break;
+            }
+          }
+          if (playerName && playerNames.includes(playerName)) {
+            const newRating = parseFloat(row[newRating1Idx + j]);
+            if (!isNaN(newRating)) {
+              series[playerName].push({ date, rating: newRating });
+            }
+          }
+        }
+      }
+
+      // Sort each series by date and take last 50 points
+      const datasets = [];
+      playerNames.forEach((name, idx) => {
+        const points = series[name].sort((a, b) => a.date - b.date).slice(-50);
+        if (points.length > 0) {
+          datasets.push({
+            label: name,
+            data: points.map((p, i) => ({ x: i + 1, y: p.rating })),
+            borderColor: colors[idx % colors.length],
+            backgroundColor: 'transparent',
+            tension: 0.2,
+            pointRadius: 2,
+            borderWidth: 2
+          });
+        }
+      });
+
+      if (datasets.length === 0) return;
+
+      const ctx = document.getElementById('evolutionChart').getContext('2d');
+      evolutionChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              title: { display: true, text: 'Match number' },
+              type: 'linear',
+              ticks: { stepSize: 1 }
+            },
+            y: {
+              title: { display: true, text: 'Rating' }
+            }
+          },
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
+              }
+            }
+          }
+        }
+      });
     }
 
     async function getPlayerStats(playerName) {
