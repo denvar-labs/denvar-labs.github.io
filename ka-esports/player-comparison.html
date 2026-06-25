@@ -26,7 +26,7 @@
     .gauge-value { font-size: 0.9rem; font-weight: 700; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
     .evolution-container { margin-top: 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .evolution-container h4 { text-align: center; margin: 0 0 15px; color: var(--accent); }
-    .evolution-chart-wrapper { position: relative; height: 300px; width: 100%; }
+    .evolution-chart-wrapper { position: relative; height: 320px; width: 100%; overflow: hidden; }
   </style>
 </head>
 <body>
@@ -34,7 +34,7 @@
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
       <h1>Player Comparison</h1>
-      <p>Compare up to 4 active players. Includes rating evolution chart.</p>
+      <p>Compare up to 4 active players. Rating evolution aligned by date.</p>
     </header>
     <div class="grid">
       <div id="sidebar-container"></div>
@@ -73,6 +73,10 @@
     function destroyAllCharts() {
       chartInstances.forEach(c => c.destroy());
       chartInstances.length = 0;
+      if (evolutionChart) {
+        evolutionChart.destroy();
+        evolutionChart = null;
+      }
     }
 
     async function init() {
@@ -94,7 +98,6 @@
       if (chosen.length < 2) {
         container.innerHTML = '<p>Select at least two players.</p>';
         destroyAllCharts();
-        if (evolutionChart) { evolutionChart.destroy(); evolutionChart = null; }
         return;
       }
       if (new Set(chosen).size !== chosen.length) {
@@ -117,7 +120,7 @@
         html += '<div class="player-cards" id="player-cards"></div>';
         html += `
           <div class="evolution-container">
-            <h4>Rating Evolution (last 50 matches)</h4>
+            <h4>Rating Evolution (last 60 days)</h4>
             <div class="evolution-chart-wrapper">
               <canvas id="evolutionChart"></canvas>
             </div>
@@ -135,7 +138,6 @@
         ];
 
         destroyAllCharts();
-        if (evolutionChart) { evolutionChart.destroy(); evolutionChart = null; }
         const chartsGrid = document.getElementById('charts-grid');
         metricsDef.forEach(metric => {
           const box = document.createElement('div');
@@ -154,32 +156,15 @@
 
           const chart = new Chart(ctx, {
             type: 'bar',
-            data: {
-              labels: [''],
-              datasets: datasets
-            },
+            data: { labels: [''], datasets },
             options: {
               responsive: true,
               maintainAspectRatio: true,
               plugins: {
-                legend: { display: true, position: 'bottom' },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx) => {
-                      const val = ctx.raw;
-                      if (metric.key === 'winRate') return `${ctx.dataset.label}: ${val.toFixed(1)}%`;
-                      if (metric.key === 'rating' || metric.key === 'rd' || metric.key === 'avgPosition') return `${ctx.dataset.label}: ${val.toFixed(2)}`;
-                      return `${ctx.dataset.label}: ${val.toFixed(0)}`;
-                    }
-                  }
-                }
+                legend: { display: true, position: 'bottom' }
               },
               scales: {
-                y: {
-                  beginAtZero: true,
-                  title: { display: false },
-                  grid: { color: 'rgba(0,0,0,0.05)' }
-                },
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
                 x: { grid: { display: false } }
               }
             }
@@ -223,7 +208,7 @@
           cardsContainer.appendChild(card);
         });
 
-        // --- Rating Evolution Chart ---
+        // Rating Evolution Chart (aligned by date)
         await drawEvolutionChart(chosen, playerColors);
 
       } catch (err) {
@@ -243,7 +228,6 @@
       const newRating1Idx = header.indexOf('New Rating 1');
       if (dateIdx === -1 || p1Idx === -1 || statusIdx === -1 || newRating1Idx === -1) return;
 
-      // Map player names to IDs
       const playersData = await fetchSheetData('PLAYERS');
       const nameToId = {};
       if (playersData && playersData.length > 1) {
@@ -260,7 +244,11 @@
         }
       }
 
+      // Collect timestamped points for each player (last 60 days)
       const series = {};
+      const now = Date.now();
+      const cutoff = now - 60 * 24 * 60 * 60 * 1000; // last 60 days
+
       playerNames.forEach(name => { series[name] = []; });
 
       for (let i = 1; i < allMatches.length; i++) {
@@ -268,6 +256,9 @@
         if (!row || row[statusIdx] !== 'PROCESSED') continue;
         const date = new Date(row[dateIdx]);
         if (isNaN(date.getTime())) continue;
+        const timestamp = date.getTime();
+        if (timestamp < cutoff) continue; // ignore old matches
+
         for (let j = 0; j < 4; j++) {
           const pid = (row[p1Idx + j] || '').toString().trim();
           let playerName = null;
@@ -280,24 +271,28 @@
           if (playerName && playerNames.includes(playerName)) {
             const newRating = parseFloat(row[newRating1Idx + j]);
             if (!isNaN(newRating)) {
-              series[playerName].push({ date, rating: newRating });
+              series[playerName].push({ x: timestamp, y: newRating });
             }
           }
         }
       }
 
+      // Sort each series by timestamp
+      Object.values(series).forEach(arr => arr.sort((a, b) => a.x - b.x));
+
       const datasets = [];
       playerNames.forEach((name, idx) => {
-        const points = series[name].sort((a, b) => a.date - b.date).slice(-50);
+        const points = series[name];
         if (points.length > 0) {
           datasets.push({
             label: name,
-            data: points.map((p, i) => ({ x: i + 1, y: p.rating })),
+            data: points,
             borderColor: colors[idx % colors.length],
             backgroundColor: 'transparent',
             tension: 0.2,
             pointRadius: 2,
-            borderWidth: 2
+            borderWidth: 2,
+            showLine: true
           });
         }
       });
@@ -305,17 +300,24 @@
       if (datasets.length === 0) return;
 
       const ctx = document.getElementById('evolutionChart').getContext('2d');
+      if (evolutionChart) evolutionChart.destroy();
+
       evolutionChart = new Chart(ctx, {
-        type: 'line',
+        type: 'scatter',
         data: { datasets },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: true,
           scales: {
             x: {
-              title: { display: true, text: 'Match number' },
               type: 'linear',
-              ticks: { stepSize: 1 }
+              title: { display: true, text: 'Date' },
+              ticks: {
+                callback: function(value) {
+                  const d = new Date(value);
+                  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }
+              }
             },
             y: {
               title: { display: true, text: 'Rating' }
@@ -325,7 +327,11 @@
             legend: { position: 'top' },
             tooltip: {
               callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
+                label: (ctx) => {
+                  const point = ctx.raw;
+                  const date = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  return `${ctx.dataset.label}: ${point.y.toFixed(2)} (${date})`;
+                }
               }
             }
           }
