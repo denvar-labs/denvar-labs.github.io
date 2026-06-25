@@ -26,6 +26,7 @@
     .gauge-value { font-size: 0.9rem; font-weight: 700; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
     .evolution-container { margin-top: 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .evolution-container h4 { text-align: center; margin: 0 0 15px; color: var(--accent); }
+    .evolution-chart-wrapper { position: relative; height: 300px; width: 100%; }
   </style>
 </head>
 <body>
@@ -66,7 +67,6 @@
   </div>
   <script src="../js/api-loader.js"></script>
   <script>
-    // Store chart instances to destroy them before creating new ones
     const chartInstances = [];
     let evolutionChart = null;
 
@@ -113,20 +113,19 @@
 
         const playersData = await Promise.all(chosen.map(name => getPlayerStats(name)));
 
-        // Build HTML for charts
         let html = '<div class="charts-grid" id="charts-grid"></div>';
         html += '<div class="player-cards" id="player-cards"></div>';
         html += `
           <div class="evolution-container">
             <h4>Rating Evolution (last 50 matches)</h4>
-            <canvas id="evolutionChart" width="800" height="300"></canvas>
+            <div class="evolution-chart-wrapper">
+              <canvas id="evolutionChart"></canvas>
+            </div>
           </div>`;
         container.innerHTML = html;
 
-        // Colors per player
         const playerColors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
 
-        // Define metrics with their labels and max values for gauges
         const metricsDef = [
           { key: 'rating', label: 'Rating', max: 2500 },
           { key: 'rd', label: 'RD', max: 350 },
@@ -135,7 +134,6 @@
           { key: 'sos', label: 'SOS', max: 2500 }
         ];
 
-        // Build one bar chart per metric
         destroyAllCharts();
         if (evolutionChart) { evolutionChart.destroy(); evolutionChart = null; }
         const chartsGrid = document.getElementById('charts-grid');
@@ -189,7 +187,6 @@
           chartInstances.push(chart);
         });
 
-        // Build player cards with circular gauges
         const cardsContainer = document.getElementById('player-cards');
         playersData.forEach((p, idx) => {
           const card = document.createElement('div');
@@ -236,7 +233,6 @@
     }
 
     async function drawEvolutionChart(playerNames, colors) {
-      // Fetch MATCHES data
       const allMatches = await fetchSheetData('MATCHES');
       if (!allMatches || allMatches.length < 2) return;
 
@@ -264,7 +260,6 @@
         }
       }
 
-      // Collect rating series for each player
       const series = {};
       playerNames.forEach(name => { series[name] = []; });
 
@@ -275,7 +270,6 @@
         if (isNaN(date.getTime())) continue;
         for (let j = 0; j < 4; j++) {
           const pid = (row[p1Idx + j] || '').toString().trim();
-          // Find the player name for this ID
           let playerName = null;
           for (const [name, id] of Object.entries(nameToId)) {
             if (id === pid) {
@@ -292,7 +286,6 @@
         }
       }
 
-      // Sort each series by date and take last 50 points
       const datasets = [];
       playerNames.forEach((name, idx) => {
         const points = series[name].sort((a, b) => a.date - b.date).slice(-50);
