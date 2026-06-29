@@ -41,22 +41,10 @@
       <main class="content">
         <section class="panel">
           <div class="comparison-setup">
-            <div class="player-selector">
-              <label>Player 1</label>
-              <select id="player1-select"><option value="">-- Choose --</option></select>
-            </div>
-            <div class="player-selector">
-              <label>Player 2</label>
-              <select id="player2-select"><option value="">-- Choose --</option></select>
-            </div>
-            <div class="player-selector">
-              <label>Player 3</label>
-              <select id="player3-select"><option value="">-- Choose --</option></select>
-            </div>
-            <div class="player-selector">
-              <label>Player 4</label>
-              <select id="player4-select"><option value="">-- Choose --</option></select>
-            </div>
+            <div class="player-selector"><label>Player 1</label><select id="player1-select"><option value="">-- Choose --</option></select></div>
+            <div class="player-selector"><label>Player 2</label><select id="player2-select"><option value="">-- Choose --</option></select></div>
+            <div class="player-selector"><label>Player 3</label><select id="player3-select"><option value="">-- Choose --</option></select></div>
+            <div class="player-selector"><label>Player 4</label><select id="player4-select"><option value="">-- Choose --</option></select></div>
           </div>
           <div id="comparison-content">
             <p>Select at least two players to compare.</p>
@@ -128,7 +116,6 @@
         container.innerHTML = html;
 
         const playerColors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
-
         const metricsDef = [
           { key: 'rating', label: 'Rating', max: 2500 },
           { key: 'rd', label: 'RD', max: 350 },
@@ -144,7 +131,6 @@
           box.className = 'chart-box';
           box.innerHTML = `<h4>${metric.label}</h4><canvas id="chart-${metric.key}" width="300" height="200"></canvas>`;
           chartsGrid.appendChild(box);
-
           const ctx = document.getElementById(`chart-${metric.key}`).getContext('2d');
           const datasets = playersData.map((p, idx) => ({
             label: chosen[idx],
@@ -153,16 +139,12 @@
             borderRadius: 4,
             barPercentage: 0.6
           }));
-
           const chart = new Chart(ctx, {
             type: 'bar',
             data: { labels: [''], datasets },
             options: {
-              responsive: true,
-              maintainAspectRatio: true,
-              plugins: {
-                legend: { display: true, position: 'bottom' }
-              },
+              responsive: true, maintainAspectRatio: true,
+              plugins: { legend: { display: true, position: 'bottom' } },
               scales: {
                 y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
                 x: { grid: { display: false } }
@@ -208,9 +190,7 @@
           cardsContainer.appendChild(card);
         });
 
-        // Rating Evolution Chart (aligned by date)
         await drawEvolutionChart(chosen, playerColors);
-
       } catch (err) {
         container.innerHTML = `<p>Error: ${err.message}</p>`;
         console.error(err);
@@ -244,55 +224,73 @@
         }
       }
 
-      // Collect timestamped points for each player (last 60 days)
-      const series = {};
-      const now = Date.now();
-      const cutoff = now - 60 * 24 * 60 * 60 * 1000; // last 60 days
-
-      playerNames.forEach(name => { series[name] = []; });
+      // Build rating timeline per player (date → rating after match)
+      const timelines = {}; // playerName → { date: rating }
+      playerNames.forEach(n => { timelines[n] = []; });
 
       for (let i = 1; i < allMatches.length; i++) {
         const row = allMatches[i];
         if (!row || row[statusIdx] !== 'PROCESSED') continue;
         const date = new Date(row[dateIdx]);
         if (isNaN(date.getTime())) continue;
-        const timestamp = date.getTime();
-        if (timestamp < cutoff) continue; // ignore old matches
-
         for (let j = 0; j < 4; j++) {
           const pid = (row[p1Idx + j] || '').toString().trim();
           let playerName = null;
           for (const [name, id] of Object.entries(nameToId)) {
-            if (id === pid) {
-              playerName = name;
-              break;
-            }
+            if (id === pid) { playerName = name; break; }
           }
           if (playerName && playerNames.includes(playerName)) {
-            const newRating = parseFloat(row[newRating1Idx + j]);
-            if (!isNaN(newRating)) {
-              series[playerName].push({ x: timestamp, y: newRating });
+            const rating = parseFloat(row[newRating1Idx + j]);
+            if (!isNaN(rating)) {
+              timelines[playerName].push({ date: date, rating: rating });
             }
           }
         }
       }
 
-      // Sort each series by timestamp
-      Object.values(series).forEach(arr => arr.sort((a, b) => a.x - b.x));
+      // Sort and remove future dates
+      const now = new Date();
+      const cutoff = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // last 60 days
+      Object.values(timelines).forEach(arr => arr.sort((a, b) => a.date - b.date));
 
+      // Build an array of all dates in the last 60 days
+      const dateSet = new Set();
+      const current = new Date(cutoff);
+      while (current <= now) {
+        dateSet.add(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+      const sortedDates = Array.from(dateSet).sort();
+
+      // For each date, find the last known rating for each player
       const datasets = [];
       playerNames.forEach((name, idx) => {
-        const points = series[name];
-        if (points.length > 0) {
+        const points = [];
+        let lastRating = null;
+        let eventIndex = 0;
+        for (const dateStr of sortedDates) {
+          const date = new Date(dateStr);
+          // Advance through the player's timeline up to this date
+          while (eventIndex < timelines[name].length && timelines[name][eventIndex].date <= date) {
+            lastRating = timelines[name][eventIndex].rating;
+            eventIndex++;
+          }
+          if (lastRating !== null) {
+            points.push(lastRating);
+          } else {
+            points.push(null); // no data yet
+          }
+        }
+        if (points.some(v => v !== null)) {
           datasets.push({
             label: name,
             data: points,
             borderColor: colors[idx % colors.length],
             backgroundColor: 'transparent',
             tension: 0.2,
-            pointRadius: 2,
+            pointRadius: 1,
             borderWidth: 2,
-            showLine: true
+            spanGaps: false
           });
         }
       });
@@ -303,18 +301,21 @@
       if (evolutionChart) evolutionChart.destroy();
 
       evolutionChart = new Chart(ctx, {
-        type: 'scatter',
-        data: { datasets },
+        type: 'line',
+        data: {
+          labels: sortedDates,
+          datasets: datasets
+        },
         options: {
           responsive: true,
           maintainAspectRatio: true,
           scales: {
             x: {
-              type: 'linear',
               title: { display: true, text: 'Date' },
               ticks: {
-                callback: function(value) {
-                  const d = new Date(value);
+                maxTicksLimit: 20,
+                callback: function(val, index) {
+                  const d = new Date(this.getLabelForValue(val));
                   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 }
               }
@@ -327,11 +328,7 @@
             legend: { position: 'top' },
             tooltip: {
               callbacks: {
-                label: (ctx) => {
-                  const point = ctx.raw;
-                  const date = new Date(point.x).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                  return `${ctx.dataset.label}: ${point.y.toFixed(2)} (${date})`;
-                }
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
               }
             }
           }
