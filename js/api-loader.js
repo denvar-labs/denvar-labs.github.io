@@ -1,11 +1,15 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v18 – Centralized config + hardening)
+//  KA ESPORTS – API Data Loader (v19 — Professional hardened build)
+//  Requiere que config.js se cargue ANTES que este archivo:
+//    <script src="../js/config.js"></script>
+//    <script src="../js/api-loader.js"></script>
 // =====================================================
 
-// KA_API_BASE viene de config.js — asegúrate de incluir
-// <script src="../js/config.js"></script> ANTES de este archivo.
-const API_BASE = (typeof KA_API_BASE !== 'undefined') ? KA_API_BASE
+const API_BASE = (typeof KA_API_BASE !== 'undefined')
+  ? KA_API_BASE
   : 'https://script.google.com/macros/s/AKfycbyMYv9MCqIj4EV_p0W25WcYZnCsBXYTQyugxCVjqFgA8YYFIy66VCOWRFjWgp5l2AiO/exec';
+
+const FETCH_TIMEOUT_MS = (typeof KA_FETCH_TIMEOUT_MS !== 'undefined') ? KA_FETCH_TIMEOUT_MS : 15000;
 
 const HEADER_ROWS_TO_SKIP = {
   'LEADERBOARD_GLOBAL': 3,
@@ -44,6 +48,19 @@ const RATING_THRESHOLDS = [
   { rank: 'Padawan',      min: 0 }
 ];
 
+const FLAG_MAP = {
+  'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
+  'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
+  'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
+  'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
+  'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
+  'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
+  'XX': '🏁'
+};
+function getFlagEmoji(code) {
+  return FLAG_MAP[code] || '🏁';
+}
+
 function getRankFromRating(rating) {
   const r = Number(rating);
   for (const level of RATING_THRESHOLDS) {
@@ -52,31 +69,119 @@ function getRankFromRating(rating) {
   return 'Padawan';
 }
 
-// Simple in-memory cache para evitar refetch del mismo sheet en la misma sesión
+function getRankColorHex(rank) {
+  const map = {
+    'Grand Master': '#f1c232',
+    'Master': '#FFD966',
+    'Pro': '#CCE5FF',
+    'Expert': '#FF5C5C',
+    'Advanced': '#FFF38A',
+    'Amateur': '#9AFF7D',
+    'Padawan': '#C7C1C1'
+  };
+  return map[rank] || '#fff';
+}
+
+// Escapa HTML para evitar que datos con < > & rompan el layout o
+// permitan inyección si algún día una celda del Sheet contiene HTML.
+function escapeHtml(value) {
+  const str = String(value ?? '');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ----- UI de estado consistente (loading / error / empty) -----
+// Reemplaza los innerHTML ad-hoc de "Loading…" / "Error: ..." por
+// una única función reusada en todas las páginas.
+function renderState(container, type, opts = {}) {
+  if (!container) return;
+  const { title, detail, onRetry } = opts;
+  const icons = { loading: '', error: '⚠️', empty: '📭' };
+  const defaultTitles = {
+    loading: 'Loading…',
+    error: 'Something went wrong',
+    empty: 'No data available'
+  };
+
+  let inner = '';
+  if (type === 'loading') {
+    inner = `<div class="spinner" aria-hidden="true"></div><div class="state-title">${escapeHtml(title || defaultTitles.loading)}</div>`;
+  } else {
+    inner = `<div class="state-title">${icons[type] || ''} ${escapeHtml(title || defaultTitles[type] || '')}</div>`;
+  }
+  if (detail) {
+    inner += `<div class="state-detail">${escapeHtml(detail)}</div>`;
+  }
+  if (type === 'error' && typeof onRetry === 'function') {
+    const retryId = 'retry-' + Math.random().toString(36).slice(2, 9);
+    inner += `<button class="retry-btn" id="${retryId}">Reintentar</button>`;
+    container.innerHTML = `<div class="state-box state-${type}" role="${type === 'error' ? 'alert' : 'status'}">${inner}</div>`;
+    const btn = document.getElementById(retryId);
+    if (btn) btn.addEventListener('click', onRetry);
+    return;
+  }
+
+  container.innerHTML = `<div class="state-box state-${type}" role="${type === 'error' ? 'alert' : 'status'}">${inner}</div>`;
+}
+
+// Igual que renderState pero para usar dentro de <tbody> de una tabla
+// (una sola <tr><td colspan></td></tr> con el mismo look).
+function renderTableState(tbody, colspan, type, opts = {}) {
+  if (!tbody) return;
+  const { title, detail } = opts;
+  const defaultTitles = {
+    loading: 'Loading…',
+    error: '⚠️ Could not load data',
+    empty: 'No data available.'
+  };
+  const text = escapeHtml(title || defaultTitles[type] || '');
+  const detailHtml = detail ? `<br><small>${escapeHtml(detail)}</small>` : '';
+  tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; padding:24px; color:var(--text-muted);">${text}${detailHtml}</td></tr>`;
+}
+
+// ----- fetch con timeout real (evita spinners infinitos) -----
+async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('The server took too long to respond. Please try again.');
+    }
+    throw new Error('Network error: could not reach the data server. Check your connection.');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ----- Cache en memoria por sesión (evita refetch redundante) -----
 const _sheetCache = new Map();
 const SHEET_CACHE_TTL_MS = 60 * 1000; // 60s
 
 async function fetchSheetData(sheetName, opts = {}) {
   const bypassCache = opts.bypassCache === true;
-  const cacheKey = sheetName;
-  const cached = _sheetCache.get(cacheKey);
+  const cached = _sheetCache.get(sheetName);
   if (!bypassCache && cached && (Date.now() - cached.time) < SHEET_CACHE_TTL_MS) {
     return cached.data;
   }
 
   const url = `${API_BASE}?sheet=${encodeURIComponent(sheetName)}`;
-  let response;
-  try {
-    response = await fetch(url);
-  } catch (netErr) {
-    throw new Error('Network error: could not reach the data server. Check your connection.');
-  }
+  const response = await fetchWithTimeout(url);
   if (!response.ok) throw new Error(`HTTP ${response.status} while loading "${sheetName}"`);
   const json = await response.json();
   if (json.error) throw new Error(json.error);
   const data = json.data || [];
-  _sheetCache.set(cacheKey, { data, time: Date.now() });
+  _sheetCache.set(sheetName, { data, time: Date.now() });
   return data;
+}
+
+function invalidateSheetCache(sheetName) {
+  if (sheetName) _sheetCache.delete(sheetName);
+  else _sheetCache.clear();
 }
 
 // ----- Cache for inactive player names -----
@@ -110,23 +215,30 @@ function getInactivePlayerNames() {
   return inactiveNamesPromise;
 }
 
+function resetInactivePlayerCache() {
+  inactiveNamesPromise = null;
+}
+
 function extractPlayerName(cell) {
   if (!cell) return '';
   return cell.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}]+/gu, '').trim();
 }
 
-// ----- Flags helper (single source of truth, used to be duplicated in 2 files) -----
-const FLAG_MAP = {
-  'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
-  'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
-  'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
-  'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
-  'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
-  'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
-  'XX': '🏁'
-};
-function getFlagEmoji(code) {
-  return FLAG_MAP[code] || '🏁';
+// ----- Robust header index lookup: exact match, then case-insensitive,
+// then "starts with" — helps survive minor renames in the Sheet without
+// silently breaking (e.g. "Player" vs "player" vs "Player Name"). -----
+function findColumnIndex(header, candidates) {
+  const list = Array.isArray(candidates) ? candidates : [candidates];
+  for (const name of list) {
+    const idx = header.indexOf(name);
+    if (idx !== -1) return idx;
+  }
+  const lowerHeader = header.map(h => h.toLowerCase());
+  for (const name of list) {
+    const idx = lowerHeader.indexOf(name.toLowerCase());
+    if (idx !== -1) return idx;
+  }
+  return -1;
 }
 
 // ----- TABLE RENDERER -----
@@ -149,12 +261,13 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   const tbody = table.querySelector('tbody');
   if (!thead || !tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="20">Loading…</td></tr>';
+  const colCount = Math.max(thead.querySelectorAll('th').length, 20) || 20;
+  renderTableState(tbody, colCount, 'loading');
 
   try {
     const allRows = await fetchSheetData(sheetName);
     if (allRows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
+      renderTableState(tbody, colCount, 'empty');
       return;
     }
 
@@ -167,7 +280,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       headerRow = allRows[headerRowIndex].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
     }
 
-    thead.innerHTML = headerRow.length ? '<tr>' + headerRow.map(h => `<th>${h}</th>`).join('') + '</tr>' : '';
+    thead.innerHTML = headerRow.length ? '<tr>' + headerRow.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>' : '';
 
     const dataStartIndex = headerRowIndex + 1;
     let dataRows = allRows.slice(dataStartIndex).filter(row => {
@@ -175,7 +288,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       return firstCell !== '---' && firstCell !== '' && firstCell !== 'undefined';
     });
 
-    const playerColIndex = headerRow.findIndex(h => h === 'Player' || h === 'Name');
+    const playerColIndex = findColumnIndex(headerRow, ['Player', 'Name']);
     if (playerColIndex !== -1) {
       const inactiveNames = await getInactivePlayerNames();
       if (inactiveNames.size > 0) {
@@ -188,7 +301,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     }
 
     if (dataRows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
+      renderTableState(tbody, Math.max(headerRow.length, colCount), 'empty');
       return;
     }
 
@@ -236,31 +349,20 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     }).join('');
   } catch (err) {
     console.error(`Error loading sheet "${sheetName}":`, err);
-    tbody.innerHTML = `<tr><td colspan="20">⚠️ No se pudo cargar la información. ${escapeHtml(err.message)}</td></tr>`;
+    renderTableState(tbody, colCount, 'error', { detail: err.message });
   }
-}
-
-// Escapa HTML para evitar que datos con < > & terminen rompiendo el layout
-// (defensa básica; los datos vienen de un Sheet controlado por admins, pero
-// es buena práctica no confiar 100% en el contenido de celdas).
-function escapeHtml(value) {
-  const str = String(value);
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
 
 // ========== MATCH REPORTS RENDERER ==========
 async function renderMatchReports(sheetName, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.innerHTML = '<p>Loading match reports…</p>';
+  renderState(container, 'loading', { title: 'Loading match reports…' });
 
   try {
     const allRows = await fetchSheetData(sheetName);
     if (allRows.length === 0) {
-      container.innerHTML = '<p>No match data for this month.</p>';
+      renderState(container, 'empty', { title: 'No match data for this month.' });
       return;
     }
 
@@ -275,7 +377,7 @@ async function renderMatchReports(sheetName, containerId) {
     }
 
     if (matchStartIndices.length === 0) {
-      container.innerHTML = '<p>No matches found in this sheet.</p>';
+      renderState(container, 'empty', { title: 'No matches found in this sheet.' });
       return;
     }
 
@@ -395,17 +497,18 @@ async function renderMatchReports(sheetName, containerId) {
       html += '</tbody></table></div></div>';
     }
 
-    container.innerHTML = html || '<p>No matches found.</p>';
+    container.innerHTML = html || '<div class="state-box state-empty"><div class="state-title">No matches found.</div></div>';
   } catch (err) {
     console.error(err);
-    container.innerHTML = `<p>⚠️ Error loading match reports: ${escapeHtml(err.message)}</p>`;
+    renderState(container, 'error', { detail: err.message, onRetry: () => renderMatchReports(sheetName, containerId) });
   }
 }
 
 // ----- HELPERS -----
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status} while listing sheets`);
   const json = await response.json();
   return json.sheets || [];
 }
@@ -424,6 +527,9 @@ async function populateMonthSelector(selectId, prefix) {
       option.textContent = display;
       select.appendChild(option);
     });
+    if (filtered.length === 0) {
+      select.innerHTML = '<option value="">No seasons found</option>';
+    }
   } catch (err) {
     console.error('Error populating month selector:', err);
     select.innerHTML = '<option value="">⚠️ Error loading months</option>';
@@ -433,7 +539,7 @@ async function populateMonthSelector(selectId, prefix) {
 function populateSelectFromList(selectId, items, defaultText = '-- Select --') {
   const select = document.getElementById(selectId);
   if (!select) return;
-  select.innerHTML = `<option value="">${defaultText}</option>`;
+  select.innerHTML = `<option value="">${escapeHtml(defaultText)}</option>`;
   items.forEach(item => {
     const opt = document.createElement('option');
     opt.value = item;
@@ -469,13 +575,53 @@ async function fetchPlayerNames() {
 async function loadPlainText(sheetName, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.textContent = 'Loading…';
+  renderState(container, 'loading');
   try {
     const allRows = await fetchSheetData(sheetName);
-    if (!allRows.length) { container.textContent = 'No content found.'; return; }
+    if (!allRows.length) {
+      renderState(container, 'empty', { title: 'No content found.' });
+      return;
+    }
     const lines = allRows.map(row => row[0] || '').filter(line => line.trim() !== '');
     container.innerHTML = lines.map(line => `<p>${escapeHtml(line)}</p>`).join('');
   } catch (err) {
-    container.textContent = `Error: ${err.message}`;
+    renderState(container, 'error', { detail: err.message, onRetry: () => loadPlainText(sheetName, containerId) });
   }
 }
+
+// ----- Sidebar loader + active-link highlighting (shared by every page) -----
+function initSidebar() {
+  const target = document.getElementById('sidebar-container');
+  if (!target) return;
+  // sidebar.html always lives at the site root. Depth is computed from
+  // the current URL path so this works correctly at any folder depth
+  // (root, /ka-esports/, /ka-esports/admin/, etc.) without hardcoding "../".
+  const segments = window.location.pathname.split('/').filter(Boolean);
+  // Last segment is the file itself (e.g. "penalty.html"), so depth is
+  // segments.length - 1 folders below root.
+  const depth = Math.max(segments.length - 1, 0);
+  const prefix = '../'.repeat(depth);
+  fetch(`${prefix}sidebar.html`)
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.text();
+    })
+    .then(html => {
+      target.innerHTML = html;
+      highlightActiveSidebarLink();
+    })
+    .catch(err => {
+      console.error('Error loading sidebar:', err);
+      target.innerHTML = '<div class="panel"><p style="color:var(--text-muted);font-size:13px;">Menu unavailable.</p></div>';
+    });
+}
+
+function highlightActiveSidebarLink() {
+  const current = window.location.pathname.replace(/\/+$/, '').split('/').pop() || 'index.html';
+  document.querySelectorAll('.quick-links a').forEach(a => {
+    const href = (a.getAttribute('href') || '').split('/').pop();
+    if (href === current) a.classList.add('active');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initSidebar);
