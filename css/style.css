@@ -1,4 +1,4 @@
-/* ===== KA ESPORTS – Blue Theme with Orange Table Headers (black bold text) ===== */
+/* ===== KA ESPORTS – Blue Theme with Orange Table Headers (sticky hero + sticky th) ===== */
 
 :root {
   --bg: #f5f7fa;
@@ -8,7 +8,7 @@
   --border-light: #eef0f4;
   --text: #1a1d23;
   --text-muted: #5f6b7a;
-  --accent: #4a86e8;          /* azul general (héroe, enlaces, etc.) */
+  --accent: #4a86e8;
   --accent-dark: #3b6fd4;
   --rank-gm: #f1c232;
   --rank-master: #FFD966;
@@ -20,10 +20,10 @@
   --max-width: 1600px;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  /* colores para cabeceras de tabla */
-  --table-header-bg: #f0a050;   /* naranja cremoso */
+  --table-header-bg: #f0a050;
   --table-header-border: #d4880f;
-  --table-header-text: #000000; /* texto negro en cabeceras */
+  --table-header-text: #000000;
+  --hero-height: 120px;               /* altura estimada del hero fijo */
 }
 
 /* ===== Dark Mode ===== */
@@ -44,9 +44,9 @@ body.dark {
   --rank-advanced: #6b6000;
   --rank-amateur: #1a6b1a;
   --rank-padawan: #4a4a4a;
-  --table-header-bg: #c07a30;   /* naranja más oscuro para modo oscuro */
+  --table-header-bg: #c07a30;
   --table-header-border: #a06020;
-  --table-header-text: #000000; /* en modo oscuro también negro */
+  --table-header-text: #000000;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -59,6 +59,7 @@ body {
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s, color 0.2s;
+  padding-top: var(--hero-height);   /* deja espacio para el hero fijo */
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -71,14 +72,20 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
   width: 100%;
 }
 
-/* ===== Header ===== */
+/* ===== Header fijo ===== */
 .hero {
-  background: var(--accent);   /* azul */
+  background: var(--accent);
   color: #fff;
   padding: 28px 32px;
   margin-bottom: 24px;
-  border-radius: var(--radius);
+  border-radius: 0;                   /* elimina el borde redondeado, queda pegado arriba */
   box-shadow: var(--shadow);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: var(--hero-height);         /* fija la altura */
 }
 
 .eyebrow {
@@ -114,8 +121,8 @@ h1 {
   align-items: start;
 }
 
-/* ===== Sidebar ===== */
-.sidebar { position: sticky; top: 24px; }
+/* ===== Sidebar (se ajusta para no quedar bajo el hero) ===== */
+.sidebar { position: sticky; top: calc(var(--hero-height) + 24px); }
 
 .panel {
   background: var(--surface);
@@ -217,7 +224,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
 /* ===== Responsive Table Wrapper ===== */
 .table-responsive {
   width: 100%;
-  overflow-x: auto;                     /* solo scroll horizontal si la tabla es muy ancha */
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -232,7 +239,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
   min-width: 1100px;
 }
 
-/* Cabeceras de tabla: naranja cremoso con texto negro negrita */
+/* Cabecera de tabla: naranja + texto negro, sticky debajo del hero */
 .data-table th {
   background: var(--table-header-bg);
   color: var(--table-header-text);
@@ -245,7 +252,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
   border-bottom: 2px solid var(--table-header-border);
   white-space: nowrap;
   position: sticky;
-  top: 0;
+  top: var(--hero-height);            /* se pega justo bajo la cabecera fija */
   z-index: 2;
 }
 
@@ -258,7 +265,6 @@ body.dark .toggle-thumb { transform: translateX(14px); }
 
 .data-table tr:last-child td { border-bottom: none; }
 
-/* Hover solo para celdas sin clase de rango */
 .data-table tbody tr:hover td:not([class*="rank-"]):not(.delta-positive):not(.delta-negative) {
   background-color: rgba(74, 134, 232, 0.06);
 }
