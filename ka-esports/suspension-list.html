@@ -41,6 +41,11 @@
       font-style: italic;
       color: var(--text-muted);
     }
+    .empty-state {
+      text-align: center;
+      padding: 30px 10px;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
@@ -79,23 +84,38 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
-    // PENALTIES sheet expected columns (by name, not fixed index):
-    // Timestamp | PlayerID | PlayerName | Reason | Type | Points | Month | StartDate | EndDate | Status | (extra)
-    const PENALTIES_COLS = {
-      timestamp: 'Timestamp',
-      playerId: 'PlayerID',
-      playerName: 'PlayerName',
-      reason: 'Reason',
-      type: 'Type',
-      startDate: 'StartDate',
-      endDate: 'EndDate',
-      status: 'Status'
+    // ---------------------------------------------------------------
+    // PENALTIES sheet layout (CONFIRMED — no header row, raw data
+    // starts at row 1):
+    //
+    //  [0] Timestamp     e.g. "2026-06-16 19:00:00"
+    //  [1] PlayerID      e.g. "P_4135aa9d"
+    //  [2] PlayerName    e.g. "Alex"
+    //  [3] Reason        e.g. "Rage quit / abandonment"
+    //  [4] Type          "RAGE_QUIT" | "SUSPENSION"
+    //  [5] Points        e.g. -40 (0 for pure suspensions)
+    //  [6] Month         e.g. "2026-06"
+    //  [7] StartDate     empty for single RAGE_QUIT rows; set for SUSPENSION
+    //  [8] EndDate       empty for single RAGE_QUIT rows; set for SUSPENSION
+    //  [9] Status        "Applied"
+    //
+    // A row only represents an ACTIVE suspension if Type/Status/dates
+    // indicate it — a lone RAGE_QUIT row has no StartDate/EndDate and
+    // is correctly excluded (it becomes a suspension only once 3 are
+    // accumulated and an admin adds a SUSPENSION row via the admin panel).
+    // ---------------------------------------------------------------
+    const COL = {
+      timestamp: 0,
+      playerId: 1,
+      playerName: 2,
+      reason: 3,
+      type: 4,
+      points: 5,
+      month: 6,
+      startDate: 7,
+      endDate: 8,
+      status: 9
     };
-
-    function findCol(header, name, fallbackIdx) {
-      const idx = header.indexOf(name);
-      return idx !== -1 ? idx : fallbackIdx;
-    }
 
     async function loadSuspensions() {
       const container = document.getElementById('suspensions-container');
@@ -125,62 +145,45 @@
           });
         }
 
-        if (!penaltiesData || penaltiesData.length < 2) {
-          container.innerHTML = '<p>No active suspensions. The community is clean! 🎮</p>';
+        if (!penaltiesData || penaltiesData.length === 0) {
+          container.innerHTML = '<div class="empty-state">No active suspensions. The community is clean! 🎮</div>';
           return;
         }
 
-        // Resolve columns by header name (with fallback to legacy fixed
-        // indices in case the header row doesn't match expected names —
-        // keeps this working even on older sheet layouts, but logs a warning).
-        const header = penaltiesData[0].map(h => (h || '').toString().trim());
-        const hasNamedHeader = header.includes('Status') && (header.includes('StartDate') || header.includes('Start Date'));
-
-        let idIdx, statusIdx, startIdx, endIdx, reasonIdx;
-        if (hasNamedHeader) {
-          idIdx = findCol(header, 'PlayerID', 1);
-          statusIdx = findCol(header, 'Status', 9);
-          startIdx = header.indexOf('StartDate') !== -1 ? header.indexOf('StartDate') : header.indexOf('Start Date');
-          endIdx = header.indexOf('EndDate') !== -1 ? header.indexOf('EndDate') : header.indexOf('End Date');
-          reasonIdx = findCol(header, 'Reason', 3);
-        } else {
-          console.warn('PENALTIES sheet header does not match expected names — falling back to legacy fixed column indices. Consider adding a header row.');
-          idIdx = 1; reasonIdx = 3; startIdx = 7; endIdx = 8; statusIdx = 9;
-        }
-
-        const dataRows = hasNamedHeader ? penaltiesData.slice(1) : penaltiesData;
-
-        // Filter active suspensions
         const now = new Date();
         const suspensions = [];
-        dataRows.forEach(row => {
-          const status = (row[statusIdx] || '').toString().trim();
-          const suspensionEnd = row[endIdx] ? new Date(row[endIdx]) : null;
-          const suspensionStart = row[startIdx] ? new Date(row[startIdx]) : null;
-          if (
-            status === 'Applied' &&
-            suspensionStart && !isNaN(suspensionStart.getTime()) &&
-            suspensionEnd && !isNaN(suspensionEnd.getTime()) &&
-            now >= suspensionStart && now <= suspensionEnd
-          ) {
-            const playerId = (row[idIdx] || '').toString().trim();
-            const info = playerMap[playerId] || { name: playerId, country: 'XX' };
-            suspensions.push({
-              playerName: info.name,
-              playerCountry: info.country,
-              reason: (row[reasonIdx] || 'Rage quit / abandonment').toString().trim(),
-              start: suspensionStart,
-              end: suspensionEnd
-            });
-          }
+
+        penaltiesData.forEach(row => {
+          const status = (row[COL.status] || '').toString().trim();
+          if (status !== 'Applied') return;
+
+          const startRaw = row[COL.startDate];
+          const endRaw = row[COL.endDate];
+          if (!startRaw || !endRaw) return; // no date range = not a suspension window (e.g. a lone RAGE_QUIT row)
+
+          const suspensionStart = new Date(startRaw);
+          const suspensionEnd = new Date(endRaw);
+          if (isNaN(suspensionStart.getTime()) || isNaN(suspensionEnd.getTime())) return;
+          if (!(now >= suspensionStart && now <= suspensionEnd)) return; // not currently active
+
+          const playerId = (row[COL.playerId] || '').toString().trim();
+          const info = playerMap[playerId] || { name: row[COL.playerName] || playerId, country: 'XX' };
+
+          suspensions.push({
+            playerName: info.name,
+            playerCountry: info.country,
+            reason: (row[COL.reason] || 'Rage quit / abandonment').toString().trim(),
+            start: suspensionStart,
+            end: suspensionEnd
+          });
         });
 
         if (suspensions.length === 0) {
-          container.innerHTML = '<p>No active suspensions. The community is clean! 🎮</p>';
+          container.innerHTML = '<div class="empty-state">No active suspensions. The community is clean! 🎮</div>';
           return;
         }
 
-        // Order by soonest-ending first, so upcoming reinstatements are visible
+        // Soonest-to-end first, so people can see who's coming back next
         suspensions.sort((a, b) => a.end - b.end);
 
         container.innerHTML = suspensions.map(s => {
