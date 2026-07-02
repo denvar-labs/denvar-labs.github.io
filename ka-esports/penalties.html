@@ -3,39 +3,248 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Penalties – KA ESPORTS</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <title>Admin Panel – KA ESPORTS</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    .admin-box { max-width: 600px; margin: 30px auto; }
+    .section { margin-bottom: 30px; }
+    input, select, textarea { width: 100%; padding: 8px; margin: 6px 0; border-radius: 4px; border: 1px solid var(--border); }
+    button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.danger { background: #e53935; }
+    .result { margin-top: 16px; padding: 10px; border-radius: 4px; }
+    .warning-banner {
+      background: #fff3cd; border: 1px solid #ffc107; color: #664d03;
+      padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem;
+    }
+    .confirm-box {
+      background: #fff5f5; border: 1px solid #e53935; border-radius: 6px;
+      padding: 14px; margin-top: 10px; display: none;
+    }
+    .confirm-box.visible { display: block; }
+  </style>
 </head>
 <body>
   <div class="wrap">
     <header class="hero">
       <div class="eyebrow">KA ESPORTS</div>
-      <h1>Penalties & Sanctions</h1>
-      <p>Rage quit and suspension records.</p>
+      <h1>Admin Panel</h1>
     </header>
-    <div class="grid">
-      <div id="sidebar-container"></div>
-      <main class="content">
-        <section class="panel">
-          <div class="section-heading">Penalty History</div>
-          <div class="table-responsive">
-            <table id="data-table" class="data-table">
-              <thead></thead>
-              <tbody><tr><td colspan="20">Loading…</td></tr></tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+
+    <div class="admin-box panel">
+      <div class="warning-banner">
+        ⚠️ Esta página realiza acciones irreversibles sobre el ranking. Verifica el jugador antes de confirmar.
+      </div>
+
+      <!-- Rage Quit Penalty -->
+      <div class="section">
+        <h3>Apply Rage Quit Penalty (-40)</h3>
+        <label>Player</label>
+        <select id="player-select">
+          <option value="">-- Choose player --</option>
+        </select>
+        <br>
+        <label>Or Player ID manually:</label>
+        <input type="text" id="player-id" placeholder="P_...">
+        <br>
+        <label>Admin Key</label>
+        <input type="password" id="admin-key" placeholder="Secret key" autocomplete="off">
+        <br><br>
+        <button id="penalty-btn" onclick="requestPenaltyConfirm()">Apply -40 Penalty</button>
+        <div id="penalty-confirm" class="confirm-box">
+          <p id="penalty-confirm-text"></p>
+          <button class="danger" onclick="applyPenalty()">Sí, confirmar penalización</button>
+          <button onclick="cancelPenaltyConfirm()" style="background:#888;">Cancelar</button>
+        </div>
+        <div id="penalty-result" class="result"></div>
+      </div>
+
+      <hr>
+
+      <!-- Manual Suspension -->
+      <div class="section">
+        <h3>Add Manual Suspension</h3>
+        <label>Player</label>
+        <select id="susp-player-select">
+          <option value="">-- Choose player --</option>
+        </select>
+        <br>
+        <label>Or Player ID manually:</label>
+        <input type="text" id="susp-player-id" placeholder="P_...">
+        <br>
+        <label>Start Date & Time</label>
+        <input type="datetime-local" id="susp-start">
+        <br>
+        <label>End Date & Time</label>
+        <input type="datetime-local" id="susp-end">
+        <br>
+        <label>Reason</label>
+        <input type="text" id="susp-reason" placeholder="Conducta antideportiva, etc.">
+        <br>
+        <label>Admin Key</label>
+        <input type="password" id="susp-admin-key" placeholder="Secret key" autocomplete="off">
+        <br><br>
+        <button id="susp-btn" onclick="requestSuspensionConfirm()">Add Suspension</button>
+        <div id="susp-confirm" class="confirm-box">
+          <p id="susp-confirm-text"></p>
+          <button class="danger" onclick="addSuspension()">Sí, confirmar suspensión</button>
+          <button onclick="cancelSuspensionConfirm()" style="background:#888;">Cancelar</button>
+        </div>
+        <div id="suspension-result" class="result"></div>
+      </div>
     </div>
   </div>
-  <script src="../js/api-loader.js"></script>
+
   <script>
-    document.addEventListener('DOMContentLoaded', () => loadTableFromSheet('PENALTIES', 'data-table', -1));
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
+    // Misma URL que api-loader.js — si cambia el deployment, actualizar en AMBOS lugares
+    // (o mejor: cargar api-loader.js aquí también para tener una sola fuente de verdad).
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMYv9MCqIj4EV_p0W25WcYZnCsBXYTQyugxCVjqFgA8YYFIy66VCOWRFjWgp5l2AiO/exec';
+
+    let playerNameCache = {};
+
+    async function loadPlayers() {
+      try {
+        const resp = await fetch(`${SCRIPT_URL}?sheet=PLAYERS`);
+        const json = await resp.json();
+        if (!json || !json.data) return;
+        const header = json.data[0].map(h => h.trim());
+        const idIdx = header.indexOf('ID');
+        const nameIdx = header.indexOf('Name');
+        const rows = json.data.slice(1);
+        const optionsHtml = rows.map(row => {
+          const id = row[idIdx];
+          const name = row[nameIdx];
+          if (id && name) playerNameCache[id] = name;
+          return id && name ? `<option value="${id}">${name} (${id})</option>` : '';
+        }).join('');
+        document.getElementById('player-select').innerHTML = '<option value="">-- Choose player --</option>' + optionsHtml;
+        document.getElementById('susp-player-select').innerHTML = '<option value="">-- Choose player --</option>' + optionsHtml;
+      } catch (err) {
+        console.error('Error loading players:', err);
+      }
+    }
+
+    function resolvePlayerId(selectId, manualId) {
+      let playerId = document.getElementById(manualId).value.trim();
+      if (!playerId) playerId = document.getElementById(selectId).value;
+      return playerId;
+    }
+
+    function displayName(playerId) {
+      return playerNameCache[playerId] || playerId;
+    }
+
+    // ---------- Penalty flow (with confirm step) ----------
+    function requestPenaltyConfirm() {
+      const playerId = resolvePlayerId('player-select', 'player-id');
+      const key = document.getElementById('admin-key').value.trim();
+      if (!playerId) { alert('Select a player'); return; }
+      if (!key) { alert('Enter the admin key'); return; }
+
+      document.getElementById('penalty-confirm-text').textContent =
+        `¿Confirmas aplicar -40 de rating a "${displayName(playerId)}" (${playerId})? Esta acción quedará registrada.`;
+      document.getElementById('penalty-confirm').classList.add('visible');
+      document.getElementById('penalty-btn').disabled = true;
+    }
+
+    function cancelPenaltyConfirm() {
+      document.getElementById('penalty-confirm').classList.remove('visible');
+      document.getElementById('penalty-btn').disabled = false;
+    }
+
+    async function applyPenalty() {
+      const key = document.getElementById('admin-key').value.trim();
+      const playerId = resolvePlayerId('player-select', 'player-id');
+      const resultDiv = document.getElementById('penalty-result');
+      const confirmBtn = document.querySelector('#penalty-confirm .danger');
+
+      confirmBtn.disabled = true;
+      resultDiv.innerHTML = '<p>Applying…</p>';
+
+      try {
+        const resp = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
+          body: JSON.stringify({ action: 'applyPenalty', playerId, key })
+        });
+        const data = await resp.json();
+        if (data.error) {
+          resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          resultDiv.innerHTML = `<p style="color:green;">${data.message || 'Penalty applied.'}</p>`;
+          document.getElementById('admin-key').value = '';
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:red;">Request failed: ${err.message}</p>`;
+      } finally {
+        confirmBtn.disabled = false;
+        cancelPenaltyConfirm();
+      }
+    }
+
+    // ---------- Suspension flow (with confirm step) ----------
+    function requestSuspensionConfirm() {
+      const playerId = resolvePlayerId('susp-player-select', 'susp-player-id');
+      const startDate = document.getElementById('susp-start').value;
+      const endDate = document.getElementById('susp-end').value;
+      const key = document.getElementById('susp-admin-key').value.trim();
+
+      if (!playerId || !startDate || !endDate) {
+        alert('Please fill all fields: player, start date, end date.');
+        return;
+      }
+      if (!key) { alert('Enter the admin key'); return; }
+      if (new Date(endDate) <= new Date(startDate)) {
+        alert('End date must be after start date.');
+        return;
+      }
+
+      document.getElementById('susp-confirm-text').textContent =
+        `¿Confirmas suspender a "${displayName(playerId)}" (${playerId}) del ${startDate} al ${endDate}?`;
+      document.getElementById('susp-confirm').classList.add('visible');
+      document.getElementById('susp-btn').disabled = true;
+    }
+
+    function cancelSuspensionConfirm() {
+      document.getElementById('susp-confirm').classList.remove('visible');
+      document.getElementById('susp-btn').disabled = false;
+    }
+
+    async function addSuspension() {
+      const key = document.getElementById('susp-admin-key').value.trim();
+      const playerId = resolvePlayerId('susp-player-select', 'susp-player-id');
+      const startDate = document.getElementById('susp-start').value;
+      const endDate = document.getElementById('susp-end').value;
+      const reason = document.getElementById('susp-reason').value.trim() || 'Manual suspension';
+      const resultDiv = document.getElementById('suspension-result');
+      const confirmBtn = document.querySelector('#susp-confirm .danger');
+
+      confirmBtn.disabled = true;
+      resultDiv.innerHTML = '<p>Adding…</p>';
+
+      try {
+        const resp = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'addSuspension', playerId, startDate, endDate, reason, key })
+        });
+        const data = await resp.json();
+        if (data.error) {
+          resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+        } else {
+          resultDiv.innerHTML = `<p style="color:green;">${data.message || 'Suspension added.'}</p>`;
+          document.getElementById('susp-admin-key').value = '';
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:red;">Request failed: ${err.message}</p>`;
+      } finally {
+        confirmBtn.disabled = false;
+        cancelSuspensionConfirm();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPlayers);
   </script>
 </body>
 </html>
