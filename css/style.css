@@ -1,4 +1,4 @@
-/* ===== KA ESPORTS – Creamy Orange Theme ===== */
+/* ===== KA ESPORTS – Blue Theme with Orange Table Headers ===== */
 
 :root {
   --bg: #f5f7fa;
@@ -8,8 +8,8 @@
   --border-light: #eef0f4;
   --text: #1a1d23;
   --text-muted: #5f6b7a;
-  --accent: #f0a050;          /* naranja cremoso */
-  --accent-dark: #d4880f;     /* naranja oscuro */
+  --accent: #4a86e8;          /* azul general (héroe, enlaces, etc.) */
+  --accent-dark: #3b6fd4;
   --rank-gm: #f1c232;
   --rank-master: #FFD966;
   --rank-pro: #CCE5FF;
@@ -20,6 +20,9 @@
   --max-width: 1600px;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  /* nuevo: color solo para cabeceras de tabla */
+  --table-header-bg: #f0a050;   /* naranja cremoso */
+  --table-header-border: #d4880f;
 }
 
 /* ===== Dark Mode ===== */
@@ -31,8 +34,8 @@ body.dark {
   --border-light: #252836;
   --text: #e8eaf0;
   --text-muted: #8b95a8;
-  --accent: #f0a050;
-  --accent-dark: #d4880f;
+  --accent: #5a96f0;
+  --accent-dark: #4a86e8;
   --rank-gm: #a07c10;
   --rank-master: #8a6a00;
   --rank-pro: #1e4a88;
@@ -40,6 +43,8 @@ body.dark {
   --rank-advanced: #6b6000;
   --rank-amateur: #1a6b1a;
   --rank-padawan: #4a4a4a;
+  --table-header-bg: #c07a30;   /* naranja más oscuro para modo oscuro */
+  --table-header-border: #a06020;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -66,7 +71,7 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
 
 /* ===== Header ===== */
 .hero {
-  background: var(--accent);
+  background: var(--accent);   /* azul */
   color: #fff;
   padding: 28px 32px;
   margin-bottom: 24px;
@@ -226,8 +231,9 @@ body.dark .toggle-thumb { transform: translateX(14px); }
   min-width: 1100px;
 }
 
+/* Cabeceras de tabla: naranja cremoso */
 .data-table th {
-  background: var(--accent);
+  background: var(--table-header-bg);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -235,7 +241,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
   letter-spacing: 0.4px;
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 2px solid var(--accent-dark);
+  border-bottom: 2px solid var(--table-header-border);
   white-space: nowrap;
   position: sticky;
   top: 0;
@@ -253,7 +259,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
 
 /* Hover solo para celdas sin clase de rango */
 .data-table tbody tr:hover td:not([class*="rank-"]):not(.delta-positive):not(.delta-negative) {
-  background-color: rgba(240, 160, 80, 0.08);
+  background-color: rgba(74, 134, 232, 0.06);
 }
 
 /* ===== Colores de celda para rango (Player y Rank) ===== */
