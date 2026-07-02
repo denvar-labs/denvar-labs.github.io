@@ -1,8 +1,11 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v17 – Updated Web App URL)
+//  KA ESPORTS – API Data Loader (v18 – con esc() incluida)
 // =====================================================
 
 const API_BASE = 'https://script.google.com/macros/s/AKfycbyMYv9MCqIj4EV_p0W25WcYZnCsBXYTQyugxCVjqFgA8YYFIy66VCOWRFjWgp5l2AiO/exec';
+
+// ----- Configuración de cache -----
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
 const HEADER_ROWS_TO_SKIP = {
   'LEADERBOARD_GLOBAL': 3,
@@ -41,6 +44,41 @@ const RATING_THRESHOLDS = [
   { rank: 'Padawan',      min: 0 }
 ];
 
+// =====================================================
+//  SEGURIDAD — Sanitización anti-XSS
+// =====================================================
+
+/**
+ * Escapa HTML para prevenir XSS.
+ * Usar SIEMPRE al insertar datos de la API en innerHTML.
+ */
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+// =====================================================
+//  UTILIDADES COMPARTIDAS
+// =====================================================
+
+/**
+ * Convierte código de país a emoji de bandera.
+ */
+function getFlagEmoji(code) {
+  const flags = {
+    'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
+    'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
+    'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
+    'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
+    'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
+    'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
+    'XX': '🏁'
+  };
+  return flags[(code || '').toString().toUpperCase()] || '🏁';
+}
+
 function getRankFromRating(rating) {
   const r = Number(rating);
   for (const level of RATING_THRESHOLDS) {
@@ -49,17 +87,72 @@ function getRankFromRating(rating) {
   return 'Padawan';
 }
 
-async function fetchSheetData(sheetName) {
-  const url = `${API_BASE}?sheet=${encodeURIComponent(sheetName)}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const json = await response.json();
-  if (json.error) throw new Error(json.error);
-  return json.data || [];
+function extractPlayerName(cell) {
+  if (!cell) return '';
+  return cell.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}]+/gu, '').trim();
 }
 
-// ----- Cache for inactive player names -----
+// =====================================================
+//  PERFORMANCE — Fetch con retry y cache
+// =====================================================
+
+async function fetchWithRetry(url, retries = 2) {
+  let lastError;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const json = await response.json();
+      if (json.error) throw new Error(json.error);
+      return json;
+    } catch (err) {
+      lastError = err;
+      if (i < retries) {
+        await new Promise(r => setTimeout(r, 800 * Math.pow(2, i)));
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function fetchSheetData(sheetName) {
+  const cacheKey = `ka_cache_${sheetName}`;
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      const { data, ts } = JSON.parse(cached);
+      if (Date.now() - ts < CACHE_TTL_MS) {
+        return data;
+      }
+    }
+  } catch (_) { /* sessionStorage no disponible, continuar sin cache */ }
+
+  const url = `${API_BASE}?sheet=${encodeURIComponent(sheetName)}`;
+  const json = await fetchWithRetry(url);
+  const data = json.data || [];
+
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
+  } catch (_) { /* quota exceeded, ignorar */ }
+
+  return data;
+}
+
+function invalidateCache(sheetName) {
+  try {
+    if (sheetName) {
+      sessionStorage.removeItem(`ka_cache_${sheetName}`);
+    } else {
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith('ka_cache_'))
+        .forEach(k => sessionStorage.removeItem(k));
+    }
+  } catch (_) {}
+}
+
+// ----- Cache para jugadores inactivos -----
 let inactiveNamesPromise = null;
+
 function getInactivePlayerNames() {
   if (!inactiveNamesPromise) {
     inactiveNamesPromise = (async () => {
@@ -89,12 +182,15 @@ function getInactivePlayerNames() {
   return inactiveNamesPromise;
 }
 
-function extractPlayerName(cell) {
-  if (!cell) return '';
-  return cell.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}]+/gu, '').trim();
+function resetInactiveCache() {
+  inactiveNamesPromise = null;
+  invalidateCache('PLAYERS');
 }
 
-// ----- TABLE RENDERER -----
+// =====================================================
+//  TABLE RENDERER (ahora colorea solo Player y Rank)
+// =====================================================
+
 function detectHeaderRow(allRows, isMatchReport = false) {
   for (let i = 0; i < Math.min(allRows.length, 10); i++) {
     const row = allRows[i].map(cell => (cell || '').toString().trim());
@@ -107,105 +203,6 @@ function detectHeaderRow(allRows, isMatchReport = false) {
   return -1;
 }
 
-async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
-  const table = document.getElementById(tableId);
-  if (!table) return;
-  const thead = table.querySelector('thead');
-  const tbody = table.querySelector('tbody');
-  if (!thead || !tbody) return;
-
-  tbody.innerHTML = '<tr><td colspan="20">Loading…</td></tr>';
-
-  try {
-    const allRows = await fetchSheetData(sheetName);
-    if (allRows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
-      return;
-    }
-
-    const isMatchReport = sheetName.startsWith('MATCH_REPORTS_');
-    const detectedIndex = detectHeaderRow(allRows, isMatchReport);
-    let headerRowIndex = detectedIndex >= 0 ? detectedIndex : (HEADER_ROWS_TO_SKIP[sheetName] || (isMatchReport ? 3 : DEFAULT_SKIP)) - 1;
-
-    let headerRow = [];
-    if (headerRowIndex >= 0 && allRows.length > headerRowIndex) {
-      headerRow = allRows[headerRowIndex].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
-    }
-
-    thead.innerHTML = headerRow.length ? '<tr>' + headerRow.map(h => `<th>${h}</th>`).join('') + '</tr>' : '';
-
-    const dataStartIndex = headerRowIndex + 1;
-    let dataRows = allRows.slice(dataStartIndex).filter(row => {
-      const firstCell = (row[0] || '').toString().trim();
-      return firstCell !== '---' && firstCell !== '' && firstCell !== 'undefined';
-    });
-
-    const playerColIndex = headerRow.findIndex(h => h === 'Player' || h === 'Name');
-    if (playerColIndex !== -1) {
-      const inactiveNames = await getInactivePlayerNames();
-      if (inactiveNames.size > 0) {
-        dataRows = dataRows.filter(row => {
-          const rawName = (row[playerColIndex] || '').toString().trim();
-          const cleanName = extractPlayerName(rawName);
-          return !inactiveNames.has(cleanName);
-        });
-      }
-    }
-
-    if (dataRows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
-      return;
-    }
-
-    const percentColumns = new Set();
-    headerRow.forEach((h, idx) => {
-      if (h.includes('%')) percentColumns.add(idx);
-    });
-
-    let ratingBeforeColIndex = -1, deltaColIndex = -1;
-    if (isMatchReport) {
-      ratingBeforeColIndex = headerRow.findIndex(h => h.includes('Rating Before'));
-      deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
-    }
-
-    tbody.innerHTML = dataRows.map(row => {
-      let rowClass = (!isMatchReport && rankColumnIndex >= 0) ? (RANK_CLASS_MAP[String(row[rankColumnIndex] || '').trim()] || '') : '';
-
-      let rowHTML = `<tr class="${rowClass}">`;
-      row.forEach((cell, colIdx) => {
-        let display = cell ?? '';
-        if (percentColumns.has(colIdx) && typeof cell === 'number') {
-          display = (cell * 100).toFixed(1) + '%';
-        } else if (typeof cell === 'number' && !Number.isInteger(cell)) {
-          display = parseFloat(cell.toFixed(2));
-        }
-
-        let cellStyle = '';
-        if (isMatchReport && colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
-          const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
-          if (!isNaN(ratingBefore)) {
-            const rank = getRankFromRating(ratingBefore);
-            const cssClass = RANK_CLASS_MAP[rank] || '';
-            cellStyle = ` class="${cssClass}"`;
-          }
-        }
-        if (isMatchReport && colIdx === deltaColIndex && typeof cell === 'number') {
-          if (cell > 0) cellStyle = ' class="delta-positive"';
-          else if (cell < 0) cellStyle = ' class="delta-negative"';
-        }
-
-        rowHTML += `<td${cellStyle}>${display}</td>`;
-      });
-      rowHTML += '</tr>';
-      return rowHTML;
-    }).join('');
-  } catch (err) {
-    console.error(`Error loading sheet "${sheetName}":`, err);
-    tbody.innerHTML = `<tr><td colspan="20">Error: ${err.message}</td></tr>`;
-  }
-}
-
-// ========== MATCH REPORTS RENDERER ==========
 async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   const table = document.getElementById(tableId);
   if (!table) return;
@@ -245,7 +242,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       return firstCell !== '---' && firstCell !== '' && firstCell !== 'undefined';
     });
 
-    // --- FILTRAR INACTIVOS ---
     const playerColIndex = headerRow.findIndex(h => h === 'Player' || h === 'Name');
     if (playerColIndex !== -1) {
       const inactiveNames = await getInactivePlayerNames();
@@ -257,18 +253,17 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
         });
       }
     }
+
     if (dataRows.length === 0) {
       tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
       return;
     }
 
-    // --- ÍNDICES IMPORTANTES ---
     const percentColumns = new Set();
     headerRow.forEach((h, idx) => {
       if (h.includes('%')) percentColumns.add(idx);
     });
 
-    // Localiza las columnas Player y Rank (para aplicar color)
     const rankColIdx = headerRow.findIndex(h => h === 'Rank');
     const playerColForColor = headerRow.findIndex(h => h === 'Player');
 
@@ -278,9 +273,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
     }
 
-    // --- GENERAR FILAS ---
     tbody.innerHTML = dataRows.map(row => {
-      // Determinar el rango (si existe la columna Rank)
       const rankName = (rankColIdx !== -1 ? String(row[rankColIdx] || '').trim() : '');
       const rankCssClass = RANK_CLASS_MAP[rankName] || '';
 
@@ -295,7 +288,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
 
         let cellClass = '';
 
-        // Solo colorear la columna Player (en Match Reports) o Player/Rank (en leaderboards)
         if (isMatchReport && colIdx === playerColForColor && ratingBeforeColIndex >= 0) {
           const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
           if (!isNaN(ratingBefore)) {
@@ -306,7 +298,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
           cellClass = rankCssClass;
         }
 
-        // Colores Δ Rating (Match Reports)
         if (isMatchReport && colIdx === deltaColIndex && typeof cell === 'number') {
           if (cell > 0) cellClass = 'delta-positive';
           else if (cell < 0) cellClass = 'delta-negative';
@@ -323,11 +314,172 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
-// ----- HELPERS -----
+// =====================================================
+//  MATCH REPORTS RENDERER
+// =====================================================
+
+async function renderMatchReports(sheetName, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '<p>Loading match reports…</p>';
+
+  try {
+    const allRows = await fetchSheetData(sheetName);
+    if (allRows.length === 0) {
+      container.innerHTML = '<p>No match data for this month.</p>';
+      return;
+    }
+
+    const cleanRows = allRows.map(row =>
+      row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim())
+    );
+    const inactiveNames = await getInactivePlayerNames();
+
+    const matchStartIndices = [];
+    for (let i = 0; i < cleanRows.length; i++) {
+      if (cleanRows[i][0] && cleanRows[i][0].startsWith('## Match ID:')) {
+        matchStartIndices.push(i);
+      }
+    }
+
+    if (matchStartIndices.length === 0) {
+      container.innerHTML = '<p>No matches found in this sheet.</p>';
+      return;
+    }
+
+    let html = '';
+    for (let idx = 0; idx < matchStartIndices.length; idx++) {
+      const start = matchStartIndices[idx];
+      const end = (idx < matchStartIndices.length - 1) ? matchStartIndices[idx + 1] : cleanRows.length;
+      const block = cleanRows.slice(start, end);
+
+      const matchIdRow = block[0];
+      const matchId = matchIdRow[0].replace('## Match ID:', '').trim();
+      const dateQualityRow = block[1] ? block[1][0] : '';
+      let date = '', quality = '';
+      if (dateQualityRow) {
+        const dateMatch = dateQualityRow.match(/\*\*Date:\*\*\s*(.*?)\s*\|/);
+        const qualityMatch = dateQualityRow.match(/\*\*Quality:\*\*\s*(.*)/);
+        if (dateMatch) date = dateMatch[1].trim();
+        if (qualityMatch) quality = qualityMatch[1].trim();
+      }
+
+      let headerRow = null;
+      let dataStart = 0;
+      for (let j = 0; j < block.length; j++) {
+        const row = block[j];
+        if (row.some(cell => cell.toLowerCase().includes('player'))) {
+          headerRow = row;
+          dataStart = j + 1;
+          break;
+        }
+      }
+      if (!headerRow) continue;
+
+      let dataRows = [];
+      for (let j = dataStart; j < block.length; j++) {
+        const row = block[j];
+        if (row[0] === '---' || row[0] === '') break;
+        dataRows.push(row);
+      }
+
+      const playerColIndex = headerRow.findIndex(h => h === 'Player');
+      if (playerColIndex !== -1 && inactiveNames.size > 0) {
+        const hasInactive = dataRows.some(row => {
+          const rawName = (row[playerColIndex] || '').toString().trim();
+          const cleanName = extractPlayerName(rawName);
+          return inactiveNames.has(cleanName);
+        });
+        if (hasInactive) continue;
+      }
+
+      if (playerColIndex !== -1 && inactiveNames.size > 0) {
+        dataRows = dataRows.filter(row => {
+          const rawName = (row[playerColIndex] || '').toString().trim();
+          const cleanName = extractPlayerName(rawName);
+          return !inactiveNames.has(cleanName);
+        });
+      }
+
+      if (dataRows.length === 0) continue;
+
+      const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
+      const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
+      const ratingBeforeIdx = ratingBeforeColIndex >= 0
+        ? ratingBeforeColIndex
+        : headerRow.findIndex(h => h === 'Rating Before Matcl');
+
+      const colClasses = {
+        'Player': 'col-player',
+        'Points': 'col-points align-right',
+        'Pos': 'col-pos',
+        'Rating Before Match': 'col-rating-before align-right',
+        'RD Before Match': 'col-rd-before align-right',
+        'Δ Rating': 'col-delta align-right',
+        'New Rating': 'col-new-rating align-right',
+        'New RD': 'col-new-rd align-right'
+      };
+
+      html += '<div style="margin-bottom:30px;">';
+      html += `<h3 style="margin:0 0 5px;">Match ID: ${esc(matchId)}</h3>`;
+      html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${esc(date)} | <strong>Quality:</strong> ${esc(quality)}</p>`;
+      html += '<div class="table-responsive"><table class="data-table match-report-table"><thead><tr>';
+      headerRow.forEach(h => {
+        const colClass = colClasses[h] || '';
+        html += `<th class="${esc(colClass)}">${esc(h)}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      dataRows.forEach(row => {
+        html += '<tr>';
+        row.forEach((cell, colIdx) => {
+          const headerName = headerRow[colIdx] || '';
+          const colClass = colClasses[headerName] || '';
+          let display = cell;
+          let cellExtraClass = '';
+
+          const numVal = parseFloat(cell);
+          const isNumber = !isNaN(numVal) && String(cell).trim() !== '';
+
+          if (colIdx === deltaColIndex && isNumber) {
+            display = numVal.toFixed(2);
+            if (numVal > 0) cellExtraClass += ' delta-positive';
+            else if (numVal < 0) cellExtraClass += ' delta-negative';
+          } else if (isNumber && !Number.isInteger(numVal) && colIdx !== ratingBeforeIdx) {
+            display = numVal.toFixed(2);
+          }
+
+          if (colIdx === playerColIndex && ratingBeforeIdx >= 0) {
+            const ratingBefore = parseFloat(row[ratingBeforeIdx]);
+            if (!isNaN(ratingBefore)) {
+              const rank = getRankFromRating(ratingBefore);
+              cellExtraClass += ` ${RANK_CLASS_MAP[rank] || ''}`;
+            }
+          }
+
+          const fullClass = (colClass + cellExtraClass).trim();
+          html += `<td class="${esc(fullClass)}">${esc(String(display))}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div></div>';
+    }
+
+    container.innerHTML = html || '<p>No matches found.</p>';
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<p>Error: ${esc(err.message)}</p>`;
+  }
+}
+
+// =====================================================
+//  HELPERS
+// =====================================================
+
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
-  const response = await fetch(url);
-  const json = await response.json();
+  const json = await fetchWithRetry(url);
   return json.sheets || [];
 }
 
@@ -345,13 +497,15 @@ async function populateMonthSelector(selectId, prefix) {
       option.textContent = display;
       select.appendChild(option);
     });
-  } catch (err) { console.error('Error populating month selector:', err); }
+  } catch (err) {
+    console.error('Error populating month selector:', err);
+  }
 }
 
 function populateSelectFromList(selectId, items, defaultText = '-- Select --') {
   const select = document.getElementById(selectId);
   if (!select) return;
-  select.innerHTML = `<option value="">${defaultText}</option>`;
+  select.innerHTML = `<option value="">${esc(defaultText)}</option>`;
   items.forEach(item => {
     const opt = document.createElement('option');
     opt.value = item;
@@ -364,7 +518,9 @@ async function fetchPlayerNames() {
   try {
     const playersSheet = await fetchSheetData('PLAYERS');
     if (playersSheet.length < 2) return [];
-    const header = playersSheet[0].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
+    const header = playersSheet[0].map(h =>
+      (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+    );
     const nameCol = header.indexOf('Name');
     const activeCol = header.indexOf('Active');
     if (nameCol === -1) return [];
@@ -392,6 +548,8 @@ async function loadPlainText(sheetName, containerId) {
     const allRows = await fetchSheetData(sheetName);
     if (!allRows.length) { container.textContent = 'No content found.'; return; }
     const lines = allRows.map(row => row[0] || '').filter(line => line.trim() !== '');
-    container.innerHTML = lines.map(line => `<p>${line}</p>`).join('');
-  } catch (err) { container.textContent = `Error: ${err.message}`; }
+    container.innerHTML = lines.map(line => `<p>${esc(line)}</p>`).join('');
+  } catch (err) {
+    container.textContent = `Error: ${err.message}`;
+  }
 }
