@@ -1,4 +1,4 @@
-/* ===== KA ESPORTS – Blue Theme with Orange Table Headers (sticky hero + sticky th) ===== */
+/* ===== KA ESPORTS – Blue Theme with Orange Table Headers (sticky table header only) ===== */
 
 :root {
   --bg: #f5f7fa;
@@ -23,7 +23,6 @@
   --table-header-bg: #f0a050;
   --table-header-border: #d4880f;
   --table-header-text: #000000;
-  --hero-height: 120px;               /* altura estimada del hero fijo */
 }
 
 /* ===== Dark Mode ===== */
@@ -59,7 +58,6 @@ body {
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s, color 0.2s;
-  padding-top: var(--hero-height);   /* deja espacio para el hero fijo */
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -72,20 +70,14 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
   width: 100%;
 }
 
-/* ===== Header fijo ===== */
+/* ===== Header ===== */
 .hero {
   background: var(--accent);
   color: #fff;
   padding: 28px 32px;
   margin-bottom: 24px;
-  border-radius: 0;                   /* elimina el borde redondeado, queda pegado arriba */
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  height: var(--hero-height);         /* fija la altura */
 }
 
 .eyebrow {
@@ -121,8 +113,8 @@ h1 {
   align-items: start;
 }
 
-/* ===== Sidebar (se ajusta para no quedar bajo el hero) ===== */
-.sidebar { position: sticky; top: calc(var(--hero-height) + 24px); }
+/* ===== Sidebar ===== */
+.sidebar { position: sticky; top: 24px; }
 
 .panel {
   background: var(--surface);
@@ -189,10 +181,10 @@ h1 {
 .dark-toggle:hover { background: var(--accent); color: #fff; }
 
 .toggle-track {
-  width: 32px;
-  height: 18px;
+  width: 36px;
+  height: 20px;
   background: var(--border);
-  border-radius: 9px;
+  border-radius: 10px;
   position: relative;
   transition: background 0.2s;
   flex-shrink: 0;
@@ -204,14 +196,14 @@ body.dark .toggle-track { background: var(--accent); }
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   background: #fff;
   border-radius: 50%;
   transition: transform 0.2s;
 }
 
-body.dark .toggle-thumb { transform: translateX(14px); }
+body.dark .toggle-thumb { transform: translateX(16px); }
 
 /* ===== Section Heading ===== */
 .section-heading {
@@ -239,7 +231,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
   min-width: 1100px;
 }
 
-/* Cabecera de tabla: naranja + texto negro, sticky debajo del hero */
+/* Cabecera de la tabla: naranja, texto negro, sticky al hacer scroll (top: 0) */
 .data-table th {
   background: var(--table-header-bg);
   color: var(--table-header-text);
@@ -252,7 +244,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
   border-bottom: 2px solid var(--table-header-border);
   white-space: nowrap;
   position: sticky;
-  top: var(--hero-height);            /* se pega justo bajo la cabecera fija */
+  top: 0;
   z-index: 2;
 }
 
@@ -265,6 +257,7 @@ body.dark .toggle-thumb { transform: translateX(14px); }
 
 .data-table tr:last-child td { border-bottom: none; }
 
+/* Hover para filas sin clase de rango */
 .data-table tbody tr:hover td:not([class*="rank-"]):not(.delta-positive):not(.delta-negative) {
   background-color: rgba(74, 134, 232, 0.06);
 }
