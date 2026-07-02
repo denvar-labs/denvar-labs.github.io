@@ -76,8 +76,27 @@
     </div>
   </div>
 
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
+    // PENALTIES sheet expected columns (by name, not fixed index):
+    // Timestamp | PlayerID | PlayerName | Reason | Type | Points | Month | StartDate | EndDate | Status | (extra)
+    const PENALTIES_COLS = {
+      timestamp: 'Timestamp',
+      playerId: 'PlayerID',
+      playerName: 'PlayerName',
+      reason: 'Reason',
+      type: 'Type',
+      startDate: 'StartDate',
+      endDate: 'EndDate',
+      status: 'Status'
+    };
+
+    function findCol(header, name, fallbackIdx) {
+      const idx = header.indexOf(name);
+      return idx !== -1 ? idx : fallbackIdx;
+    }
+
     async function loadSuspensions() {
       const container = document.getElementById('suspensions-container');
       container.innerHTML = '<p>Loading…</p>';
@@ -91,10 +110,10 @@
         // Build player ID → name and country map
         const playerMap = {};
         if (playersData && playersData.length > 1) {
-          const header = playersData[0].map(h => (h || '').toString().trim());
-          const idIdx = header.indexOf('ID');
-          const nameIdx = header.indexOf('Name');
-          const countryIdx = header.indexOf('Country');
+          const pHeader = playersData[0].map(h => (h || '').toString().trim());
+          const idIdx = pHeader.indexOf('ID');
+          const nameIdx = pHeader.indexOf('Name');
+          const countryIdx = pHeader.indexOf('Country');
           playersData.slice(1).forEach(row => {
             const id = (row[idIdx] || '').toString().trim();
             if (id) {
@@ -106,32 +125,63 @@
           });
         }
 
+        if (!penaltiesData || penaltiesData.length < 2) {
+          container.innerHTML = '<p>No active suspensions. The community is clean! 🎮</p>';
+          return;
+        }
+
+        // Resolve columns by header name (with fallback to legacy fixed
+        // indices in case the header row doesn't match expected names —
+        // keeps this working even on older sheet layouts, but logs a warning).
+        const header = penaltiesData[0].map(h => (h || '').toString().trim());
+        const hasNamedHeader = header.includes('Status') && (header.includes('StartDate') || header.includes('Start Date'));
+
+        let idIdx, statusIdx, startIdx, endIdx, reasonIdx;
+        if (hasNamedHeader) {
+          idIdx = findCol(header, 'PlayerID', 1);
+          statusIdx = findCol(header, 'Status', 9);
+          startIdx = header.indexOf('StartDate') !== -1 ? header.indexOf('StartDate') : header.indexOf('Start Date');
+          endIdx = header.indexOf('EndDate') !== -1 ? header.indexOf('EndDate') : header.indexOf('End Date');
+          reasonIdx = findCol(header, 'Reason', 3);
+        } else {
+          console.warn('PENALTIES sheet header does not match expected names — falling back to legacy fixed column indices. Consider adding a header row.');
+          idIdx = 1; reasonIdx = 3; startIdx = 7; endIdx = 8; statusIdx = 9;
+        }
+
+        const dataRows = hasNamedHeader ? penaltiesData.slice(1) : penaltiesData;
+
         // Filter active suspensions
         const now = new Date();
         const suspensions = [];
-        if (penaltiesData) {
-          penaltiesData.forEach(row => {
-            const status = (row[9] || '').toString().trim();
-            const suspensionEnd = row[8] ? new Date(row[8]) : null;
-            const suspensionStart = row[7] ? new Date(row[7]) : null;
-            if (status === 'Applied' && suspensionStart && suspensionEnd && now >= suspensionStart && now <= suspensionEnd) {
-              const playerId = (row[1] || '').toString().trim();
-              const info = playerMap[playerId] || { name: playerId, country: 'XX' };
-              suspensions.push({
-                playerName: info.name,
-                playerCountry: info.country,
-                reason: (row[3] || 'Rage quit / abandonment').toString().trim(),
-                start: suspensionStart,
-                end: suspensionEnd
-              });
-            }
-          });
-        }
+        dataRows.forEach(row => {
+          const status = (row[statusIdx] || '').toString().trim();
+          const suspensionEnd = row[endIdx] ? new Date(row[endIdx]) : null;
+          const suspensionStart = row[startIdx] ? new Date(row[startIdx]) : null;
+          if (
+            status === 'Applied' &&
+            suspensionStart && !isNaN(suspensionStart.getTime()) &&
+            suspensionEnd && !isNaN(suspensionEnd.getTime()) &&
+            now >= suspensionStart && now <= suspensionEnd
+          ) {
+            const playerId = (row[idIdx] || '').toString().trim();
+            const info = playerMap[playerId] || { name: playerId, country: 'XX' };
+            suspensions.push({
+              playerName: info.name,
+              playerCountry: info.country,
+              reason: (row[reasonIdx] || 'Rage quit / abandonment').toString().trim(),
+              start: suspensionStart,
+              end: suspensionEnd
+            });
+          }
+        });
 
         if (suspensions.length === 0) {
           container.innerHTML = '<p>No active suspensions. The community is clean! 🎮</p>';
           return;
         }
+
+        // Order by soonest-ending first, so upcoming reinstatements are visible
+        suspensions.sort((a, b) => a.end - b.end);
 
         container.innerHTML = suspensions.map(s => {
           const flag = getFlagEmoji(s.playerCountry);
@@ -140,14 +190,14 @@
           return `
             <div class="suspension-card">
               <div class="suspension-header">
-                <span class="suspension-player">${s.playerName} ${flag}</span>
+                <span class="suspension-player">${escapeHtml(s.playerName)} ${flag}</span>
                 <span class="suspension-status">⛔ Active</span>
               </div>
               <div class="suspension-dates">
                 <strong>Period:</strong> ${startStr} → ${endStr}
               </div>
               <div class="suspension-reason">
-                <strong>Reason:</strong> ${s.reason}
+                <strong>Reason:</strong> ${escapeHtml(s.reason)}
               </div>
             </div>
           `;
@@ -155,21 +205,8 @@
 
       } catch (err) {
         console.error(err);
-        container.innerHTML = `<p>Error loading data: ${err.message}</p>`;
+        container.innerHTML = `<p>Error loading data: ${escapeHtml(err.message)}</p>`;
       }
-    }
-
-    function getFlagEmoji(code) {
-      const flags = {
-        'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
-        'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
-        'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
-        'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
-        'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
-        'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
-        'XX': '🏁'
-      };
-      return flags[code] || '🏁';
     }
 
     document.addEventListener('DOMContentLoaded', loadSuspensions);
