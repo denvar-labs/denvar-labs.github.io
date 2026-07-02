@@ -1,11 +1,11 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v18 – con esc() incluida)
+//  KA ESPORTS – API Data Loader (v18 – Centralized config + hardening)
 // =====================================================
 
-const API_BASE = 'https://script.google.com/macros/s/AKfycbyMYv9MCqIj4EV_p0W25WcYZnCsBXYTQyugxCVjqFgA8YYFIy66VCOWRFjWgp5l2AiO/exec';
-
-// ----- Configuración de cache -----
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+// KA_API_BASE viene de config.js — asegúrate de incluir
+// <script src="../js/config.js"></script> ANTES de este archivo.
+const API_BASE = (typeof KA_API_BASE !== 'undefined') ? KA_API_BASE
+  : 'https://script.google.com/macros/s/AKfycbyMYv9MCqIj4EV_p0W25WcYZnCsBXYTQyugxCVjqFgA8YYFIy66VCOWRFjWgp5l2AiO/exec';
 
 const HEADER_ROWS_TO_SKIP = {
   'LEADERBOARD_GLOBAL': 3,
@@ -44,41 +44,6 @@ const RATING_THRESHOLDS = [
   { rank: 'Padawan',      min: 0 }
 ];
 
-// =====================================================
-//  SEGURIDAD — Sanitización anti-XSS
-// =====================================================
-
-/**
- * Escapa HTML para prevenir XSS.
- * Usar SIEMPRE al insertar datos de la API en innerHTML.
- */
-function esc(str) {
-  if (str === null || str === undefined) return '';
-  const d = document.createElement('div');
-  d.textContent = String(str);
-  return d.innerHTML;
-}
-
-// =====================================================
-//  UTILIDADES COMPARTIDAS
-// =====================================================
-
-/**
- * Convierte código de país a emoji de bandera.
- */
-function getFlagEmoji(code) {
-  const flags = {
-    'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
-    'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
-    'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
-    'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
-    'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
-    'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
-    'XX': '🏁'
-  };
-  return flags[(code || '').toString().toUpperCase()] || '🏁';
-}
-
 function getRankFromRating(rating) {
   const r = Number(rating);
   for (const level of RATING_THRESHOLDS) {
@@ -87,72 +52,35 @@ function getRankFromRating(rating) {
   return 'Padawan';
 }
 
-function extractPlayerName(cell) {
-  if (!cell) return '';
-  return cell.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}]+/gu, '').trim();
-}
+// Simple in-memory cache para evitar refetch del mismo sheet en la misma sesión
+const _sheetCache = new Map();
+const SHEET_CACHE_TTL_MS = 60 * 1000; // 60s
 
-// =====================================================
-//  PERFORMANCE — Fetch con retry y cache
-// =====================================================
-
-async function fetchWithRetry(url, retries = 2) {
-  let lastError;
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const json = await response.json();
-      if (json.error) throw new Error(json.error);
-      return json;
-    } catch (err) {
-      lastError = err;
-      if (i < retries) {
-        await new Promise(r => setTimeout(r, 800 * Math.pow(2, i)));
-      }
-    }
+async function fetchSheetData(sheetName, opts = {}) {
+  const bypassCache = opts.bypassCache === true;
+  const cacheKey = sheetName;
+  const cached = _sheetCache.get(cacheKey);
+  if (!bypassCache && cached && (Date.now() - cached.time) < SHEET_CACHE_TTL_MS) {
+    return cached.data;
   }
-  throw lastError;
-}
-
-async function fetchSheetData(sheetName) {
-  const cacheKey = `ka_cache_${sheetName}`;
-  try {
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) {
-      const { data, ts } = JSON.parse(cached);
-      if (Date.now() - ts < CACHE_TTL_MS) {
-        return data;
-      }
-    }
-  } catch (_) { /* sessionStorage no disponible, continuar sin cache */ }
 
   const url = `${API_BASE}?sheet=${encodeURIComponent(sheetName)}`;
-  const json = await fetchWithRetry(url);
-  const data = json.data || [];
-
+  let response;
   try {
-    sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
-  } catch (_) { /* quota exceeded, ignorar */ }
-
+    response = await fetch(url);
+  } catch (netErr) {
+    throw new Error('Network error: could not reach the data server. Check your connection.');
+  }
+  if (!response.ok) throw new Error(`HTTP ${response.status} while loading "${sheetName}"`);
+  const json = await response.json();
+  if (json.error) throw new Error(json.error);
+  const data = json.data || [];
+  _sheetCache.set(cacheKey, { data, time: Date.now() });
   return data;
 }
 
-function invalidateCache(sheetName) {
-  try {
-    if (sheetName) {
-      sessionStorage.removeItem(`ka_cache_${sheetName}`);
-    } else {
-      Object.keys(sessionStorage)
-        .filter(k => k.startsWith('ka_cache_'))
-        .forEach(k => sessionStorage.removeItem(k));
-    }
-  } catch (_) {}
-}
-
-// ----- Cache para jugadores inactivos -----
+// ----- Cache for inactive player names -----
 let inactiveNamesPromise = null;
-
 function getInactivePlayerNames() {
   if (!inactiveNamesPromise) {
     inactiveNamesPromise = (async () => {
@@ -182,15 +110,26 @@ function getInactivePlayerNames() {
   return inactiveNamesPromise;
 }
 
-function resetInactiveCache() {
-  inactiveNamesPromise = null;
-  invalidateCache('PLAYERS');
+function extractPlayerName(cell) {
+  if (!cell) return '';
+  return cell.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}]+/gu, '').trim();
 }
 
-// =====================================================
-//  TABLE RENDERER (ahora colorea solo Player y Rank)
-// =====================================================
+// ----- Flags helper (single source of truth, used to be duplicated in 2 files) -----
+const FLAG_MAP = {
+  'AR': '🇦🇷', 'BO': '🇧🇴', 'BR': '🇧🇷', 'CA': '🇨🇦', 'CL': '🇨🇱',
+  'CO': '🇨🇴', 'CR': '🇨🇷', 'HR': '🇭🇷', 'CU': '🇨🇺', 'DO': '🇩🇴',
+  'EC': '🇪🇨', 'SV': '🇸🇻', 'GT': '🇬🇹', 'HN': '🇭🇳', 'MX': '🇲🇽',
+  'NI': '🇳🇮', 'PA': '🇵🇦', 'PY': '🇵🇾', 'PE': '🇵🇪', 'PR': '🇵🇷',
+  'US': '🇺🇸', 'UY': '🇺🇾', 'VE': '🇻🇪', 'ES': '🇪🇸', 'FR': '🇫🇷',
+  'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
+  'XX': '🏁'
+};
+function getFlagEmoji(code) {
+  return FLAG_MAP[code] || '🏁';
+}
 
+// ----- TABLE RENDERER -----
 function detectHeaderRow(allRows, isMatchReport = false) {
   for (let i = 0; i < Math.min(allRows.length, 10); i++) {
     const row = allRows[i].map(cell => (cell || '').toString().trim());
@@ -221,20 +160,14 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
 
     const isMatchReport = sheetName.startsWith('MATCH_REPORTS_');
     const detectedIndex = detectHeaderRow(allRows, isMatchReport);
-    let headerRowIndex = detectedIndex >= 0
-      ? detectedIndex
-      : (HEADER_ROWS_TO_SKIP[sheetName] || (isMatchReport ? 3 : DEFAULT_SKIP)) - 1;
+    let headerRowIndex = detectedIndex >= 0 ? detectedIndex : (HEADER_ROWS_TO_SKIP[sheetName] || (isMatchReport ? 3 : DEFAULT_SKIP)) - 1;
 
     let headerRow = [];
     if (headerRowIndex >= 0 && allRows.length > headerRowIndex) {
-      headerRow = allRows[headerRowIndex].map(h =>
-        (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
-      );
+      headerRow = allRows[headerRowIndex].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
     }
 
-    thead.innerHTML = headerRow.length
-      ? '<tr>' + headerRow.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>'
-      : '';
+    thead.innerHTML = headerRow.length ? '<tr>' + headerRow.map(h => `<th>${h}</th>`).join('') + '</tr>' : '';
 
     const dataStartIndex = headerRowIndex + 1;
     let dataRows = allRows.slice(dataStartIndex).filter(row => {
@@ -264,9 +197,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       if (h.includes('%')) percentColumns.add(idx);
     });
 
-    const rankColIdx = headerRow.findIndex(h => h === 'Rank');
-    const playerColForColor = headerRow.findIndex(h => h === 'Player');
-
     let ratingBeforeColIndex = -1, deltaColIndex = -1;
     if (isMatchReport) {
       ratingBeforeColIndex = headerRow.findIndex(h => h.includes('Rating Before'));
@@ -274,10 +204,9 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     }
 
     tbody.innerHTML = dataRows.map(row => {
-      const rankName = (rankColIdx !== -1 ? String(row[rankColIdx] || '').trim() : '');
-      const rankCssClass = RANK_CLASS_MAP[rankName] || '';
+      let rowClass = (!isMatchReport && rankColumnIndex >= 0) ? (RANK_CLASS_MAP[String(row[rankColumnIndex] || '').trim()] || '') : '';
 
-      let rowHTML = '<tr>';
+      let rowHTML = `<tr class="${rowClass}">`;
       row.forEach((cell, colIdx) => {
         let display = cell ?? '';
         if (percentColumns.has(colIdx) && typeof cell === 'number') {
@@ -286,38 +215,43 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
           display = parseFloat(cell.toFixed(2));
         }
 
-        let cellClass = '';
-
-        if (isMatchReport && colIdx === playerColForColor && ratingBeforeColIndex >= 0) {
+        let cellStyle = '';
+        if (isMatchReport && colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
           const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
           if (!isNaN(ratingBefore)) {
             const rank = getRankFromRating(ratingBefore);
-            cellClass = RANK_CLASS_MAP[rank] || '';
+            const cssClass = RANK_CLASS_MAP[rank] || '';
+            cellStyle = ` class="${cssClass}"`;
           }
-        } else if (!isMatchReport && (colIdx === playerColForColor || colIdx === rankColIdx) && rankCssClass) {
-          cellClass = rankCssClass;
         }
-
         if (isMatchReport && colIdx === deltaColIndex && typeof cell === 'number') {
-          if (cell > 0) cellClass = 'delta-positive';
-          else if (cell < 0) cellClass = 'delta-negative';
+          if (cell > 0) cellStyle = ' class="delta-positive"';
+          else if (cell < 0) cellStyle = ' class="delta-negative"';
         }
 
-        rowHTML += `<td${cellClass ? ` class="${esc(cellClass)}"` : ''}>${esc(String(display))}</td>`;
+        rowHTML += `<td${cellStyle}>${escapeHtml(display)}</td>`;
       });
       rowHTML += '</tr>';
       return rowHTML;
     }).join('');
   } catch (err) {
     console.error(`Error loading sheet "${sheetName}":`, err);
-    tbody.innerHTML = `<tr><td colspan="20">Error: ${esc(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="20">⚠️ No se pudo cargar la información. ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
-// =====================================================
-//  MATCH REPORTS RENDERER
-// =====================================================
+// Escapa HTML para evitar que datos con < > & terminen rompiendo el layout
+// (defensa básica; los datos vienen de un Sheet controlado por admins, pero
+// es buena práctica no confiar 100% en el contenido de celdas).
+function escapeHtml(value) {
+  const str = String(value);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
+// ========== MATCH REPORTS RENDERER ==========
 async function renderMatchReports(sheetName, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -330,9 +264,7 @@ async function renderMatchReports(sheetName, containerId) {
       return;
     }
 
-    const cleanRows = allRows.map(row =>
-      row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim())
-    );
+    const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
     const inactiveNames = await getInactivePlayerNames();
 
     const matchStartIndices = [];
@@ -405,9 +337,7 @@ async function renderMatchReports(sheetName, containerId) {
 
       const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
       const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
-      const ratingBeforeIdx = ratingBeforeColIndex >= 0
-        ? ratingBeforeColIndex
-        : headerRow.findIndex(h => h === 'Rating Before Matcl');
+      const ratingBeforeIdx = ratingBeforeColIndex >= 0 ? ratingBeforeColIndex : headerRow.findIndex(h => h === 'Rating Before Matcl');
 
       const colClasses = {
         'Player': 'col-player',
@@ -421,12 +351,12 @@ async function renderMatchReports(sheetName, containerId) {
       };
 
       html += '<div style="margin-bottom:30px;">';
-      html += `<h3 style="margin:0 0 5px;">Match ID: ${esc(matchId)}</h3>`;
-      html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${esc(date)} | <strong>Quality:</strong> ${esc(quality)}</p>`;
+      html += `<h3 style="margin:0 0 5px;">Match ID: ${escapeHtml(matchId)}</h3>`;
+      html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${escapeHtml(date)} | <strong>Quality:</strong> ${escapeHtml(quality)}</p>`;
       html += '<div class="table-responsive"><table class="data-table match-report-table"><thead><tr>';
       headerRow.forEach(h => {
         const colClass = colClasses[h] || '';
-        html += `<th class="${esc(colClass)}">${esc(h)}</th>`;
+        html += `<th class="${colClass}">${escapeHtml(h)}</th>`;
       });
       html += '</tr></thead><tbody>';
 
@@ -436,15 +366,15 @@ async function renderMatchReports(sheetName, containerId) {
           const headerName = headerRow[colIdx] || '';
           const colClass = colClasses[headerName] || '';
           let display = cell;
-          let cellExtraClass = '';
+          let cellStyle = '';
 
           const numVal = parseFloat(cell);
           const isNumber = !isNaN(numVal) && String(cell).trim() !== '';
 
           if (colIdx === deltaColIndex && isNumber) {
             display = numVal.toFixed(2);
-            if (numVal > 0) cellExtraClass += ' delta-positive';
-            else if (numVal < 0) cellExtraClass += ' delta-negative';
+            if (numVal > 0) cellStyle += ' delta-positive';
+            else if (numVal < 0) cellStyle += ' delta-negative';
           } else if (isNumber && !Number.isInteger(numVal) && colIdx !== ratingBeforeIdx) {
             display = numVal.toFixed(2);
           }
@@ -453,12 +383,11 @@ async function renderMatchReports(sheetName, containerId) {
             const ratingBefore = parseFloat(row[ratingBeforeIdx]);
             if (!isNaN(ratingBefore)) {
               const rank = getRankFromRating(ratingBefore);
-              cellExtraClass += ` ${RANK_CLASS_MAP[rank] || ''}`;
+              cellStyle += ` ${RANK_CLASS_MAP[rank] || ''}`;
             }
           }
 
-          const fullClass = (colClass + cellExtraClass).trim();
-          html += `<td class="${esc(fullClass)}">${esc(String(display))}</td>`;
+          html += `<td class="${colClass}${cellStyle}">${escapeHtml(display)}</td>`;
         });
         html += '</tr>';
       });
@@ -469,17 +398,15 @@ async function renderMatchReports(sheetName, containerId) {
     container.innerHTML = html || '<p>No matches found.</p>';
   } catch (err) {
     console.error(err);
-    container.innerHTML = `<p>Error: ${esc(err.message)}</p>`;
+    container.innerHTML = `<p>⚠️ Error loading match reports: ${escapeHtml(err.message)}</p>`;
   }
 }
 
-// =====================================================
-//  HELPERS
-// =====================================================
-
+// ----- HELPERS -----
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
-  const json = await fetchWithRetry(url);
+  const response = await fetch(url);
+  const json = await response.json();
   return json.sheets || [];
 }
 
@@ -499,13 +426,14 @@ async function populateMonthSelector(selectId, prefix) {
     });
   } catch (err) {
     console.error('Error populating month selector:', err);
+    select.innerHTML = '<option value="">⚠️ Error loading months</option>';
   }
 }
 
 function populateSelectFromList(selectId, items, defaultText = '-- Select --') {
   const select = document.getElementById(selectId);
   if (!select) return;
-  select.innerHTML = `<option value="">${esc(defaultText)}</option>`;
+  select.innerHTML = `<option value="">${defaultText}</option>`;
   items.forEach(item => {
     const opt = document.createElement('option');
     opt.value = item;
@@ -518,9 +446,7 @@ async function fetchPlayerNames() {
   try {
     const playersSheet = await fetchSheetData('PLAYERS');
     if (playersSheet.length < 2) return [];
-    const header = playersSheet[0].map(h =>
-      (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
-    );
+    const header = playersSheet[0].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
     const nameCol = header.indexOf('Name');
     const activeCol = header.indexOf('Active');
     if (nameCol === -1) return [];
@@ -548,7 +474,7 @@ async function loadPlainText(sheetName, containerId) {
     const allRows = await fetchSheetData(sheetName);
     if (!allRows.length) { container.textContent = 'No content found.'; return; }
     const lines = allRows.map(row => row[0] || '').filter(line => line.trim() !== '');
-    container.innerHTML = lines.map(line => `<p>${esc(line)}</p>`).join('');
+    container.innerHTML = lines.map(line => `<p>${escapeHtml(line)}</p>`).join('');
   } catch (err) {
     container.textContent = `Error: ${err.message}`;
   }
