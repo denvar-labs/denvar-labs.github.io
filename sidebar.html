@@ -49,16 +49,16 @@
   (function () {
     function applyDark(on) {
       document.body.classList.toggle('dark', on);
-      const label = document.getElementById('dark-label');
+      var label = document.getElementById('dark-label');
       if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
     }
 
     // Aplicar preferencia guardada al cargar
-    const saved = localStorage.getItem('ka_dark_mode');
+    var saved = localStorage.getItem('ka_dark_mode');
     if (saved === 'true') applyDark(true);
 
     window.toggleDarkMode = function () {
-      const isDark = document.body.classList.contains('dark');
+      var isDark = document.body.classList.contains('dark');
       applyDark(!isDark);
       localStorage.setItem('ka_dark_mode', !isDark);
     };
