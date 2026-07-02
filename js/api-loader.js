@@ -206,153 +206,120 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
 }
 
 // ========== MATCH REPORTS RENDERER ==========
-async function renderMatchReports(sheetName, containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = '<p>Loading match reports…</p>';
+async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  if (!thead || !tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="20">Loading…</td></tr>';
 
   try {
     const allRows = await fetchSheetData(sheetName);
     if (allRows.length === 0) {
-      container.innerHTML = '<p>No match data for this month.</p>';
+      tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
       return;
     }
 
-    const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
-    const inactiveNames = await getInactivePlayerNames();
+    const isMatchReport = sheetName.startsWith('MATCH_REPORTS_');
+    const detectedIndex = detectHeaderRow(allRows, isMatchReport);
+    let headerRowIndex = detectedIndex >= 0
+      ? detectedIndex
+      : (HEADER_ROWS_TO_SKIP[sheetName] || (isMatchReport ? 3 : DEFAULT_SKIP)) - 1;
 
-    const matchStartIndices = [];
-    for (let i = 0; i < cleanRows.length; i++) {
-      if (cleanRows[i][0] && cleanRows[i][0].startsWith('## Match ID:')) {
-        matchStartIndices.push(i);
-      }
+    let headerRow = [];
+    if (headerRowIndex >= 0 && allRows.length > headerRowIndex) {
+      headerRow = allRows[headerRowIndex].map(h =>
+        (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+      );
     }
 
-    if (matchStartIndices.length === 0) {
-      container.innerHTML = '<p>No matches found in this sheet.</p>';
-      return;
-    }
+    thead.innerHTML = headerRow.length
+      ? '<tr>' + headerRow.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>'
+      : '';
 
-    let html = '';
-    for (let idx = 0; idx < matchStartIndices.length; idx++) {
-      const start = matchStartIndices[idx];
-      const end = (idx < matchStartIndices.length - 1) ? matchStartIndices[idx + 1] : cleanRows.length;
-      const block = cleanRows.slice(start, end);
+    const dataStartIndex = headerRowIndex + 1;
+    let dataRows = allRows.slice(dataStartIndex).filter(row => {
+      const firstCell = (row[0] || '').toString().trim();
+      return firstCell !== '---' && firstCell !== '' && firstCell !== 'undefined';
+    });
 
-      const matchIdRow = block[0];
-      const matchId = matchIdRow[0].replace('## Match ID:', '').trim();
-      const dateQualityRow = block[1] ? block[1][0] : '';
-      let date = '', quality = '';
-      if (dateQualityRow) {
-        const dateMatch = dateQualityRow.match(/\*\*Date:\*\*\s*(.*?)\s*\|/);
-        const qualityMatch = dateQualityRow.match(/\*\*Quality:\*\*\s*(.*)/);
-        if (dateMatch) date = dateMatch[1].trim();
-        if (qualityMatch) quality = qualityMatch[1].trim();
-      }
-
-      let headerRow = null;
-      let dataStart = 0;
-      for (let j = 0; j < block.length; j++) {
-        const row = block[j];
-        if (row.some(cell => cell.toLowerCase().includes('player'))) {
-          headerRow = row;
-          dataStart = j + 1;
-          break;
-        }
-      }
-      if (!headerRow) continue;
-
-      let dataRows = [];
-      for (let j = dataStart; j < block.length; j++) {
-        const row = block[j];
-        if (row[0] === '---' || row[0] === '') break;
-        dataRows.push(row);
-      }
-
-      const playerColIndex = headerRow.findIndex(h => h === 'Player');
-      if (playerColIndex !== -1 && inactiveNames.size > 0) {
-        const hasInactive = dataRows.some(row => {
-          const rawName = (row[playerColIndex] || '').toString().trim();
-          const cleanName = extractPlayerName(rawName);
-          return inactiveNames.has(cleanName);
-        });
-        if (hasInactive) continue;
-      }
-
-      if (playerColIndex !== -1 && inactiveNames.size > 0) {
+    // --- FILTRAR INACTIVOS ---
+    const playerColIndex = headerRow.findIndex(h => h === 'Player' || h === 'Name');
+    if (playerColIndex !== -1) {
+      const inactiveNames = await getInactivePlayerNames();
+      if (inactiveNames.size > 0) {
         dataRows = dataRows.filter(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
           const cleanName = extractPlayerName(rawName);
           return !inactiveNames.has(cleanName);
         });
       }
-
-      if (dataRows.length === 0) continue;
-
-      const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
-      const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
-      const ratingBeforeIdx = ratingBeforeColIndex >= 0 ? ratingBeforeColIndex : headerRow.findIndex(h => h === 'Rating Before Matcl');
-
-      const colClasses = {
-        'Player': 'col-player',
-        'Points': 'col-points align-right',
-        'Pos': 'col-pos',
-        'Rating Before Match': 'col-rating-before align-right',
-        'RD Before Match': 'col-rd-before align-right',
-        'Δ Rating': 'col-delta align-right',
-        'New Rating': 'col-new-rating align-right',
-        'New RD': 'col-new-rd align-right'
-      };
-
-      html += '<div style="margin-bottom:30px;">';
-      html += `<h3 style="margin:0 0 5px;">Match ID: ${matchId}</h3>`;
-      html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${date} | <strong>Quality:</strong> ${quality}</p>`;
-      html += '<div class="table-responsive"><table class="data-table match-report-table"><thead><tr>';
-      headerRow.forEach(h => {
-        const colClass = colClasses[h] || '';
-        html += `<th class="${colClass}">${h}</th>`;
-      });
-      html += '</tr></thead><tbody>';
-
-      dataRows.forEach(row => {
-        html += '<tr>';
-        row.forEach((cell, colIdx) => {
-          const headerName = headerRow[colIdx] || '';
-          const colClass = colClasses[headerName] || '';
-          let display = cell;
-          let cellStyle = '';
-
-          const numVal = parseFloat(cell);
-          const isNumber = !isNaN(numVal) && String(cell).trim() !== '';
-
-          if (colIdx === deltaColIndex && isNumber) {
-            display = numVal.toFixed(2);
-            if (numVal > 0) cellStyle += ' delta-positive';
-            else if (numVal < 0) cellStyle += ' delta-negative';
-          } else if (isNumber && !Number.isInteger(numVal) && colIdx !== ratingBeforeIdx) {
-            display = numVal.toFixed(2);
-          }
-
-          if (colIdx === playerColIndex && ratingBeforeIdx >= 0) {
-            const ratingBefore = parseFloat(row[ratingBeforeIdx]);
-            if (!isNaN(ratingBefore)) {
-              const rank = getRankFromRating(ratingBefore);
-              cellStyle += ` ${RANK_CLASS_MAP[rank] || ''}`;
-            }
-          }
-
-          html += `<td class="${colClass}${cellStyle}">${display}</td>`;
-        });
-        html += '</tr>';
-      });
-
-      html += '</tbody></table></div></div>';
+    }
+    if (dataRows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="20">No data available.</td></tr>';
+      return;
     }
 
-    container.innerHTML = html || '<p>No matches found.</p>';
+    // --- ÍNDICES IMPORTANTES ---
+    const percentColumns = new Set();
+    headerRow.forEach((h, idx) => {
+      if (h.includes('%')) percentColumns.add(idx);
+    });
+
+    // Localiza las columnas Player y Rank (para aplicar color)
+    const rankColIdx = headerRow.findIndex(h => h === 'Rank');
+    const playerColForColor = headerRow.findIndex(h => h === 'Player');
+
+    let ratingBeforeColIndex = -1, deltaColIndex = -1;
+    if (isMatchReport) {
+      ratingBeforeColIndex = headerRow.findIndex(h => h.includes('Rating Before'));
+      deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
+    }
+
+    // --- GENERAR FILAS ---
+    tbody.innerHTML = dataRows.map(row => {
+      // Determinar el rango (si existe la columna Rank)
+      const rankName = (rankColIdx !== -1 ? String(row[rankColIdx] || '').trim() : '');
+      const rankCssClass = RANK_CLASS_MAP[rankName] || '';
+
+      let rowHTML = '<tr>';
+      row.forEach((cell, colIdx) => {
+        let display = cell ?? '';
+        if (percentColumns.has(colIdx) && typeof cell === 'number') {
+          display = (cell * 100).toFixed(1) + '%';
+        } else if (typeof cell === 'number' && !Number.isInteger(cell)) {
+          display = parseFloat(cell.toFixed(2));
+        }
+
+        let cellClass = '';
+
+        // Solo colorear la columna Player (en Match Reports) o Player/Rank (en leaderboards)
+        if (isMatchReport && colIdx === playerColForColor && ratingBeforeColIndex >= 0) {
+          const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
+          if (!isNaN(ratingBefore)) {
+            const rank = getRankFromRating(ratingBefore);
+            cellClass = RANK_CLASS_MAP[rank] || '';
+          }
+        } else if (!isMatchReport && (colIdx === playerColForColor || colIdx === rankColIdx) && rankCssClass) {
+          cellClass = rankCssClass;
+        }
+
+        // Colores Δ Rating (Match Reports)
+        if (isMatchReport && colIdx === deltaColIndex && typeof cell === 'number') {
+          if (cell > 0) cellClass = 'delta-positive';
+          else if (cell < 0) cellClass = 'delta-negative';
+        }
+
+        rowHTML += `<td${cellClass ? ` class="${esc(cellClass)}"` : ''}>${esc(String(display))}</td>`;
+      });
+      rowHTML += '</tr>';
+      return rowHTML;
+    }).join('');
   } catch (err) {
-    console.error(err);
-    container.innerHTML = `<p>Error: ${err.message}</p>`;
+    console.error(`Error loading sheet "${sheetName}":`, err);
+    tbody.innerHTML = `<tr><td colspan="20">Error: ${esc(err.message)}</td></tr>`;
   }
 }
 
