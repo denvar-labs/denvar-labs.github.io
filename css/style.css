@@ -1,4 +1,4 @@
-/* ===== KA ESPORTS – Google Sheets Inspired Light Theme ===== */
+/* ===== KA ESPORTS – Creamy Orange Theme ===== */
 
 :root {
   --bg: #f5f7fa;
@@ -8,8 +8,8 @@
   --border-light: #eef0f4;
   --text: #1a1d23;
   --text-muted: #5f6b7a;
-  --accent: #4a86e8;
-  --accent-dark: #3b6fd4;
+  --accent: #f0a050;          /* naranja cremoso */
+  --accent-dark: #d4880f;     /* naranja oscuro */
   --rank-gm: #f1c232;
   --rank-master: #FFD966;
   --rank-pro: #CCE5FF;
@@ -22,6 +22,26 @@
   --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 }
 
+/* ===== Dark Mode ===== */
+body.dark {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface-alt: #21252f;
+  --border: #2d3140;
+  --border-light: #252836;
+  --text: #e8eaf0;
+  --text-muted: #8b95a8;
+  --accent: #f0a050;
+  --accent-dark: #d4880f;
+  --rank-gm: #a07c10;
+  --rank-master: #8a6a00;
+  --rank-pro: #1e4a88;
+  --rank-expert: #8b1a1a;
+  --rank-advanced: #6b6000;
+  --rank-amateur: #1a6b1a;
+  --rank-padawan: #4a4a4a;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
@@ -31,6 +51,7 @@ body {
   line-height: 1.6;
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -133,6 +154,51 @@ h1 {
   text-decoration: none;
 }
 
+/* ===== Dark Mode Toggle ===== */
+.dark-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: var(--surface-alt);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.dark-toggle:hover { background: var(--accent); color: #fff; }
+
+.toggle-track {
+  width: 32px;
+  height: 18px;
+  background: var(--border);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+body.dark .toggle-track { background: var(--accent); }
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+body.dark .toggle-thumb { transform: translateX(14px); }
+
 /* ===== Section Heading ===== */
 .section-heading {
   font-size: 18px;
@@ -144,7 +210,8 @@ h1 {
 /* ===== Responsive Table Wrapper ===== */
 .table-responsive {
   width: 100%;
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 70vh;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -170,6 +237,9 @@ h1 {
   text-align: left;
   border-bottom: 2px solid var(--accent-dark);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .data-table td {
@@ -181,29 +251,12 @@ h1 {
 
 .data-table tr:last-child td { border-bottom: none; }
 
-.data-table tbody tr:hover td:not([class*="rank-"]) {
-  background-color: #f0f4ff;
+/* Hover solo para celdas sin clase de rango */
+.data-table tbody tr:hover td:not([class*="rank-"]):not(.delta-positive):not(.delta-negative) {
+  background-color: rgba(240, 160, 80, 0.08);
 }
 
-/* ===== Leaderboard row rank background ===== */
-tr.rank-grand-master td { background-color: var(--rank-gm); }
-tr.rank-master td       { background-color: var(--rank-master); }
-tr.rank-pro td          { background-color: var(--rank-pro); }
-tr.rank-expert td       { background-color: var(--rank-expert); }
-tr.rank-advanced td     { background-color: var(--rank-advanced); }
-tr.rank-amateur td      { background-color: var(--rank-amateur); }
-tr.rank-padawan td      { background-color: var(--rank-padawan); }
-
-/* Leaderboard left border accent */
-tr.rank-grand-master td:first-child { border-left: 3px solid #d4a017; }
-tr.rank-master td:first-child       { border-left: 3px solid #e6a800; }
-tr.rank-pro td:first-child          { border-left: 3px solid #5b9bd5; }
-tr.rank-expert td:first-child       { border-left: 3px solid #d63434; }
-tr.rank-advanced td:first-child     { border-left: 3px solid #e6d740; }
-tr.rank-amateur td:first-child      { border-left: 3px solid #5fbf5f; }
-tr.rank-padawan td:first-child      { border-left: 3px solid #9b9b9b; }
-
-/* ===== Match Reports: individual cell rank background ===== */
+/* ===== Colores de celda para rango (Player y Rank) ===== */
 td.rank-grand-master { background-color: #f1c232; }
 td.rank-master       { background-color: #FFD966; }
 td.rank-pro          { background-color: #CCE5FF; }
@@ -212,12 +265,7 @@ td.rank-advanced     { background-color: #FFF38A; }
 td.rank-amateur      { background-color: #9AFF7D; }
 td.rank-padawan      { background-color: #C7C1C1; }
 
-/* Prevent hover from removing rank color on individual cells */
-.data-table tbody td[class*="rank-"]:hover {
-  background-color: inherit !important;
-}
-
-/* ===== Delta Rating colors (pastel green / red) ===== */
+/* ===== Delta Rating colors ===== */
 td.delta-positive { background-color: #c8e6c9; }
 td.delta-negative { background-color: #ffcdd2; }
 
@@ -231,10 +279,7 @@ td.delta-negative { background-color: #ffcdd2; }
 .match-report-table .col-new-rating      { width: 120px; }
 .match-report-table .col-new-rd          { width: 100px; }
 
-/* Right-align numeric columns */
-.align-right {
-  text-align: right !important;
-}
+.align-right { text-align: right !important; }
 
 /* ===== Footer ===== */
 .site-footer {
