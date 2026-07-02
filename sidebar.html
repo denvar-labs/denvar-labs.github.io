@@ -7,60 +7,45 @@
     </div>
   </div>
   <div class="panel">
-    <div class="panel-heading">KA ESPORTS Data</div>
+    <div class="panel-heading">Data Views</div>
     <div class="quick-links">
       <a href="/ka-esports/global-leaderboard.html">🌍 Global Leaderboard</a>
       <a href="/ka-esports/monthly-leaderboard.html">📆 Monthly Leaderboard</a>
       <a href="/ka-esports/match-reports.html">📋 Match Reports</a>
       <a href="/ka-esports/seasons-report.html">📊 Seasons Report</a>
       <a href="/ka-esports/h2h-details.html">🤼 Player H2H</a>
+      <a href="/ka-esports/players.html">👥 All Players</a>
+      <a href="/ka-esports/matches.html">🎮 Match History</a>
+      <a href="/ka-esports/faq.html">📘 FAQ</a>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-heading">Tools & Analytics</div>
+    <div class="quick-links">
       <a href="/ka-esports/player-profile.html">👤 Player Profile</a>
       <a href="/ka-esports/player-comparison.html">⚔️ Player Comparison</a>
       <a href="/ka-esports/simulator.html">🧮 Rating Simulator</a>
       <a href="/ka-esports/awards.html">🏅 Monthly Awards</a>
       <a href="/ka-esports/hall-of-fame.html">🏆 Hall of Fame</a>
-      <a href="/ka-esports/streams.html">🔴 Live Streams</a>
-      <a href="/ka-esports/faq.html">📘 FAQ</a>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-heading">Discipline & Rules</div>
+    <div class="quick-links">
       <a href="/ka-esports/rage-quit-rules.html">📜 Rage Quit Rule</a>
       <a href="/ka-esports/rage-quit-stats.html">📊 Rage Quit Stats</a>
+      <a href="/ka-esports/penalties.html">🧾 Penalty History</a>
       <a href="/ka-esports/suspension-list.html">🚫 Suspension List</a>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-heading">Community</div>
+    <div class="panel-heading">Live & Community</div>
     <div class="quick-links">
-      <a href="https://discord.gg/4QpvzysKv" target="_blank" rel="noopener">💬 Discord</a>
-      <a href="https://www.twitch.tv/devarsc" target="_blank" rel="noopener">📺 Twitch</a>
+      <a href="/ka-esports/streams.html">🔴 Live Streams</a>
+      <a href="/ka-esports/tournaments.html">🏁 Tournaments</a>
+      <a href="/ka-esports/community.html">💬 Community</a>
+      <a href="https://discord.gg/4QpvzysKv" target="_blank" rel="noopener">💬 Discord ↗</a>
+      <a href="https://www.twitch.tv/devarsc" target="_blank" rel="noopener">📺 Twitch ↗</a>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-heading">Appearance</div>
-    <button class="dark-toggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
-      <span id="dark-label">🌙 Dark mode</span>
-      <span class="toggle-track" aria-hidden="true">
-        <span class="toggle-thumb"></span>
-      </span>
-    </button>
-  </div>
 </aside>
-
-<script>
-  // Dark mode – persiste en localStorage
-  (function () {
-    function applyDark(on) {
-      document.body.classList.toggle('dark', on);
-      var label = document.getElementById('dark-label');
-      if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
-    }
-
-    // Aplicar preferencia guardada al cargar
-    var saved = localStorage.getItem('ka_dark_mode');
-    if (saved === 'true') applyDark(true);
-
-    window.toggleDarkMode = function () {
-      var isDark = document.body.classList.contains('dark');
-      applyDark(!isDark);
-      localStorage.setItem('ka_dark_mode', !isDark);
-    };
-  })();
-</script>
