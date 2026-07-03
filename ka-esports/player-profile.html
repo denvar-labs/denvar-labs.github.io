@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+    .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
     .profile-header .rank-badge { font-size: 1.5rem; padding: 8px 16px; border-radius: 8px; color: #000; font-weight: bold; }
     .chart-container { max-width: 800px; margin: 0 auto 20px; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
@@ -29,18 +29,19 @@
         <section class="panel">
           <div class="section-heading">
             <label for="player-select">Player:</label>
-            <select id="player-select" style="margin-left:10px; padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+            <select id="player-select" class="field-select">
               <option value="">-- Choose a player --</option>
             </select>
           </div>
           <div id="profile-content">
-            <p>Select a player to view their profile.</p>
+            <div class="state-box state-empty"><div class="state-title">Select a player to view their profile.</div></div>
           </div>
         </section>
       </main>
     </div>
   </div>
 
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
     let chart = null;
@@ -55,19 +56,17 @@
 
     async function loadProfile(playerName) {
       const container = document.getElementById('profile-content');
-      container.innerHTML = '<p>Loading profile…</p>';
+      renderState(container, 'loading', { title: 'Loading profile…' });
 
       try {
-        // ---- Check if player is active ----
         const inactiveNames = await getInactivePlayerNames();
         if (inactiveNames.has(playerName)) {
-          container.innerHTML = '<p>This player is currently inactive and their profile is not available.</p>';
+          renderState(container, 'empty', { title: 'This player is currently inactive and their profile is not available.' });
           return;
         }
 
-        // 1. Get player info from PLAYERS sheet
         const players = await fetchSheetData('PLAYERS');
-        const header = players[0].map(h => (h||'').toString().trim());
+        const header = players[0].map(h => (h || '').toString().trim());
         const nameIdx = header.indexOf('Name');
         const idIdx = header.indexOf('ID');
         const ratingIdx = header.indexOf('Rating');
@@ -77,29 +76,34 @@
         const winsIdx = header.indexOf('Wins');
         const lastMatchIdx = header.indexOf('LastMatch');
 
-        const playerRow = players.find(row => (row[nameIdx]||'').toString().trim() === playerName);
-        if (!playerRow) { container.innerHTML = '<p>Player not found.</p>'; return; }
+        const playerRow = players.find(row => (row[nameIdx] || '').toString().trim() === playerName);
+        if (!playerRow) {
+          renderState(container, 'empty', { title: 'Player not found.' });
+          return;
+        }
 
         const playerId = playerRow[idIdx];
         const rating = parseFloat(playerRow[ratingIdx]);
         const rd = parseFloat(playerRow[rdIdx]);
         const vol = parseFloat(playerRow[volIdx]);
-        const totalMatches = parseInt(playerRow[matchesIdx]);
-        const totalWins = parseInt(playerRow[winsIdx]);
+        const totalMatches = parseInt(playerRow[matchesIdx]) || 0;
+        const totalWins = parseInt(playerRow[winsIdx]) || 0;
         const lastMatch = playerRow[lastMatchIdx] ? new Date(playerRow[lastMatchIdx]) : null;
         const rank = getRankFromRating(rating);
 
-        // 2. Get match history from MATCHES sheet (unchanged)
         const matchesAll = await fetchSheetData('MATCHES');
-        if (matchesAll.length < 2) { container.innerHTML = '<p>No match data available.</p>'; return; }
-        const matchHeader = matchesAll[0].map(h => (h||'').toString().trim());
+        if (matchesAll.length < 2) {
+          renderState(container, 'empty', { title: 'No match data available.' });
+          return;
+        }
+        const matchHeader = matchesAll[0].map(h => (h || '').toString().trim());
         const p1Idx = matchHeader.indexOf('Player 1');
         const dateIdx = matchHeader.indexOf('Date');
         const statusIdx = matchHeader.indexOf('Status');
         const newRating1Idx = matchHeader.indexOf('New Rating 1');
 
         if (p1Idx === -1 || dateIdx === -1 || statusIdx === -1 || newRating1Idx === -1) {
-          container.innerHTML = '<p>Match data columns not found.</p>';
+          renderState(container, 'error', { title: 'Match data columns not found.' });
           return;
         }
 
@@ -108,9 +112,7 @@
           const row = matchesAll[i];
           if (!row || row[statusIdx] !== 'PROCESSED') continue;
           const matchPlayerIds = [];
-          for (let j = 0; j < 4; j++) {
-            matchPlayerIds.push((row[p1Idx + j] || '').toString().trim());
-          }
+          for (let j = 0; j < 4; j++) matchPlayerIds.push((row[p1Idx + j] || '').toString().trim());
           const pIdx = matchPlayerIds.indexOf(playerId);
           if (pIdx === -1) continue;
           const dateVal = row[dateIdx];
@@ -121,30 +123,30 @@
           if (isNaN(newRating)) continue;
           playerMatches.push({ date, rating: newRating });
         }
-        playerMatches.sort((a,b) => a.date - b.date);
+        playerMatches.sort((a, b) => a.date - b.date);
 
         const lastMatchStr = lastMatch ? lastMatch.toISOString().split('T')[0] : 'Never';
-        const winRate = totalMatches ? (totalWins / totalMatches * 100).toFixed(1) : 0;
+        const winRate = totalMatches ? (totalWins / totalMatches * 100).toFixed(1) : '0.0';
 
         container.innerHTML = `
           <div class="profile-header">
-            <span class="rank-badge" style="background-color:${getRankColorHex(rank)}">${rank}</span>
-            <h2>${playerName}</h2>
+            <span class="rank-badge" style="background-color:${getRankColorHex(rank)}">${escapeHtml(rank)}</span>
+            <h2>${escapeHtml(playerName)}</h2>
           </div>
           <div class="stats-grid">
-            <div class="stat-card"><h3>Rating</h3><div class="value">${rating.toFixed(2)}</div></div>
-            <div class="stat-card"><h3>RD</h3><div class="value">${rd.toFixed(2)}</div></div>
-            <div class="stat-card"><h3>Volatility</h3><div class="value">${vol.toFixed(4)}</div></div>
+            <div class="stat-card"><h3>Rating</h3><div class="value">${isNaN(rating) ? '—' : rating.toFixed(2)}</div></div>
+            <div class="stat-card"><h3>RD</h3><div class="value">${isNaN(rd) ? '—' : rd.toFixed(2)}</div></div>
+            <div class="stat-card"><h3>Volatility</h3><div class="value">${isNaN(vol) ? '—' : vol.toFixed(4)}</div></div>
             <div class="stat-card"><h3>Matches</h3><div class="value">${totalMatches}</div></div>
             <div class="stat-card"><h3>Wins</h3><div class="value">${totalWins} (${winRate}%)</div></div>
-            <div class="stat-card"><h3>Last Match</h3><div class="value" style="font-size:1rem">${lastMatchStr}</div></div>
+            <div class="stat-card"><h3>Last Match</h3><div class="value" style="font-size:1rem">${escapeHtml(lastMatchStr)}</div></div>
           </div>
           ${playerMatches.length > 0 ? `
             <div class="chart-container">
               <canvas id="ratingChart"></canvas>
               <p style="text-align:center; color:var(--text-muted)">Rating evolution (last 50 matches)</p>
             </div>
-          ` : '<p>No processed matches found for this player.</p>'}
+          ` : '<div class="state-box state-empty" style="margin-top:20px;"><div class="state-title">No processed matches found for this player.</div></div>'}
         `;
 
         if (playerMatches.length > 0) {
@@ -167,7 +169,7 @@
             },
             options: {
               responsive: true,
-              scales: { 
+              scales: {
                 y: { beginAtZero: false, title: { display: true, text: 'Rating' } },
                 x: { title: { display: true, text: 'Date' } }
               }
@@ -176,29 +178,11 @@
         }
       } catch (err) {
         console.error(err);
-        container.innerHTML = `<p>Error loading profile: ${err.message}</p>`;
+        renderState(container, 'error', { detail: err.message, onRetry: () => loadProfile(playerName) });
       }
     }
 
-    function getRankColorHex(rank) {
-      const map = {
-        'Grand Master': '#f1c232',
-        'Master': '#FFD966',
-        'Pro': '#CCE5FF',
-        'Expert': '#FF5C5C',
-        'Advanced': '#FFF38A',
-        'Amateur': '#9AFF7D',
-        'Padawan': '#C7C1C1'
-      };
-      return map[rank] || '#fff';
-    }
-
     document.addEventListener('DOMContentLoaded', init);
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
