@@ -21,21 +21,17 @@
           <div class="table-responsive">
             <table id="data-table" class="data-table">
               <thead></thead>
-              <tbody><tr><td colspan="20">Loading…</td></tr></tbody>
+              <tbody></tbody>
             </table>
           </div>
         </section>
       </main>
     </div>
   </div>
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => loadTableFromSheet('PLAYERS', 'data-table', -1));
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
