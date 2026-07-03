@@ -15,7 +15,10 @@ const HEADER_ROWS_TO_SKIP = {
   'LEADERBOARD_GLOBAL': 3,
   'PLAYERS': 1,
   'MATCHES': 2,
-  'PENALTIES': 2,
+  // PENALTIES has NO header row — raw data starts at row 1.
+  // Setting this to 0 tells loadTableFromSheet to treat row index -1
+  // (i.e. no header consumption) and use PENALTIES_FALLBACK_HEADERS below.
+  'PENALTIES': 0,
   'ANTI_SMURF_LOG': 2,
   'AUDIT_LOG': 2,
   'SYSTEM_METRICS': 2,
@@ -25,6 +28,12 @@ const HEADER_ROWS_TO_SKIP = {
   'PLAYER_H2H_DETAILS': 1,
   '_H2H_DATA': 1
 };
+
+// Confirmed real column layout of PENALTIES (no header row in the sheet):
+// [Timestamp, PlayerID, PlayerName, Reason, Type, Points, Month, StartDate, EndDate, Status, (extra)]
+const PENALTIES_FALLBACK_HEADERS = [
+  'Timestamp', 'PlayerID', 'PlayerName', 'Reason', 'Type', 'Points', 'Month', 'StartDate', 'EndDate', 'Status'
+];
 
 const DEFAULT_SKIP = 2;
 
@@ -272,17 +281,28 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     }
 
     const isMatchReport = sheetName.startsWith('MATCH_REPORTS_');
-    const detectedIndex = detectHeaderRow(allRows, isMatchReport);
-    let headerRowIndex = detectedIndex >= 0 ? detectedIndex : (HEADER_ROWS_TO_SKIP[sheetName] || (isMatchReport ? 3 : DEFAULT_SKIP)) - 1;
+    const hasNoHeaderRow = sheetName === 'PENALTIES';
 
     let headerRow = [];
-    if (headerRowIndex >= 0 && allRows.length > headerRowIndex) {
-      headerRow = allRows[headerRowIndex].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
+    let dataStartIndex = 0;
+
+    if (hasNoHeaderRow) {
+      // PENALTIES: no header row in the sheet at all — synthesize one
+      // from the confirmed column layout so the table still renders
+      // with readable column names instead of "undefined".
+      headerRow = PENALTIES_FALLBACK_HEADERS.slice();
+      dataStartIndex = 0;
+    } else {
+      const detectedIndex = detectHeaderRow(allRows, isMatchReport);
+      const headerRowIndex = detectedIndex >= 0 ? detectedIndex : (HEADER_ROWS_TO_SKIP[sheetName] || (isMatchReport ? 3 : DEFAULT_SKIP)) - 1;
+      if (headerRowIndex >= 0 && allRows.length > headerRowIndex) {
+        headerRow = allRows[headerRowIndex].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
+      }
+      dataStartIndex = headerRowIndex + 1;
     }
 
     thead.innerHTML = headerRow.length ? '<tr>' + headerRow.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>' : '';
 
-    const dataStartIndex = headerRowIndex + 1;
     let dataRows = allRows.slice(dataStartIndex).filter(row => {
       const firstCell = (row[0] || '').toString().trim();
       return firstCell !== '---' && firstCell !== '' && firstCell !== 'undefined';
@@ -316,10 +336,20 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
     }
 
-    tbody.innerHTML = dataRows.map(row => {
-      let rowClass = (!isMatchReport && rankColumnIndex >= 0) ? (RANK_CLASS_MAP[String(row[rankColumnIndex] || '').trim()] || '') : '';
+    // Leaderboards (non-match-report tables): rank color is applied ONLY
+    // to the "Player" and "Rank" cells — never to the whole row.
+    // rankColumnIndex (passed in by the caller) points at the column that
+    // actually holds the rank string (e.g. "Grand Master"); we look up
+    // "Player"/"Name" separately so both cells can be tinted.
+    let leaderboardPlayerColIdx = -1, leaderboardRankColIdx = -1;
+    if (!isMatchReport) {
+      leaderboardPlayerColIdx = findColumnIndex(headerRow, ['Player', 'Name']);
+      leaderboardRankColIdx = rankColumnIndex >= 0 ? rankColumnIndex : findColumnIndex(headerRow, ['Rank']);
+    }
 
-      let rowHTML = `<tr class="${rowClass}">`;
+    tbody.innerHTML = dataRows.map(row => {
+      // No more row-level class — coloring is now strictly per-cell.
+      let rowHTML = `<tr>`;
       row.forEach((cell, colIdx) => {
         let display = cell ?? '';
         if (percentColumns.has(colIdx) && typeof cell === 'number') {
@@ -329,17 +359,28 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
         }
 
         let cellStyle = '';
-        if (isMatchReport && colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
-          const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
-          if (!isNaN(ratingBefore)) {
-            const rank = getRankFromRating(ratingBefore);
-            const cssClass = RANK_CLASS_MAP[rank] || '';
-            cellStyle = ` class="${cssClass}"`;
+
+        if (isMatchReport) {
+          // Match reports: color only the Player cell, based on Rating Before Match.
+          if (colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
+            const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
+            if (!isNaN(ratingBefore)) {
+              const rank = getRankFromRating(ratingBefore);
+              const cssClass = RANK_CLASS_MAP[rank] || '';
+              cellStyle = ` class="${cssClass}"`;
+            }
           }
-        }
-        if (isMatchReport && colIdx === deltaColIndex && typeof cell === 'number') {
-          if (cell > 0) cellStyle = ' class="delta-positive"';
-          else if (cell < 0) cellStyle = ' class="delta-negative"';
+          if (colIdx === deltaColIndex && typeof cell === 'number') {
+            if (cell > 0) cellStyle = ' class="delta-positive"';
+            else if (cell < 0) cellStyle = ' class="delta-negative"';
+          }
+        } else {
+          // Leaderboards: color only the Player cell and the Rank cell.
+          if (colIdx === leaderboardPlayerColIdx || colIdx === leaderboardRankColIdx) {
+            const rankValue = leaderboardRankColIdx >= 0 ? String(row[leaderboardRankColIdx] || '').trim() : '';
+            const cssClass = RANK_CLASS_MAP[rankValue] || '';
+            if (cssClass) cellStyle = ` class="${cssClass}"`;
+          }
         }
 
         rowHTML += `<td${cellStyle}>${escapeHtml(display)}</td>`;
