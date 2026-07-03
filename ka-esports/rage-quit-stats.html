@@ -29,9 +29,7 @@
                   <th>Last Rage Quit</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr><td colspan="5">Loading data…</td></tr>
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </section>
@@ -42,9 +40,13 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
+    // Confirmed PENALTIES layout (no header row):
+    // [0]Timestamp [1]PlayerID [2]PlayerName [3]Reason [4]Type [5]Points [6]Month [7]StartDate [8]EndDate [9]Status
+    const PCOL = { timestamp: 0, playerId: 1, playerName: 2, reason: 3, type: 4, points: 5, month: 6, startDate: 7, endDate: 8, status: 9 };
+
     async function loadRageQuitStats() {
       const tbody = document.querySelector('#rq-table tbody');
-      tbody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
+      renderTableState(tbody, 5, 'loading');
 
       try {
         const [penaltiesData, playersData] = await Promise.all([
@@ -70,47 +72,36 @@
         }
 
         const playerStats = {}; // playerId -> { count, lastDate }
-        if (penaltiesData) {
-          penaltiesData.forEach(row => {
-            const type = (row[4] || '').toString().trim();
-            const status = (row[9] || '').toString().trim();
-            if (type === 'RAGE_QUIT' && status === 'Applied') {
-              const playerId = (row[1] || '').toString().trim();
-              const timestamp = new Date(row[0]);
-              if (playerId) {
-                if (!playerStats[playerId]) {
-                  playerStats[playerId] = { count: 0, lastDate: null };
-                }
-                playerStats[playerId].count++;
-                if (!playerStats[playerId].lastDate || timestamp > playerStats[playerId].lastDate) {
-                  playerStats[playerId].lastDate = timestamp;
-                }
+        (penaltiesData || []).forEach(row => {
+          const type = (row[PCOL.type] || '').toString().trim();
+          const status = (row[PCOL.status] || '').toString().trim();
+          if (type === 'RAGE_QUIT' && status === 'Applied') {
+            const playerId = (row[PCOL.playerId] || '').toString().trim();
+            const timestamp = new Date(row[PCOL.timestamp]);
+            if (playerId) {
+              if (!playerStats[playerId]) playerStats[playerId] = { count: 0, lastDate: null };
+              playerStats[playerId].count++;
+              if (!playerStats[playerId].lastDate || (!isNaN(timestamp.getTime()) && timestamp > playerStats[playerId].lastDate)) {
+                playerStats[playerId].lastDate = isNaN(timestamp.getTime()) ? playerStats[playerId].lastDate : timestamp;
               }
             }
-          });
-        }
+          }
+        });
 
         const stats = Object.entries(playerStats)
           .map(([id, data]) => {
             const info = playerMap[id] || { name: id, country: 'XX' };
-            return {
-              name: info.name,
-              country: info.country,
-              count: data.count,
-              lastDate: data.lastDate
-            };
+            return { name: info.name, country: info.country, count: data.count, lastDate: data.lastDate };
           })
           .sort((a, b) => b.count - a.count);
 
         if (stats.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5">No rage quits recorded yet. Keep it clean! 🎮</td></tr>';
+          renderTableState(tbody, 5, 'empty', { title: 'No rage quits recorded yet. Keep it clean! 🎮' });
           return;
         }
 
         tbody.innerHTML = stats.map((s, i) => {
-          const lastStr = s.lastDate
-            ? s.lastDate.toISOString().replace('T', ' ').substring(0, 19)
-            : '—';
+          const lastStr = s.lastDate ? s.lastDate.toISOString().replace('T', ' ').substring(0, 19) : '—';
           return `
             <tr>
               <td>${i + 1}</td>
@@ -124,16 +115,11 @@
 
       } catch (err) {
         console.error(err);
-        tbody.innerHTML = `<tr><td colspan="5">Error loading data: ${escapeHtml(err.message)}</td></tr>`;
+        renderTableState(tbody, 5, 'error', { detail: err.message });
       }
     }
 
     document.addEventListener('DOMContentLoaded', loadRageQuitStats);
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
