@@ -47,12 +47,13 @@
             <div class="player-selector"><label>Player 4</label><select id="player4-select"><option value="">-- Choose --</option></select></div>
           </div>
           <div id="comparison-content">
-            <p>Select at least two players to compare.</p>
+            <div class="state-box state-empty"><div class="state-title">Select at least two players to compare.</div></div>
           </div>
         </section>
       </main>
     </div>
   </div>
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
     const chartInstances = [];
@@ -84,21 +85,21 @@
       }
 
       if (chosen.length < 2) {
-        container.innerHTML = '<p>Select at least two players.</p>';
+        renderState(container, 'empty', { title: 'Select at least two players.' });
         destroyAllCharts();
         return;
       }
       if (new Set(chosen).size !== chosen.length) {
-        container.innerHTML = '<p>Please select different players.</p>';
+        renderState(container, 'empty', { title: 'Please select different players.' });
         return;
       }
 
-      container.innerHTML = '<p>Loading comparison…</p>';
+      renderState(container, 'loading', { title: 'Loading comparison…' });
 
       try {
         const inactiveNames = await getInactivePlayerNames();
         if (chosen.some(name => inactiveNames.has(name))) {
-          container.innerHTML = '<p>One of the selected players is inactive.</p>';
+          renderState(container, 'empty', { title: 'One of the selected players is inactive.' });
           return;
         }
 
@@ -129,7 +130,7 @@
         metricsDef.forEach(metric => {
           const box = document.createElement('div');
           box.className = 'chart-box';
-          box.innerHTML = `<h4>${metric.label}</h4><canvas id="chart-${metric.key}" width="300" height="200"></canvas>`;
+          box.innerHTML = `<h4>${escapeHtml(metric.label)}</h4><canvas id="chart-${metric.key}" width="300" height="200"></canvas>`;
           chartsGrid.appendChild(box);
           const ctx = document.getElementById(`chart-${metric.key}`).getContext('2d');
           const datasets = playersData.map((p, idx) => ({
@@ -158,7 +159,7 @@
         playersData.forEach((p, idx) => {
           const card = document.createElement('div');
           card.className = 'player-card';
-          let cardHtml = `<h3>${chosen[idx]}</h3><div class="gauge-row">`;
+          let cardHtml = `<h3>${escapeHtml(chosen[idx])}</h3><div class="gauge-row">`;
           metricsDef.forEach(metric => {
             let raw = p[metric.key];
             let max = metric.max;
@@ -182,7 +183,7 @@
                   </svg>
                   <div class="gauge-value">${displayVal}</div>
                 </div>
-                <div class="gauge-label">${metric.label}</div>
+                <div class="gauge-label">${escapeHtml(metric.label)}</div>
               </div>`;
           });
           cardHtml += `</div>`;
@@ -192,7 +193,7 @@
 
         await drawEvolutionChart(chosen, playerColors);
       } catch (err) {
-        container.innerHTML = `<p>Error: ${err.message}</p>`;
+        renderState(container, 'error', { detail: err.message, onRetry: compare });
         console.error(err);
       }
     }
@@ -224,8 +225,7 @@
         }
       }
 
-      // Build rating timeline per player (date → rating after match)
-      const timelines = {}; // playerName → { date: rating }
+      const timelines = {};
       playerNames.forEach(n => { timelines[n] = []; });
 
       for (let i = 1; i < allMatches.length; i++) {
@@ -248,12 +248,10 @@
         }
       }
 
-      // Sort and remove future dates
       const now = new Date();
-      const cutoff = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // last 60 days
+      const cutoff = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
       Object.values(timelines).forEach(arr => arr.sort((a, b) => a.date - b.date));
 
-      // Build an array of all dates in the last 60 days
       const dateSet = new Set();
       const current = new Date(cutoff);
       while (current <= now) {
@@ -262,7 +260,6 @@
       }
       const sortedDates = Array.from(dateSet).sort();
 
-      // For each date, find the last known rating for each player
       const datasets = [];
       playerNames.forEach((name, idx) => {
         const points = [];
@@ -270,16 +267,11 @@
         let eventIndex = 0;
         for (const dateStr of sortedDates) {
           const date = new Date(dateStr);
-          // Advance through the player's timeline up to this date
           while (eventIndex < timelines[name].length && timelines[name][eventIndex].date <= date) {
             lastRating = timelines[name][eventIndex].rating;
             eventIndex++;
           }
-          if (lastRating !== null) {
-            points.push(lastRating);
-          } else {
-            points.push(null); // no data yet
-          }
+          points.push(lastRating !== null ? lastRating : null);
         }
         if (points.some(v => v !== null)) {
           datasets.push({
@@ -302,10 +294,7 @@
 
       evolutionChart = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels: sortedDates,
-          datasets: datasets
-        },
+        data: { labels: sortedDates, datasets: datasets },
         options: {
           responsive: true,
           maintainAspectRatio: true,
@@ -314,15 +303,13 @@
               title: { display: true, text: 'Date' },
               ticks: {
                 maxTicksLimit: 20,
-                callback: function(val, index) {
+                callback: function(val) {
                   const d = new Date(this.getLabelForValue(val));
                   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 }
               }
             },
-            y: {
-              title: { display: true, text: 'Rating' }
-            }
+            y: { title: { display: true, text: 'Rating' } }
           },
           plugins: {
             legend: { position: 'top' },
@@ -348,7 +335,7 @@
       const recentOppIdx = header.indexOf('RecentOpponents');
 
       const row = players.find(r => (r[nameIdx] || '').toString().trim() === playerName);
-      if (!row) throw new Error('Player not found');
+      if (!row) throw new Error(`Player not found: ${playerName}`);
 
       const rating = parseFloat(row[ratingIdx]) || 0;
       const rd = parseFloat(row[rdIdx]) || 0;
@@ -362,17 +349,12 @@
       try {
         const recentOpp = JSON.parse(row[recentOppIdx] || '[]');
         sos = recentOpp.length > 0 ? recentOpp.reduce((a, b) => a + b, 0) / recentOpp.length : 0;
-      } catch (e) {}
+      } catch (e) { /* malformed RecentOpponents JSON — default to 0 */ }
 
       return { rating, rd, winRate, avgPosition, sos };
     }
 
     document.addEventListener('DOMContentLoaded', init);
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
