@@ -19,63 +19,51 @@
         <section class="panel">
           <div class="section-heading">
             <label for="report-select">Month:</label>
-            <select id="report-select" style="margin-left:10px; padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+            <select id="report-select" class="field-select">
               <option value="">-- Choose a month --</option>
             </select>
           </div>
           <div id="match-reports-container">
-            <p>Select a month to view its match reports.</p>
+            <div class="state-box state-empty"><div class="state-title">Select a month to view its match reports.</div></div>
           </div>
         </section>
       </main>
     </div>
   </div>
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
     async function loadMonth(sheetName) {
-      // Show loading
-      document.getElementById('match-reports-container').innerHTML = '<p>Loading match reports…</p>';
-
-      // Render the reports
       await renderMatchReports(sheetName, 'match-reports-container');
-
-      // Update the URL (the sheet name is MATCH_REPORTS_YYYY_MM)
-      const monthParam = sheetName.replace('MATCH_REPORTS_', '');   // "2026_05"
+      const monthParam = sheetName.replace('MATCH_REPORTS_', '');
       const newUrl = window.location.pathname + '?month=' + monthParam;
       history.replaceState(null, '', newUrl);
     }
 
     async function init() {
-      // Populate the month selector
       await populateMonthSelector('report-select', 'MATCH_REPORTS_');
 
-      // Check for direct link (accept both YYYY-MM and YYYY_MM)
       const params = new URLSearchParams(window.location.search);
       let monthParam = params.get('month');
       if (monthParam) {
-        monthParam = monthParam.replace('-', '_');   // normalize to YYYY_MM
+        monthParam = monthParam.replace('-', '_');
         const sheetName = 'MATCH_REPORTS_' + monthParam;
         document.getElementById('report-select').value = sheetName;
         loadMonth(sheetName);
       }
 
-      // Manual change listener
       document.getElementById('report-select').addEventListener('change', e => {
         if (e.target.value) {
           loadMonth(e.target.value);
         } else {
-          document.getElementById('match-reports-container').innerHTML = '<p>Select a month to view its match reports.</p>';
+          document.getElementById('match-reports-container').innerHTML =
+            '<div class="state-box state-empty"><div class="state-title">Select a month to view its match reports.</div></div>';
           history.replaceState(null, '', window.location.pathname);
         }
       });
     }
 
     document.addEventListener('DOMContentLoaded', init);
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
