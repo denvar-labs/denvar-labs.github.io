@@ -19,40 +19,33 @@
         <section class="panel">
           <div class="section-heading">
             <label for="month-select">Season:</label>
-            <select id="month-select" style="margin-left:10px; padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+            <select id="month-select" class="field-select">
               <option value="">-- Choose a month --</option>
             </select>
           </div>
           <div class="table-responsive">
             <table id="data-table" class="data-table">
               <thead></thead>
-              <tbody><tr><td colspan="20">Select a month to view its leaderboard.</td></tr></tbody>
+              <tbody></tbody>
             </table>
           </div>
         </section>
       </main>
     </div>
   </div>
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
     async function loadMonth(sheetName) {
-      // Show loading
-      document.querySelector('#data-table tbody').innerHTML = '<tr><td colspan="20">Loading…</td></tr>';
-
-      // Load the data
       await loadTableFromSheet(sheetName, 'data-table');
-
-      // Update the URL without reloading the page
-      const monthParam = sheetName.replace('LEADERBOARD_', '');   // "2026-05"
+      const monthParam = sheetName.replace('LEADERBOARD_', '');
       const newUrl = window.location.pathname + '?month=' + monthParam;
       history.replaceState(null, '', newUrl);
     }
 
     async function init() {
-      // Populate the month selector
       await populateMonthSelector('month-select', 'LEADERBOARD_');
 
-      // Check for direct link
       const params = new URLSearchParams(window.location.search);
       const monthParam = params.get('month');
       if (monthParam) {
@@ -61,24 +54,23 @@
         loadMonth(sheetName);
       }
 
-      // Manual change listener
       document.getElementById('month-select').addEventListener('change', e => {
         if (e.target.value) {
           loadMonth(e.target.value);
         } else {
-          document.querySelector('#data-table tbody').innerHTML = '<tr><td colspan="20">Select a month to view its leaderboard.</td></tr>';
-          // Clear the URL parameter when no month is selected
+          const tbody = document.querySelector('#data-table tbody');
+          renderTableState(tbody, 20, 'empty', { title: 'Select a month to view its leaderboard.' });
           history.replaceState(null, '', window.location.pathname);
         }
       });
+
+      if (!monthParam) {
+        const tbody = document.querySelector('#data-table tbody');
+        renderTableState(tbody, 20, 'empty', { title: 'Select a month to view its leaderboard.' });
+      }
     }
 
     document.addEventListener('DOMContentLoaded', init);
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
