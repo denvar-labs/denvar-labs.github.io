@@ -14,7 +14,7 @@
     .record-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
     .record-player { font-size: 1.1rem; color: var(--text); margin-top: 4px; }
     .mode-switch { display: flex; gap: 8px; margin-bottom: 16px; }
-    .mode-btn { padding: 8px 16px; border: 2px solid var(--border); background: var(--surface); border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .mode-btn { padding: 8px 16px; border: 2px solid var(--border); background: var(--surface); border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--text); }
     .mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .chart-container { max-width: 800px; margin: 20px auto; }
   </style>
@@ -37,14 +37,12 @@
 
           <div id="month-selector" style="display:none; margin-bottom:16px;">
             <label for="hof-month-select">Season:</label>
-            <select id="hof-month-select" style="margin-left:10px; padding:6px 10px; border-radius:4px; border:1px solid var(--border);">
+            <select id="hof-month-select" class="field-select">
               <option value="">-- Choose a month --</option>
             </select>
           </div>
 
-          <div class="records-grid" id="records-container">
-            <p>Loading records…</p>
-          </div>
+          <div class="records-grid" id="records-container"></div>
 
           <div class="chart-container" id="chart-section" style="display:none;">
             <canvas id="topChart"></canvas>
@@ -54,6 +52,7 @@
       </main>
     </div>
   </div>
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
     let currentMode = 'alltime';
@@ -61,7 +60,7 @@
 
     function getLastCompletedMonth(months) {
       const now = new Date();
-      const currentKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const completed = months.filter(m => m < currentKey).sort().reverse();
       return completed.length > 0 ? completed[0] : null;
     }
@@ -69,9 +68,9 @@
     function buildRecordCard(icon, title, player, value) {
       return `<div class="record-card">
         <div class="record-icon">${icon}</div>
-        <div class="record-title">${title}</div>
-        <div class="record-value">${value}</div>
-        <div class="record-player">${player}</div>
+        <div class="record-title">${escapeHtml(title)}</div>
+        <div class="record-value">${escapeHtml(value)}</div>
+        <div class="record-player">${escapeHtml(player)}</div>
       </div>`;
     }
 
@@ -79,19 +78,18 @@
       if (currentChart) { currentChart.destroy(); currentChart = null; }
     }
 
-    // ---------- ALL-TIME (filter out inactives) ----------
     async function loadAllTimeRecords() {
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
       const chartCaption = document.getElementById('chart-caption');
-      container.innerHTML = '<p>Loading all‑time records…</p>';
+      renderState(container, 'loading', { title: 'Loading all‑time records…' });
       chartSection.style.display = 'none';
       destroyChart();
 
       try {
         const data = await fetchSheetData('LEADERBOARD_GLOBAL');
-        if (data.length < 4) { container.innerHTML = '<p>No data available.</p>'; return; }
-        const headers = data[2].map(h => (h||'').toString().trim());
+        if (data.length < 4) { renderState(container, 'empty', { title: 'No data available.' }); return; }
+        const headers = data[2].map(h => (h || '').toString().trim());
         const nameIdx = headers.indexOf('Player');
         const ratingIdx = headers.indexOf('Rating');
         const rankIdx = headers.indexOf('Rank');
@@ -105,7 +103,7 @@
           return name && rank !== 'Unranked' && !inactiveNames.has(name);
         });
 
-        if (rows.length === 0) { container.innerHTML = '<p>No ranked active players found.</p>'; return; }
+        if (rows.length === 0) { renderState(container, 'empty', { title: 'No ranked active players found.' }); return; }
 
         const players = rows.map(r => ({
           name: r[nameIdx],
@@ -114,57 +112,48 @@
           wins: parseInt(r[winsIdx]) || 0
         }));
 
-        const topRating = players.reduce((a,b) => a.rating > b.rating ? a : b);
-        const topMatches = players.reduce((a,b) => a.matches > b.matches ? a : b);
-        const topWins = players.reduce((a,b) => a.wins > b.wins ? a : b);
-        const highWR = players.filter(p => p.matches >= 10)
-          .sort((a,b) => (b.wins/b.matches) - (a.wins/a.matches))[0];
+        const topRating = players.reduce((a, b) => a.rating > b.rating ? a : b);
+        const topMatches = players.reduce((a, b) => a.matches > b.matches ? a : b);
+        const topWins = players.reduce((a, b) => a.wins > b.wins ? a : b);
+        const highWR = players.filter(p => p.matches >= 10).sort((a, b) => (b.wins / b.matches) - (a.wins / a.matches))[0];
 
         let html = '';
         html += buildRecordCard('👑', 'Highest Rating Ever', topRating.name, topRating.rating.toFixed(2));
         html += buildRecordCard('🎮', 'Most Matches Played', topMatches.name, topMatches.matches + ' matches');
         html += buildRecordCard('🏅', 'Most Wins', topWins.name, topWins.wins + ' wins');
-        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
-        container.innerHTML = html || '<p>Not enough data.</p>';
+        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
+        container.innerHTML = html || '<div class="state-box state-empty"><div class="state-title">Not enough data.</div></div>';
 
-        const top10 = players.sort((a,b) => b.rating - a.rating).slice(0,10);
+        const top10 = players.sort((a, b) => b.rating - a.rating).slice(0, 10);
         if (top10.length > 0) {
           const names = top10.map(p => p.name);
           const ratings = top10.map(p => p.rating);
           const ctx = document.getElementById('topChart').getContext('2d');
           currentChart = new Chart(ctx, {
             type: 'bar',
-            data: {
-              labels: names,
-              datasets: [{
-                label: 'Rating',
-                data: ratings,
-                backgroundColor: '#4a86e8cc',
-                borderColor: '#4a86e8',
-                borderWidth: 1
-              }]
-            },
+            data: { labels: names, datasets: [{ label: 'Rating', data: ratings, backgroundColor: '#4a86e8cc', borderColor: '#4a86e8', borderWidth: 1 }] },
             options: { responsive: true, scales: { y: { beginAtZero: false, title: { display: true, text: 'Rating' } } }, plugins: { legend: { display: false } } }
           });
           chartCaption.textContent = 'Top 10 Players by Rating (All-Time, Ranked & Active Only)';
           chartSection.style.display = 'block';
         }
-      } catch (err) { container.innerHTML = `<p>Error: ${err.message}</p>`; }
+      } catch (err) {
+        renderState(container, 'error', { detail: err.message, onRetry: loadAllTimeRecords });
+      }
     }
 
-    // ---------- MONTHLY ----------
     async function loadMonthlyRecords(sheetName) {
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
       const chartCaption = document.getElementById('chart-caption');
-      container.innerHTML = '<p>Loading monthly records…</p>';
+      renderState(container, 'loading', { title: 'Loading monthly records…' });
       chartSection.style.display = 'none';
       destroyChart();
 
       try {
         const data = await fetchSheetData(sheetName);
-        if (data.length < 4) { container.innerHTML = '<p>No data for this month.</p>'; return; }
-        const headers = data[2].map(h => (h||'').toString().trim());
+        if (data.length < 4) { renderState(container, 'empty', { title: 'No data for this month.' }); return; }
+        const headers = data[2].map(h => (h || '').toString().trim());
         const nameIdx = headers.indexOf('Player');
         const ratingIdx = headers.indexOf('Rating');
         const rankIdx = headers.indexOf('Rank');
@@ -178,7 +167,7 @@
           return name && parseInt(r[matchesIdx]) > 0 && rank !== 'Unranked' && !inactiveNames.has(name);
         });
 
-        if (rows.length === 0) { container.innerHTML = '<p>No ranked active players with matches this month.</p>'; return; }
+        if (rows.length === 0) { renderState(container, 'empty', { title: 'No ranked active players with matches this month.' }); return; }
 
         const players = rows.map(r => ({
           name: r[nameIdx],
@@ -187,42 +176,34 @@
           wins: parseInt(r[winsIdx])
         }));
 
-        const topRating = players.reduce((a,b) => a.rating > b.rating ? a : b);
-        const topMatches = players.reduce((a,b) => a.matches > b.matches ? a : b);
-        const topWins = players.reduce((a,b) => a.wins > b.wins ? a : b);
-        const highWR = players.filter(p => p.matches >= 3)
-          .sort((a,b) => (b.wins/b.matches) - (a.wins/a.matches))[0];
+        const topRating = players.reduce((a, b) => a.rating > b.rating ? a : b);
+        const topMatches = players.reduce((a, b) => a.matches > b.matches ? a : b);
+        const topWins = players.reduce((a, b) => a.wins > b.wins ? a : b);
+        const highWR = players.filter(p => p.matches >= 3).sort((a, b) => (b.wins / b.matches) - (a.wins / a.matches))[0];
 
         let html = '';
         html += buildRecordCard('👑', 'Highest Rating This Month', topRating.name, topRating.rating.toFixed(2));
         html += buildRecordCard('🎮', 'Most Matches This Month', topMatches.name, topMatches.matches + ' matches');
         html += buildRecordCard('🏅', 'Most Wins This Month', topWins.name, topWins.wins + ' wins');
-        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins/highWR.matches*100).toFixed(1) + '%');
-        container.innerHTML = html || '<p>Not enough data.</p>';
+        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
+        container.innerHTML = html || '<div class="state-box state-empty"><div class="state-title">Not enough data.</div></div>';
 
-        const top5 = players.sort((a,b) => b.rating - a.rating).slice(0,5);
+        const top5 = players.sort((a, b) => b.rating - a.rating).slice(0, 5);
         if (top5.length > 0) {
           const names = top5.map(p => p.name);
           const ratings = top5.map(p => p.rating);
           const ctx = document.getElementById('topChart').getContext('2d');
           currentChart = new Chart(ctx, {
             type: 'bar',
-            data: {
-              labels: names,
-              datasets: [{
-                label: 'Rating',
-                data: ratings,
-                backgroundColor: '#e94560cc',
-                borderColor: '#e94560',
-                borderWidth: 1
-              }]
-            },
+            data: { labels: names, datasets: [{ label: 'Rating', data: ratings, backgroundColor: '#e94560cc', borderColor: '#e94560', borderWidth: 1 }] },
             options: { responsive: true, scales: { y: { beginAtZero: false, title: { display: true, text: 'Rating' } } }, plugins: { legend: { display: false } } }
           });
-          chartCaption.textContent = `Top 5 Players by Rating (${sheetName.replace('LEADERBOARD_','')}, Ranked & Active Only)`;
+          chartCaption.textContent = `Top 5 Players by Rating (${sheetName.replace('LEADERBOARD_', '')}, Ranked & Active Only)`;
           chartSection.style.display = 'block';
         }
-      } catch (err) { container.innerHTML = `<p>Error: ${err.message}</p>`; }
+      } catch (err) {
+        renderState(container, 'error', { detail: err.message, onRetry: () => loadMonthlyRecords(sheetName) });
+      }
     }
 
     async function switchMode(mode) {
@@ -243,7 +224,7 @@
           document.getElementById('hof-month-select').value = `LEADERBOARD_${defaultSheet}`;
           loadMonthlyRecords(`LEADERBOARD_${defaultSheet}`);
         } else {
-          document.getElementById('records-container').innerHTML = '<p>No completed seasons found.</p>';
+          renderState(document.getElementById('records-container'), 'empty', { title: 'No completed seasons found.' });
           document.getElementById('chart-section').style.display = 'none';
         }
       }
@@ -261,11 +242,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', init);
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
