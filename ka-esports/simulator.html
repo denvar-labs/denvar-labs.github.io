@@ -6,9 +6,10 @@
   <title>Rating Simulator – KA ESPORTS</title>
   <link rel="stylesheet" href="../css/style.css">
   <style>
-    .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
     .sim-row select, .sim-row input { padding: 6px; border-radius: 4px; border: 1px solid var(--border); }
     button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin: 10px 0; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     #sim-result { margin-top: 15px; padding: 15px; background: var(--surface); border-radius: 4px; }
     .player-card { border: 1px solid var(--border); padding: 10px; border-radius: 4px; margin-bottom: 10px; }
   </style>
@@ -25,25 +26,24 @@
       <main class="content">
         <section class="panel">
           <div class="section-heading">Set Up the Match</div>
-          <div id="sim-players">
-            <!-- dynamically filled -->
-          </div>
-          <button onclick="simulate()">Simulate</button>
+          <div id="sim-players"></div>
+          <button id="simulate-btn" onclick="simulate()">Simulate</button>
           <div id="sim-result"></div>
         </section>
       </main>
     </div>
   </div>
 
+  <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
     // ========== Glicko-2 Simplified Simulator ==========
-    function g(phi) { return 1 / Math.sqrt(1 + 3*phi*phi/(Math.PI*Math.PI)); }
-    function E(mu, muJ, phiJ) { return 1 / (1 + Math.exp(-g(phiJ)*(mu - muJ))); }
+    function g(phi) { return 1 / Math.sqrt(1 + 3 * phi * phi / (Math.PI * Math.PI)); }
+    function E(mu, muJ, phiJ) { return 1 / (1 + Math.exp(-g(phiJ) * (mu - muJ))); }
 
     function simulateMatch(players, results) {
       const SCALE = 173.7178;
-      const internal = players.map(p => ({ ...p, mu: (p.rating-1500)/SCALE, phi: p.rd/SCALE }));
+      const internal = players.map(p => ({ ...p, mu: (p.rating - 1500) / SCALE, phi: p.rd / SCALE }));
       const newRatings = [];
       for (let i = 0; i < 4; i++) {
         let vInv = 0, deltaSum = 0;
@@ -52,14 +52,14 @@
           const opp = internal[j];
           const gVal = g(opp.phi);
           const eVal = E(internal[i].mu, opp.mu, opp.phi);
-          vInv += gVal*gVal * eVal * (1-eVal);
+          vInv += gVal * gVal * eVal * (1 - eVal);
           deltaSum += gVal * (results[i][j] - eVal);
         }
         const v = 1 / vInv;
         const delta = v * deltaSum;
-        const phiStar = Math.sqrt(internal[i].phi*internal[i].phi + players[i].vol*players[i].vol);
-        const phiPrime = 1 / Math.sqrt(1/(phiStar*phiStar) + 1/v);
-        const muPrime = internal[i].mu + phiPrime*phiPrime * deltaSum;
+        const phiStar = Math.sqrt(internal[i].phi * internal[i].phi + players[i].vol * players[i].vol);
+        const phiPrime = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+        const muPrime = internal[i].mu + phiPrime * phiPrime * deltaSum;
         const newR = muPrime * SCALE + 1500;
         const newRD = phiPrime * SCALE;
         newRatings.push({ name: players[i].name, rating: newR, rd: newRD, change: newR - players[i].rating });
@@ -69,18 +69,18 @@
 
     let playerPool = [];
 
-    // Load only active players and build the pool
     async function loadPlayers() {
+      const container = document.getElementById('sim-players');
+      renderState(container, 'loading', { title: 'Loading players…' });
       try {
         const all = await fetchSheetData('PLAYERS');
-        const header = all[0].map(h => (h||'').toString().trim());
+        const header = all[0].map(h => (h || '').toString().trim());
         const nameIdx = header.indexOf('Name');
         const ratingIdx = header.indexOf('Rating');
         const rdIdx = header.indexOf('RD');
         const volIdx = header.indexOf('Volatility');
         const activeIdx = header.indexOf('Active');
 
-        // Get inactive set to filter
         const inactiveNames = await getInactivePlayerNames();
 
         playerPool = all.slice(1)
@@ -89,7 +89,6 @@
               const status = (row[activeIdx] || '').toString().trim().toUpperCase();
               if (status !== 'ACTIVE') return false;
             }
-            // Double-check with inactive set (in case column missing or inconsistent)
             const name = (row[nameIdx] || '').toString().trim();
             return name && !inactiveNames.has(name);
           })
@@ -99,17 +98,25 @@
             rd: parseFloat(row[rdIdx]),
             vol: parseFloat(row[volIdx])
           }))
-          .filter(p => p.name);
+          .filter(p => p.name && !isNaN(p.rating) && !isNaN(p.rd) && !isNaN(p.vol));
+
+        if (playerPool.length < 4) {
+          renderState(container, 'empty', { title: 'Not enough active players with valid rating data to simulate a 4-player match.' });
+          document.getElementById('simulate-btn').disabled = true;
+          return;
+        }
+        buildSelects();
       } catch (err) {
         console.error('Error loading players:', err);
-        playerPool = [];
+        renderState(container, 'error', { detail: err.message, onRetry: loadPlayers });
+        document.getElementById('simulate-btn').disabled = true;
       }
     }
 
     function buildSelects() {
       const container = document.getElementById('sim-players');
-      const options = playerPool.map(p => `<option value="${p.name}">${p.name} (${p.rating.toFixed(0)})</option>`).join('');
-      container.innerHTML = [1,2,3,4].map(i => `
+      const options = playerPool.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${p.rating.toFixed(0)})</option>`).join('');
+      container.innerHTML = [1, 2, 3, 4].map(i => `
         <div class="sim-row">
           <span>P${i}:</span>
           <select id="player${i}">${options}</select>
@@ -144,21 +151,13 @@
       const resultDiv = document.getElementById('sim-result');
       resultDiv.innerHTML = '<h3>Simulation Results</h3>' + newRatings.map(r => `
         <div class="player-card">
-          <strong>${r.name}</strong>: ${r.rating.toFixed(2)} (${r.change > 0 ? '+' : ''}${r.change.toFixed(2)})
+          <strong>${escapeHtml(r.name)}</strong>: ${r.rating.toFixed(2)} (${r.change > 0 ? '+' : ''}${r.change.toFixed(2)})
           <br>New RD: ${r.rd.toFixed(2)}
         </div>
       `).join('');
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      await loadPlayers();
-      buildSelects();
-    });
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
+    document.addEventListener('DOMContentLoaded', loadPlayers);
   </script>
 </body>
 </html>
