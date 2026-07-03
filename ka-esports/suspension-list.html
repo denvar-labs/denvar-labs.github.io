@@ -6,46 +6,12 @@
   <title>Suspension List – KA ESPORTS</title>
   <link rel="stylesheet" href="../css/style.css">
   <style>
-    .suspension-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-    .suspension-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .suspension-player {
-      font-size: 1.2rem;
-      font-weight: 700;
-    }
-    .suspension-status {
-      background: #e53935;
-      color: #fff;
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
-    .suspension-dates {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      margin: 4px 0;
-    }
-    .suspension-reason {
-      margin-top: 8px;
-      font-style: italic;
-      color: var(--text-muted);
-    }
-    .empty-state {
-      text-align: center;
-      padding: 30px 10px;
-      color: var(--text-muted);
-    }
+    .suspension-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .suspension-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .suspension-player { font-size: 1.2rem; font-weight: 700; }
+    .suspension-status { background: var(--danger); color: #fff; padding: 4px 12px; border-radius: 4px; font-weight: 600; font-size: 0.85rem; }
+    .suspension-dates { color: var(--text-muted); font-size: 0.9rem; margin: 4px 0; }
+    .suspension-reason { margin-top: 8px; font-style: italic; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -60,9 +26,7 @@
       <main class="content">
         <section class="panel">
           <div class="section-heading">📋 Suspended Players</div>
-          <div id="suspensions-container">
-            <p>Loading data…</p>
-          </div>
+          <div id="suspensions-container"></div>
         </section>
 
         <section class="panel" style="margin-top:20px;">
@@ -84,42 +48,13 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script>
-    // ---------------------------------------------------------------
-    // PENALTIES sheet layout (CONFIRMED — no header row, raw data
-    // starts at row 1):
-    //
-    //  [0] Timestamp     e.g. "2026-06-16 19:00:00"
-    //  [1] PlayerID      e.g. "P_4135aa9d"
-    //  [2] PlayerName    e.g. "Alex"
-    //  [3] Reason        e.g. "Rage quit / abandonment"
-    //  [4] Type          "RAGE_QUIT" | "SUSPENSION"
-    //  [5] Points        e.g. -40 (0 for pure suspensions)
-    //  [6] Month         e.g. "2026-06"
-    //  [7] StartDate     empty for single RAGE_QUIT rows; set for SUSPENSION
-    //  [8] EndDate       empty for single RAGE_QUIT rows; set for SUSPENSION
-    //  [9] Status        "Applied"
-    //
-    // A row only represents an ACTIVE suspension if Type/Status/dates
-    // indicate it — a lone RAGE_QUIT row has no StartDate/EndDate and
-    // is correctly excluded (it becomes a suspension only once 3 are
-    // accumulated and an admin adds a SUSPENSION row via the admin panel).
-    // ---------------------------------------------------------------
-    const COL = {
-      timestamp: 0,
-      playerId: 1,
-      playerName: 2,
-      reason: 3,
-      type: 4,
-      points: 5,
-      month: 6,
-      startDate: 7,
-      endDate: 8,
-      status: 9
-    };
+    // Confirmed PENALTIES layout (no header row):
+    // [0]Timestamp [1]PlayerID [2]PlayerName [3]Reason [4]Type [5]Points [6]Month [7]StartDate [8]EndDate [9]Status
+    const COL = { timestamp: 0, playerId: 1, playerName: 2, reason: 3, type: 4, points: 5, month: 6, startDate: 7, endDate: 8, status: 9 };
 
     async function loadSuspensions() {
       const container = document.getElementById('suspensions-container');
-      container.innerHTML = '<p>Loading…</p>';
+      renderState(container, 'loading');
 
       try {
         const [penaltiesData, playersData] = await Promise.all([
@@ -127,7 +62,6 @@
           fetchSheetData('PLAYERS')
         ]);
 
-        // Build player ID → name and country map
         const playerMap = {};
         if (playersData && playersData.length > 1) {
           const pHeader = playersData[0].map(h => (h || '').toString().trim());
@@ -136,17 +70,12 @@
           const countryIdx = pHeader.indexOf('Country');
           playersData.slice(1).forEach(row => {
             const id = (row[idIdx] || '').toString().trim();
-            if (id) {
-              playerMap[id] = {
-                name: (row[nameIdx] || '').toString().trim(),
-                country: (row[countryIdx] || 'XX').toString().trim()
-              };
-            }
+            if (id) playerMap[id] = { name: (row[nameIdx] || '').toString().trim(), country: (row[countryIdx] || 'XX').toString().trim() };
           });
         }
 
         if (!penaltiesData || penaltiesData.length === 0) {
-          container.innerHTML = '<div class="empty-state">No active suspensions. The community is clean! 🎮</div>';
+          renderState(container, 'empty', { title: 'No active suspensions. The community is clean! 🎮' });
           return;
         }
 
@@ -154,17 +83,15 @@
         const suspensions = [];
 
         penaltiesData.forEach(row => {
-          const status = (row[COL.status] || '').toString().trim();
-          if (status !== 'Applied') return;
-
+          if ((row[COL.status] || '').toString().trim() !== 'Applied') return;
           const startRaw = row[COL.startDate];
           const endRaw = row[COL.endDate];
-          if (!startRaw || !endRaw) return; // no date range = not a suspension window (e.g. a lone RAGE_QUIT row)
+          if (!startRaw || !endRaw) return; // e.g. lone RAGE_QUIT rows have no date range — not a suspension window
 
           const suspensionStart = new Date(startRaw);
           const suspensionEnd = new Date(endRaw);
           if (isNaN(suspensionStart.getTime()) || isNaN(suspensionEnd.getTime())) return;
-          if (!(now >= suspensionStart && now <= suspensionEnd)) return; // not currently active
+          if (!(now >= suspensionStart && now <= suspensionEnd)) return;
 
           const playerId = (row[COL.playerId] || '').toString().trim();
           const info = playerMap[playerId] || { name: row[COL.playerName] || playerId, country: 'XX' };
@@ -179,11 +106,10 @@
         });
 
         if (suspensions.length === 0) {
-          container.innerHTML = '<div class="empty-state">No active suspensions. The community is clean! 🎮</div>';
+          renderState(container, 'empty', { title: 'No active suspensions. The community is clean! 🎮' });
           return;
         }
 
-        // Soonest-to-end first, so people can see who's coming back next
         suspensions.sort((a, b) => a.end - b.end);
 
         container.innerHTML = suspensions.map(s => {
@@ -196,28 +122,19 @@
                 <span class="suspension-player">${escapeHtml(s.playerName)} ${flag}</span>
                 <span class="suspension-status">⛔ Active</span>
               </div>
-              <div class="suspension-dates">
-                <strong>Period:</strong> ${startStr} → ${endStr}
-              </div>
-              <div class="suspension-reason">
-                <strong>Reason:</strong> ${escapeHtml(s.reason)}
-              </div>
+              <div class="suspension-dates"><strong>Period:</strong> ${startStr} → ${endStr}</div>
+              <div class="suspension-reason"><strong>Reason:</strong> ${escapeHtml(s.reason)}</div>
             </div>
           `;
         }).join('');
 
       } catch (err) {
         console.error(err);
-        container.innerHTML = `<p>Error loading data: ${escapeHtml(err.message)}</p>`;
+        renderState(container, 'error', { detail: err.message, onRetry: loadSuspensions });
       }
     }
 
     document.addEventListener('DOMContentLoaded', loadSuspensions);
-  </script>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
   </script>
 </body>
 </html>
