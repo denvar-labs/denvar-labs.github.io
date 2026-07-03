@@ -34,7 +34,6 @@
         <section class="panel">
           <div class="section-heading">📊 KA ESPORTS – PROFESSIONAL GLICKO 2 RANKING SYSTEM FOR MARIO KART 64</div>
 
-          <!-- INDEX -->
           <div class="faq-section">
             <h2>📑 INDEX</h2>
             <ul>
@@ -54,7 +53,6 @@
             </ul>
           </div>
 
-          <!-- 1. What is Glicko 2 -->
           <div class="faq-section">
             <h2>1. What is Glicko 2 and why do we use it?</h2>
             <p>Glicko 2 is a ranking system developed by Professor Mark Glickman as an improvement over the traditional Elo system. Unlike simple point systems, Glicko 2 considers three factors for each player:</p>
@@ -72,7 +70,6 @@
             </ul>
           </div>
 
-          <!-- 2. System components -->
           <div class="faq-section">
             <h2>2. System components</h2>
             <p>• Rating (R): A number that indicates your level. The higher, the better.</p>
@@ -80,7 +77,6 @@
             <p>• Volatility (σ): Measures your consistency. If you always finish in similar positions, volatility is low. If you alternate first and last places, volatility rises.</p>
           </div>
 
-          <!-- 3. Why ALL matches ranked -->
           <div class="faq-section">
             <h2>3. Why are ALL matches ranked?</h2>
             <p>At KA ESPORTS, every match you play affects your rating. There are no "friendly" or "practice" matches that don't count. This is possible because Glicko 2 automatically adjusts to all skill levels:</p>
@@ -99,7 +95,6 @@
             </ul>
           </div>
 
-          <!-- 4. Race scoring -->
           <div class="faq-section">
             <h2>4. Race scoring</h2>
             <p>Each 4‑player match distributes 96 total points as follows:</p>
@@ -115,7 +110,6 @@
             <p>This means that finishing first is not enough: if you beat weak opponents, you'll gain few points; if you finish last but against very strong opponents, you'll lose few points.</p>
           </div>
 
-          <!-- 5. Ranks and colors -->
           <div class="faq-section">
             <h2>5. Ranks and colors</h2>
             <p>Depending on your rating and number of matches played, you get a rank. The thresholds are:</p>
@@ -138,7 +132,6 @@
             <p>If you don't meet the minimum, you'll appear as Unranked until you reach the required matches.</p>
           </div>
 
-          <!-- 6. Available statistics -->
           <div class="faq-section">
             <h2>6. Available statistics</h2>
             <table>
@@ -154,7 +147,6 @@
             <p>SOS is especially important: a high value means you play against strong opponents, which gives more value to your wins and reduces the penalty for your losses.</p>
           </div>
 
-          <!-- 7. Leaderboards and reports -->
           <div class="faq-section">
             <h2>7. Leaderboards and reports</h2>
             <p>The system automatically generates multiple views so you can analyze performance:</p>
@@ -192,7 +184,6 @@
             </table>
           </div>
 
-          <!-- 8. Inactivity system -->
           <div class="faq-section">
             <h2>8. Inactivity system (decay)</h2>
             <p>To keep the ranking up to date and reflect players' current skill levels, we apply two types of inactivity adjustments:</p>
@@ -215,7 +206,6 @@
             <p>Both records are kept in the <span class="code">AUDIT_LOG</span> for complete transparency.</p>
           </div>
 
-          <!-- 9. Anti smurf and boosting detection -->
           <div class="faq-section">
             <h2>9. Anti‑smurf and boosting detection</h2>
             <p>The system automatically detects suspicious behavior and logs it in the <span class="code">ANTI_SMURF_LOG</span> sheet for administrator review.</p>
@@ -238,7 +228,6 @@
             </ul>
           </div>
 
-          <!-- 10. Frequently asked questions -->
           <div class="faq-section">
             <h2>10. Frequently asked questions</h2>
 
@@ -270,7 +259,6 @@
             <p>Contact the administrators. The system maintains a detailed log of all operations (<span class="code">AUDIT_LOG</span>) and we can review what happened.</p>
           </div>
 
-          <!-- 11. Step by step calculation example -->
           <div class="faq-section">
             <h2>11. Step by step calculation example</h2>
             <p>Let's simulate a match with four players. We'll use simplified values to convey the idea, although the real algorithm has additional steps (volatility calculation, iterations, etc.).</p>
@@ -322,7 +310,6 @@
             <p>Each player's RD is reduced because they played (the system has more information). Volatility is adjusted according to the difference between the result and the expectation.</p>
           </div>
 
-          <!-- 12. Acknowledgments -->
           <div class="faq-section">
             <h2>12. Acknowledgments</h2>
             <p>We would like to extend our sincerest thanks to <strong>Jed</strong> and the <strong>VA Rules</strong> team, whose ELO / Glicko implementation served as inspiration and a fundamental guide for understanding and adapting Glicko 2 to KA ESPORTS – Mario Kart 64.</p>
@@ -331,15 +318,13 @@
             <p>Thank you, Jed and Andrew! 🙏</p>
           </div>
 
-          <!-- 13. Contact -->
           <div class="faq-section">
             <h2>13. Contact</h2>
             <p>If you found this system interesting, if you have questions, suggestions, or if you want to adapt it to other rules, tournaments, or games, feel free to contact me.</p>
             <p><strong>Email:</strong> denvarkart@gmail.com</p>
-            <p><strong>Discord:</strong> <a href="https://discord.gg/UFYVtV9rM" target="_blank">https://discord.gg/UFYVtV9rM</a></p>
+            <p><strong>Discord:</strong> <a href="https://discord.gg/UFYVtV9rM" target="_blank" rel="noopener">https://discord.gg/UFYVtV9rM</a></p>
           </div>
 
-          <!-- Let's compete -->
           <div class="faq-section">
             <h2>🚀 Let's compete!</h2>
             <p>Now that you know the system, it's time to enjoy fairer and more exciting matches. Remember:</p>
@@ -357,13 +342,13 @@
             System based on Glicko 2 | Custom implementation for Mario Kart 64
           </p>
 
-          <!-- Changelog -->
           <div class="faq-section" style="margin-top:30px;">
             <h2>📝 Changelog</h2>
             <table>
               <tr><th>Version</th><th>Changes</th></tr>
               <tr><td>V01.00</td><td>Initial Release</td></tr>
               <tr><td>V01.16</td><td>Seasonal Leaderboards: Fixed ordering – players with enough matches now appear first, followed by unranked players.<br><br>Global Leaderboard: Now only counts matches from the last 60 days. New thresholds: 10 matches for any rank, 20 for Master/Grand Master.<br><br>General bug fixes and performance improvements.<br><br>Head to Head details, average vs opponents (Experimental)</td></tr>
+              <tr><td>V02.00</td><td>Security & reliability overhaul: admin actions now use secured POST requests; table headers restyled; rank colors now apply only to Player/Rank cells instead of full rows; consistent loading/error states across all pages.</td></tr>
             </table>
           </div>
 
@@ -371,10 +356,7 @@
       </main>
     </div>
   </div>
-  <script>
-    fetch("../sidebar.html").then(r => r.text()).then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-    });
-  </script>
+  <script src="../js/config.js"></script>
+  <script src="../js/api-loader.js"></script>
 </body>
 </html>
