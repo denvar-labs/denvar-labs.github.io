@@ -1,6 +1,6 @@
 // =====================================================
-//  KA ESPORTS – API Data Loader (v19 — Professional hardened build)
-//  Requiere que config.js se cargue ANTES que este archivo:
+//  KA ESPORTS – API Data Loader (v20 — Hardened with security & accessibility)
+//  Requires config.js to load BEFORE this file:
 //    <script src="../js/config.js"></script>
 //    <script src="../js/api-loader.js"></script>
 // =====================================================
@@ -15,9 +15,6 @@ const HEADER_ROWS_TO_SKIP = {
   'LEADERBOARD_GLOBAL': 3,
   'PLAYERS': 1,
   'MATCHES': 2,
-  // PENALTIES has NO header row — raw data starts at row 1.
-  // Setting this to 0 tells loadTableFromSheet to treat row index -1
-  // (i.e. no header consumption) and use PENALTIES_FALLBACK_HEADERS below.
   'PENALTIES': 0,
   'ANTI_SMURF_LOG': 2,
   'AUDIT_LOG': 2,
@@ -29,8 +26,6 @@ const HEADER_ROWS_TO_SKIP = {
   '_H2H_DATA': 1
 };
 
-// Confirmed real column layout of PENALTIES (no header row in the sheet):
-// [Timestamp, PlayerID, PlayerName, Reason, Type, Points, Month, StartDate, EndDate, Status, (extra)]
 const PENALTIES_FALLBACK_HEADERS = [
   'Timestamp', 'PlayerID', 'PlayerName', 'Reason', 'Type', 'Points', 'Month', 'StartDate', 'EndDate', 'Status'
 ];
@@ -66,6 +61,11 @@ const FLAG_MAP = {
   'IT': '🇮🇹', 'PT': '🇵🇹', 'DE': '🇩🇪', 'EN': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'GB': '🇬🇧',
   'XX': '🏁'
 };
+
+// Pre-compile regex for performance (used frequently in large loops)
+const ZERO_WIDTH_CHARS_REGEX = /[\u200B-\u200D\uFEFF]/g;
+const EMOJI_REGEX = /[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}]+/gu;
+
 function getFlagEmoji(code) {
   return FLAG_MAP[code] || '🏁';
 }
@@ -91,8 +91,7 @@ function getRankColorHex(rank) {
   return map[rank] || '#fff';
 }
 
-// Escapa HTML para evitar que datos con < > & rompan el layout o
-// permitan inyección si algún día una celda del Sheet contiene HTML.
+// Escapes HTML to prevent layout breakage or injection from sheet data
 function escapeHtml(value) {
   const str = String(value ?? '');
   return str
@@ -101,9 +100,13 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;');
 }
 
-// ----- UI de estado consistente (loading / error / empty) -----
-// Reemplaza los innerHTML ad-hoc de "Loading…" / "Error: ..." por
-// una única función reusada en todas las páginas.
+// Safely convert any cell value to escaped string
+function cellToString(cell) {
+  if (cell === null || cell === undefined) return '';
+  return escapeHtml(String(cell).trim());
+}
+
+// ===== Consistent UI state rendering (loading / error / empty) =====
 function renderState(container, type, opts = {}) {
   if (!container) return;
   const { title, detail, onRetry } = opts;
@@ -125,18 +128,17 @@ function renderState(container, type, opts = {}) {
   }
   if (type === 'error' && typeof onRetry === 'function') {
     const retryId = 'retry-' + Math.random().toString(36).slice(2, 9);
-    inner += `<button class="retry-btn" id="${retryId}">Reintentar</button>`;
-    container.innerHTML = `<div class="state-box state-${type}" role="${type === 'error' ? 'alert' : 'status'}">${inner}</div>`;
+    inner += `<button class="retry-btn" id="${retryId}" aria-label="Retry loading data">Retry</button>`;
+    container.innerHTML = `<div class="state-box state-${type}" role="alert" aria-live="polite">${inner}</div>`;
     const btn = document.getElementById(retryId);
     if (btn) btn.addEventListener('click', onRetry);
     return;
   }
 
-  container.innerHTML = `<div class="state-box state-${type}" role="${type === 'error' ? 'alert' : 'status'}">${inner}</div>`;
+  container.innerHTML = `<div class="state-box state-${type}" role="status" aria-live="polite">${inner}</div>`;
 }
 
-// Igual que renderState pero para usar dentro de <tbody> de una tabla
-// (una sola <tr><td colspan></td></tr> con el mismo look).
+// Same as renderState but for table <tbody> (single <tr><td colspan></td></tr>)
 function renderTableState(tbody, colspan, type, opts = {}) {
   if (!tbody) return;
   const { title, detail } = opts;
@@ -147,10 +149,10 @@ function renderTableState(tbody, colspan, type, opts = {}) {
   };
   const text = escapeHtml(title || defaultTitles[type] || '');
   const detailHtml = detail ? `<br><small>${escapeHtml(detail)}</small>` : '';
-  tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; padding:24px; color:var(--text-muted);">${text}${detailHtml}</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; padding:24px; color:var(--text-muted);" role="status">${text}${detailHtml}</td></tr>`;
 }
 
-// ----- fetch con timeout real (evita spinners infinitos) -----
+// ===== Fetch with real timeout (prevents infinite spinners) =====
 async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -159,17 +161,17 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS)
     return response;
   } catch (err) {
     if (err.name === 'AbortError') {
-      throw new Error('The server took too long to respond. Please try again.');
+      throw new Error('Request timed out. The server is not responding. Please try again in a moment.');
     }
-    throw new Error('Network error: could not reach the data server. Check your connection.');
+    throw new Error('Network error: could not reach the data server. Check your connection and try again.');
   } finally {
     clearTimeout(timer);
   }
 }
 
-// ----- Cache en memoria por sesión (evita refetch redundante) -----
+// ===== Session memory cache (prevents redundant refetches) =====
 const _sheetCache = new Map();
-const SHEET_CACHE_TTL_MS = 60 * 1000; // 60s
+const SHEET_CACHE_TTL_MS = 60 * 1000; // 60 seconds
 
 async function fetchSheetData(sheetName, opts = {}) {
   const bypassCache = opts.bypassCache === true;
@@ -180,8 +182,15 @@ async function fetchSheetData(sheetName, opts = {}) {
 
   const url = `${API_BASE}?sheet=${encodeURIComponent(sheetName)}`;
   const response = await fetchWithTimeout(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status} while loading "${sheetName}"`);
-  const json = await response.json();
+  if (!response.ok) throw new Error(`HTTP ${response.status} while loading "${sheetName}". Try refreshing the page.`);
+  
+  let json;
+  try {
+    json = await response.json();
+  } catch (e) {
+    throw new Error(`Invalid server response while loading "${sheetName}". Please try again.`);
+  }
+  
   if (json.error) throw new Error(json.error);
   const data = json.data || [];
   _sheetCache.set(sheetName, { data, time: Date.now() });
@@ -193,49 +202,61 @@ function invalidateSheetCache(sheetName) {
   else _sheetCache.clear();
 }
 
-// ----- Cache for inactive player names -----
+// ===== Cache for inactive player names (with expiration) =====
 let inactiveNamesPromise = null;
+let inactiveNamesCacheTime = null;
+const INACTIVE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 function getInactivePlayerNames() {
-  if (!inactiveNamesPromise) {
-    inactiveNamesPromise = (async () => {
-      try {
-        const players = await fetchSheetData('PLAYERS');
-        if (players.length < 2) return new Set();
-        const header = players[0].map(h => (h || '').toString().trim());
-        const nameIdx = header.indexOf('Name');
-        const activeIdx = header.indexOf('Active');
-        if (nameIdx === -1 || activeIdx === -1) return new Set();
-        const inactiveNames = new Set();
-        for (let i = 1; i < players.length; i++) {
-          const row = players[i];
-          const status = (row[activeIdx] || '').toString().trim().toUpperCase();
-          if (status === 'INACTIVE') {
-            const name = (row[nameIdx] || '').toString().trim();
-            if (name) inactiveNames.add(name);
-          }
-        }
-        return inactiveNames;
-      } catch (e) {
-        console.error('Error fetching inactive players:', e);
-        return new Set();
-      }
-    })();
+  const now = Date.now();
+  if (inactiveNamesPromise && inactiveNamesCacheTime && (now - inactiveNamesCacheTime) < INACTIVE_CACHE_TTL_MS) {
+    return inactiveNamesPromise;
   }
+
+  inactiveNamesPromise = (async () => {
+    try {
+      const players = await fetchSheetData('PLAYERS');
+      if (players.length < 2) return new Set();
+      const header = players[0].map(h => (h || '').toString().trim());
+      const nameIdx = header.indexOf('Name');
+      const activeIdx = header.indexOf('Active');
+      if (nameIdx === -1 || activeIdx === -1) return new Set();
+      const inactiveNames = new Set();
+      for (let i = 1; i < players.length; i++) {
+        const row = players[i];
+        const status = (row[activeIdx] || '').toString().trim().toUpperCase();
+        if (status === 'INACTIVE') {
+          const name = (row[nameIdx] || '').toString().trim();
+          if (name) inactiveNames.add(name);
+        }
+      }
+      return inactiveNames;
+    } catch (e) {
+      console.error('Error fetching inactive players:', e);
+      return new Set();
+    }
+  })();
+  
+  inactiveNamesCacheTime = now;
   return inactiveNamesPromise;
 }
 
 function resetInactivePlayerCache() {
   inactiveNamesPromise = null;
+  inactiveNamesCacheTime = null;
 }
 
 function extractPlayerName(cell) {
   if (!cell) return '';
-  return cell.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F3F4}\u{1F3C1}\u{1F6A9}\u{1F3F3}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}\u{1F3F4}]+/gu, '').trim();
+  return cell.replace(EMOJI_REGEX, '').trim();
 }
 
-// ----- Robust header index lookup: exact match, then case-insensitive,
-// then "starts with" — helps survive minor renames in the Sheet without
-// silently breaking (e.g. "Player" vs "player" vs "Player Name"). -----
+// ===== Shared column finding utility =====
+function findPlayerColumn(headerRow) {
+  return findColumnIndex(headerRow, ['Player', 'Name']);
+}
+
+// Robust header index lookup: exact match → case-insensitive → starts with
 function findColumnIndex(header, candidates) {
   const list = Array.isArray(candidates) ? candidates : [candidates];
   for (const name of list) {
@@ -250,7 +271,7 @@ function findColumnIndex(header, candidates) {
   return -1;
 }
 
-// ----- TABLE RENDERER -----
+// ===== TABLE RENDERER =====
 function detectHeaderRow(allRows, isMatchReport = false) {
   for (let i = 0; i < Math.min(allRows.length, 10); i++) {
     const row = allRows[i].map(cell => (cell || '').toString().trim());
@@ -287,16 +308,13 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     let dataStartIndex = 0;
 
     if (hasNoHeaderRow) {
-      // PENALTIES: no header row in the sheet at all — synthesize one
-      // from the confirmed column layout so the table still renders
-      // with readable column names instead of "undefined".
       headerRow = PENALTIES_FALLBACK_HEADERS.slice();
       dataStartIndex = 0;
     } else {
       const detectedIndex = detectHeaderRow(allRows, isMatchReport);
       const headerRowIndex = detectedIndex >= 0 ? detectedIndex : (HEADER_ROWS_TO_SKIP[sheetName] || (isMatchReport ? 3 : DEFAULT_SKIP)) - 1;
       if (headerRowIndex >= 0 && allRows.length > headerRowIndex) {
-        headerRow = allRows[headerRowIndex].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
+        headerRow = allRows[headerRowIndex].map(h => (h || '').toString().replace(ZERO_WIDTH_CHARS_REGEX, '').trim());
       }
       dataStartIndex = headerRowIndex + 1;
     }
@@ -308,7 +326,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       return firstCell !== '---' && firstCell !== '' && firstCell !== 'undefined';
     });
 
-    const playerColIndex = findColumnIndex(headerRow, ['Player', 'Name']);
+    const playerColIndex = findPlayerColumn(headerRow);
     if (playerColIndex !== -1) {
       const inactiveNames = await getInactivePlayerNames();
       if (inactiveNames.size > 0) {
@@ -336,22 +354,16 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
       deltaColIndex = headerRow.findIndex(h => h.includes('Δ') || h.includes('Rating Change') || h === 'Δ Rating');
     }
 
-    // Leaderboards (non-match-report tables): rank color is applied ONLY
-    // to the "Player" and "Rank" cells — never to the whole row.
-    // rankColumnIndex (passed in by the caller) points at the column that
-    // actually holds the rank string (e.g. "Grand Master"); we look up
-    // "Player"/"Name" separately so both cells can be tinted.
     let leaderboardPlayerColIdx = -1, leaderboardRankColIdx = -1;
     if (!isMatchReport) {
-      leaderboardPlayerColIdx = findColumnIndex(headerRow, ['Player', 'Name']);
+      leaderboardPlayerColIdx = findPlayerColumn(headerRow);
       leaderboardRankColIdx = rankColumnIndex >= 0 ? rankColumnIndex : findColumnIndex(headerRow, ['Rank']);
     }
 
     tbody.innerHTML = dataRows.map(row => {
-      // No more row-level class — coloring is now strictly per-cell.
       let rowHTML = `<tr>`;
       row.forEach((cell, colIdx) => {
-        let display = cell ?? '';
+        let display = cellToString(cell);
         if (percentColumns.has(colIdx) && typeof cell === 'number') {
           display = (cell * 100).toFixed(1) + '%';
         } else if (typeof cell === 'number' && !Number.isInteger(cell)) {
@@ -361,7 +373,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
         let cellStyle = '';
 
         if (isMatchReport) {
-          // Match reports: color only the Player cell, based on Rating Before Match.
           if (colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
             const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
             if (!isNaN(ratingBefore)) {
@@ -375,7 +386,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
             else if (cell < 0) cellStyle = ' class="delta-negative"';
           }
         } else {
-          // Leaderboards: color only the Player cell and the Rank cell.
           if (colIdx === leaderboardPlayerColIdx || colIdx === leaderboardRankColIdx) {
             const rankValue = leaderboardRankColIdx >= 0 ? String(row[leaderboardRankColIdx] || '').trim() : '';
             const cssClass = RANK_CLASS_MAP[rankValue] || '';
@@ -383,7 +393,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
           }
         }
 
-        rowHTML += `<td${cellStyle}>${escapeHtml(display)}</td>`;
+        rowHTML += `<td${cellStyle}>${display}</td>`;
       });
       rowHTML += '</tr>';
       return rowHTML;
@@ -407,7 +417,7 @@ async function renderMatchReports(sheetName, containerId) {
       return;
     }
 
-    const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
+    const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(ZERO_WIDTH_CHARS_REGEX, '').trim()));
     const inactiveNames = await getInactivePlayerNames();
 
     const matchStartIndices = [];
@@ -429,14 +439,14 @@ async function renderMatchReports(sheetName, containerId) {
       const block = cleanRows.slice(start, end);
 
       const matchIdRow = block[0];
-      const matchId = matchIdRow[0].replace('## Match ID:', '').trim();
+      const matchId = escapeHtml(matchIdRow[0].replace('## Match ID:', '').trim());
       const dateQualityRow = block[1] ? block[1][0] : '';
       let date = '', quality = '';
       if (dateQualityRow) {
         const dateMatch = dateQualityRow.match(/\*\*Date:\*\*\s*(.*?)\s*\|/);
         const qualityMatch = dateQualityRow.match(/\*\*Quality:\*\*\s*(.*)/);
-        if (dateMatch) date = dateMatch[1].trim();
-        if (qualityMatch) quality = qualityMatch[1].trim();
+        if (dateMatch) date = escapeHtml(dateMatch[1].trim());
+        if (qualityMatch) quality = escapeHtml(qualityMatch[1].trim());
       }
 
       let headerRow = null;
@@ -458,7 +468,7 @@ async function renderMatchReports(sheetName, containerId) {
         dataRows.push(row);
       }
 
-      const playerColIndex = headerRow.findIndex(h => h === 'Player');
+      const playerColIndex = findPlayerColumn(headerRow);
       if (playerColIndex !== -1 && inactiveNames.size > 0) {
         const hasInactive = dataRows.some(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
@@ -466,9 +476,7 @@ async function renderMatchReports(sheetName, containerId) {
           return inactiveNames.has(cleanName);
         });
         if (hasInactive) continue;
-      }
 
-      if (playerColIndex !== -1 && inactiveNames.size > 0) {
         dataRows = dataRows.filter(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
           const cleanName = extractPlayerName(rawName);
@@ -480,7 +488,6 @@ async function renderMatchReports(sheetName, containerId) {
 
       const ratingBeforeColIndex = headerRow.findIndex(h => h === 'Rating Before Match');
       const deltaColIndex = headerRow.findIndex(h => h === 'Δ Rating');
-      const ratingBeforeIdx = ratingBeforeColIndex >= 0 ? ratingBeforeColIndex : headerRow.findIndex(h => h === 'Rating Before Matcl');
 
       const colClasses = {
         'Player': 'col-player',
@@ -494,8 +501,8 @@ async function renderMatchReports(sheetName, containerId) {
       };
 
       html += '<div style="margin-bottom:30px;">';
-      html += `<h3 style="margin:0 0 5px;">Match ID: ${escapeHtml(matchId)}</h3>`;
-      html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${escapeHtml(date)} | <strong>Quality:</strong> ${escapeHtml(quality)}</p>`;
+      html += `<h3 style="margin:0 0 5px;">Match ID: ${matchId}</h3>`;
+      html += `<p style="margin:0 0 10px; color:var(--text-muted);"><strong>Date:</strong> ${date} | <strong>Quality:</strong> ${quality}</p>`;
       html += '<div class="table-responsive"><table class="data-table match-report-table"><thead><tr>';
       headerRow.forEach(h => {
         const colClass = colClasses[h] || '';
@@ -508,7 +515,7 @@ async function renderMatchReports(sheetName, containerId) {
         row.forEach((cell, colIdx) => {
           const headerName = headerRow[colIdx] || '';
           const colClass = colClasses[headerName] || '';
-          let display = cell;
+          let display = cellToString(cell);
           let cellStyle = '';
 
           const numVal = parseFloat(cell);
@@ -518,19 +525,19 @@ async function renderMatchReports(sheetName, containerId) {
             display = numVal.toFixed(2);
             if (numVal > 0) cellStyle += ' delta-positive';
             else if (numVal < 0) cellStyle += ' delta-negative';
-          } else if (isNumber && !Number.isInteger(numVal) && colIdx !== ratingBeforeIdx) {
+          } else if (isNumber && !Number.isInteger(numVal) && colIdx !== ratingBeforeColIndex) {
             display = numVal.toFixed(2);
           }
 
-          if (colIdx === playerColIndex && ratingBeforeIdx >= 0) {
-            const ratingBefore = parseFloat(row[ratingBeforeIdx]);
+          if (colIdx === playerColIndex && ratingBeforeColIndex >= 0) {
+            const ratingBefore = parseFloat(row[ratingBeforeColIndex]);
             if (!isNaN(ratingBefore)) {
               const rank = getRankFromRating(ratingBefore);
               cellStyle += ` ${RANK_CLASS_MAP[rank] || ''}`;
             }
           }
 
-          html += `<td class="${colClass}${cellStyle}">${escapeHtml(display)}</td>`;
+          html += `<td class="${colClass}${cellStyle}">${display}</td>`;
         });
         html += '</tr>';
       });
@@ -545,12 +552,19 @@ async function renderMatchReports(sheetName, containerId) {
   }
 }
 
-// ----- HELPERS -----
+// ===== HELPERS =====
 async function fetchSheetList() {
   const url = `${API_BASE}?list=1`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) throw new Error(`HTTP ${response.status} while listing sheets`);
-  const json = await response.json();
+  
+  let json;
+  try {
+    json = await response.json();
+  } catch (e) {
+    throw new Error('Invalid server response while listing sheets.');
+  }
+  
   return json.sheets || [];
 }
 
@@ -593,7 +607,7 @@ async function fetchPlayerNames() {
   try {
     const playersSheet = await fetchSheetData('PLAYERS');
     if (playersSheet.length < 2) return [];
-    const header = playersSheet[0].map(h => (h || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim());
+    const header = playersSheet[0].map(h => (h || '').toString().replace(ZERO_WIDTH_CHARS_REGEX, '').trim());
     const nameCol = header.indexOf('Name');
     const activeCol = header.indexOf('Active');
     if (nameCol === -1) return [];
@@ -630,18 +644,23 @@ async function loadPlainText(sheetName, containerId) {
   }
 }
 
-// ----- Sidebar loader + active-link highlighting (shared by every page) -----
+// ===== Sidebar loader + active-link highlighting (shared across all pages) =====
+let sidebarInitialized = false;
+
 function initSidebar() {
+  if (sidebarInitialized) return; // Prevent race conditions
+  sidebarInitialized = true;
+
   const target = document.getElementById('sidebar-container');
   if (!target) return;
+
   // sidebar.html always lives at the site root. Depth is computed from
   // the current URL path so this works correctly at any folder depth
   // (root, /ka-esports/, /ka-esports/admin/, etc.) without hardcoding "../".
   const segments = window.location.pathname.split('/').filter(Boolean);
-  // Last segment is the file itself (e.g. "penalty.html"), so depth is
-  // segments.length - 1 folders below root.
   const depth = Math.max(segments.length - 1, 0);
   const prefix = '../'.repeat(depth);
+  
   fetch(`${prefix}sidebar.html`)
     .then(r => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
