@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monthly Leaderboard – KA ESPORTS</title>
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -15,6 +17,9 @@
       <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
         <button id="screenshot-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Download high-res screenshot of table">
           <span>📸 Screenshot</span>
+        </button>
+        <button id="csv-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Download table as CSV">
+          <span>📥 CSV</span>
         </button>
         <button id="dark-toggle-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Toggle dark mode">
           <span id="dark-label">🌙 Dark mode</span>
@@ -43,6 +48,7 @@
   </div>
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
+  <script src="../js/toast.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     async function loadMonth(sheetName) {
@@ -136,11 +142,39 @@
           link.click();
         } catch (err) {
           console.error('Screenshot failed:', err);
-          alert('Failed to generate screenshot. See console for details.');
+          showToast('Failed to generate screenshot. See console for details.', 'error');
         } finally {
           btn.disabled = false;
           btn.innerHTML = '<span>📸 Screenshot</span>';
         }
+      });
+    })();
+
+    // CSV export functionality
+    (function () {
+      const btn = document.getElementById('csv-btn');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        const table = document.getElementById('data-table');
+        if (!table || !table.querySelector('thead th')) {
+          showToast('Table not loaded yet. Please select a month and wait for data to load.', 'error');
+          return;
+        }
+        const rows = table.querySelectorAll('tr');
+        const csv = Array.from(rows).map(row =>
+          Array.from(row.querySelectorAll('th,td')).map(cell =>
+            '"' + cell.textContent.replace(/"/g, '""') + '"'
+          ).join(',')
+        ).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const params = new URLSearchParams(window.location.search);
+        const monthParam = params.get('month') || 'current';
+        const dateStr = new Date().toISOString().split('T')[0];
+        link.download = `monthly-leaderboard-${monthParam}-${dateStr}.csv`;
+        link.click();
+        showToast('CSV downloaded successfully', 'success');
       });
     })();
   </script>

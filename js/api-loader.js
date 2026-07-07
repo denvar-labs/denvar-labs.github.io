@@ -393,7 +393,8 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
           }
         }
 
-        rowHTML += `<td${cellStyle}>${display}</td>`;
+        const label = headerRow[colIdx] ? ` data-label="${escapeHtml(headerRow[colIdx])}"` : '';
+        rowHTML += `<td${cellStyle}${label}>${display}</td>`;
       });
       rowHTML += '</tr>';
       return rowHTML;
@@ -537,7 +538,7 @@ async function renderMatchReports(sheetName, containerId) {
             }
           }
 
-          html += `<td class="${colClass}${cellStyle}">${display}</td>`;
+          html += `<td class="${colClass}${cellStyle}" data-label="${escapeHtml(headerName)}">${display}</td>`;
         });
         html += '</tr>';
       });
