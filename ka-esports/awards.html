@@ -172,16 +172,16 @@
           });
         }
 
-        const ironWall = players.reduce((a, b) => a.rd < b.rd ? a : b);
+        const ironWall = players.reduce((a, b) => (a.rd || 0) < (b.rd || 0) ? a : b);
 
         let html = '';
-        html += buildAwardCard('👑', 'MVP of the Month', mvp.name, `${mvp.rating.toFixed(2)} rating`);
-        html += buildAwardCard('🚀', 'Most Improved', mostImproved.name, `+${mostImproved.improvement.toFixed(2)} points`);
+        html += buildAwardCard('👑', 'MVP of the Month', mvp.name, `${(mvp.rating || 0).toFixed(2)} rating`);
+        html += buildAwardCard('🚀', 'Most Improved', mostImproved.name, `+${(mostImproved.improvement || 0).toFixed(2)} points`);
         if (risingStar) {
           const wr = risingStar.matches ? (risingStar.wins / risingStar.matches * 100).toFixed(0) : 0;
           html += buildAwardCard('🌟', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
         }
-        html += buildAwardCard('🛡️', 'Iron Wall', ironWall.name, `RD ${ironWall.rd.toFixed(0)}`);
+        html += buildAwardCard('🛡️', 'Iron Wall', ironWall.name, `RD ${(ironWall.rd || 0).toFixed(0)}`);
         cardsContainer.innerHTML = `<div class="awards-grid">${html}</div>`;
 
         const top5 = players.sort((a, b) => b.rating - a.rating).slice(0, 5);
@@ -190,7 +190,7 @@
           <tr>
             <td>${i + 1}</td>
             <td class="${RANK_CLASS_MAP[getRankFromRating(p.rating)] || ''}">${escapeHtml(p.name)}</td>
-            <td>${p.rating.toFixed(2)}</td>
+            <td>${(p.rating || 0).toFixed(2)}</td>
             <td>${p.wins}</td>
             <td>${p.matches}</td>
           </tr>
