@@ -389,6 +389,51 @@ td.delta-negative { background-color: #ffcdd2; }
   top: 0;
 }
 
+/* ===== Dark Mode ===== */
+body.dark {
+  --bg: #1a1d23;
+  --surface: #23272e;
+  --surface-alt: #1e2127;
+  --border: #3a3f4a;
+  --border-light: #2d3139;
+  --text: #e8eaed;
+  --text-muted: #9aa4b2;
+  --accent: #6ba3f8;
+  --accent-dark: #4a86e8;
+  --success-bg: #064e3b;
+  --danger-bg: #5f1a1a;
+  --warning-bg: #5f4a0a;
+  --rank-gm: #d4a017;
+  --rank-master: #e6a800;
+  --rank-pro: #5b9bd5;
+  --rank-expert: #d63434;
+  --rank-advanced: #e6d740;
+  --rank-amateur: #5fbf5f;
+  --rank-padawan: #9b9b9b;
+}
+
+body.dark .data-table th { background: var(--accent); }
+body.dark .data-table tbody tr:hover td:not([class*="rank-"]) { background: #2a3a5e; }
+body.dark .quick-links a { background: var(--surface-alt); }
+body.dark .quick-links a:hover { background: var(--accent); color: #fff; }
+body.dark .state-box.state-loading { background: var(--surface-alt); }
+body.dark .state-box.state-error { background: var(--danger-bg); border-color: #8a2a2a; color: #f8b4b4; }
+body.dark .state-box.state-empty { background: var(--surface-alt); }
+body.dark .retry-btn { background: var(--accent); }
+body.dark .retry-btn:hover { background: var(--accent-dark); }
+body.dark .skip-link { background: var(--accent); }
+body.dark .field-select { background: var(--surface); border-color: var(--border); color: var(--text); }
+body.dark .panel { background: var(--surface); border-color: var(--border); }
+body.dark .panel-heading { border-color: var(--border); }
+body.dark .hero { background: var(--accent); }
+body.dark .site-footer { border-color: var(--border); color: var(--text-muted); }
+body.dark .stat-card { background: var(--surface); border-color: var(--border); }
+body.dark .admin-box.panel { background: var(--surface); border-color: var(--border); }
+body.dark input, body.dark select, body.dark textarea { background: var(--surface); border-color: var(--border); color: var(--text); }
+body.dark .warning-banner { background: #5f4a0a; border-color: #ffc107; color: #fff3cd; }
+body.dark .confirm-box { background: #3a1a1a; border-color: #e53935; }
+body.dark .chart-container { background: var(--surface); }
+
 /* ===== Mobile ===== */
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; }
