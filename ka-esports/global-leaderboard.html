@@ -13,6 +13,9 @@
       <h1>Global Leaderboard</h1>
       <p>Overall ranking based on the Glicko-2 system.</p>
       <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <button id="screenshot-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Download high-res screenshot of table">
+          <span>📸 Screenshot</span>
+        </button>
         <button id="dark-toggle-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Toggle dark mode">
           <span id="dark-label">🌙 Dark mode</span>
         </button>
@@ -35,6 +38,7 @@
   </div>
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => loadTableFromSheet('LEADERBOARD_GLOBAL', 'data-table'));
     (function () {
@@ -50,6 +54,52 @@
         const isDark = document.body.classList.contains('dark');
         applyDark(!isDark);
         localStorage.setItem('ka_dark_mode', !isDark);
+      });
+    })();
+
+    // Screenshot functionality
+    (function () {
+      const btn = document.getElementById('screenshot-btn');
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        const table = document.getElementById('data-table');
+        if (!table || !table.querySelector('thead th')) {
+          alert('Table not loaded yet. Please wait for data to load.');
+          return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Generating...</span>';
+        try {
+          const wrapper = document.querySelector('.table-responsive');
+          const originalOverflow = wrapper ? wrapper.style.overflow : '';
+          if (wrapper) wrapper.style.overflow = 'visible';
+          const originalScrollX = window.scrollX;
+          const originalScrollY = window.scrollY;
+          window.scrollTo(0, 0);
+          const canvas = await html2canvas(table, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+            backgroundColor: getComputedStyle(document.body).backgroundColor,
+            width: table.scrollWidth,
+            height: table.scrollHeight,
+            windowWidth: table.scrollWidth,
+            windowHeight: table.scrollHeight
+          });
+          if (wrapper) wrapper.style.overflow = originalOverflow;
+          window.scrollTo(originalScrollX, originalScrollY);
+          const dateStr = new Date().toISOString().split('T')[0];
+          const link = document.createElement('a');
+          link.download = `global-leaderboard-${dateStr}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        } catch (err) {
+          console.error('Screenshot failed:', err);
+          alert('Failed to generate screenshot. See console for details.');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<span>📸 Screenshot</span>';
+        }
       });
     })();
   </script>
