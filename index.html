@@ -6,86 +6,111 @@
   <title>Denvar Labs – Gaming Projects</title>
   <meta name="description" content="Home of KA ESPORTS and other gaming projects by Denvar.">
   <link rel="canonical" href="https://denvar-labs.github.io/">
-  <meta property="og:title" content="Denvar Labs">
-  <meta property="og:description" content="Competitive gaming projects, rankings, and community tools.">
-  <meta property="og:url" content="https://denvar-labs.github.io/">
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .hero-root {
+      background: linear-gradient(135deg, #6366f1 0%, #4a86e8 100%);
+      color: #fff;
+      padding: 4rem 1.5rem;
+      text-align: center;
+    }
+    body.dark .hero-root { background: linear-gradient(135deg, #3730a3 0%, #2a3a5c 100%); }
+    .hero-root h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .hero-root p { font-size: 1.1rem; opacity: 0.9; max-width: 500px; margin: 0 auto; }
+    .root-content { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+    .project-card {
+      display: block;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .project-card:hover { border-color: var(--accent); box-shadow: 0 8px 24px rgba(74,134,232,0.15); transform: translateY(-2px); }
+    .project-card-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .project-card h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .project-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin: 0; }
+    .project-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .badge-live { background: var(--success-bg); color: var(--success); }
+    .badge-soon { background: var(--warning-bg); color: var(--warning); }
+    .links-row {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    .link-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .link-pill:hover { background: var(--accent-light); border-color: var(--accent); }
+    .root-footer { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <header class="hero">
-      <div class="eyebrow">DENVAR LABS</div>
-      <h1>Denvar Labs</h1>
-      <p>Competitive gaming projects, rankings, tools, and community.</p>
-      <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <button id="dark-toggle-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Toggle dark mode">
-          <span id="dark-label">🌙 Dark mode</span>
-        </button>
-      </div>
-    </header>
+  <div id="navbar-container"></div>
 
-    <div class="grid">
-      <div id="sidebar-container"></div>
+  <div class="hero-root">
+    <h1>Denvar Labs</h1>
+    <p>Competitive gaming projects, rankings, tools, and community.</p>
+  </div>
 
-      <main class="content">
-        <section class="panel">
-          <div class="section-heading">🚀 Active Projects</div>
-          <div class="quick-links">
-            <a href="ka-esports/index.html">
-              <strong>🏆 KA ESPORTS</strong><br>
-              <small>Mario Kart 64 competitive rankings powered by Glicko‑2. Leaderboards, match reports, H2H stats, and more.</small>
-            </a>
-          </div>
-        </section>
+  <div class="root-content">
+    <a href="ka-esports/index.html" class="project-card">
+      <div class="project-card-icon">🏆</div>
+      <h2>KA ESPORTS <span class="project-badge badge-live">Live</span></h2>
+      <p>Mario Kart 64 competitive rankings powered by Glicko-2. Leaderboards, match reports, player profiles, H2H stats, and more.</p>
+    </a>
 
-        <section class="panel">
-          <div class="section-heading">🛠️ Coming Soon</div>
-          <div class="quick-links">
-            <a href="#">
-              <strong>🕹️ Modified ROM Project</strong><br>
-              <small>A custom Mario Kart 64 experience. Stay tuned.</small>
-            </a>
-          </div>
-        </section>
+    <a href="#" class="project-card" style="opacity:0.6; pointer-events:none;">
+      <div class="project-card-icon">🕹️</div>
+      <h2>Modified ROM Project <span class="project-badge badge-soon">Coming Soon</span></h2>
+      <p>A custom Mario Kart 64 experience. Stay tuned.</p>
+    </a>
 
-        <section class="panel">
-          <div class="section-heading">🔗 Community & Links</div>
-          <div class="quick-links">
-            <a href="https://discord.gg/4QpvzysKv" target="_blank" rel="noopener">
-              <strong>💬 Discord</strong><br>
-              <small>Join the KA ESPORTS community on Discord.</small>
-            </a>
-            <a href="https://www.twitch.tv/denvarsc" target="_blank" rel="noopener">
-              <strong>📺 Twitch – devarsc</strong><br>
-              <small>Watch live streams and tournaments.</small>
-            </a>
-          </div>
-        </section>
-      </main>
+    <div class="links-row">
+      <a href="https://discord.gg/4QpvzysKv" target="_blank" rel="noopener" class="link-pill">💬 Discord</a>
+      <a href="https://www.twitch.tv/denvarsc" target="_blank" rel="noopener" class="link-pill">📺 Twitch</a>
+      <a href="https://github.com/denvar-labs" target="_blank" rel="noopener" class="link-pill">💻 GitHub</a>
     </div>
-    <footer class="site-footer">© 2026 Denvar Labs</footer>
+  </div>
+
+  <div class="root-footer">
+    © 2026 Denvar Labs — Gaming projects and community tools.
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/api-loader.js"></script>
+  <script src="js/ui/darkmode.js"></script>
+  <script src="js/ui/i18n.js"></script>
+  <script src="js/ui/navbar.js"></script>
   <script>
-    (function () {
-      function applyDark(on) {
-        document.body.classList.toggle('dark', on);
-        const label = document.getElementById('dark-label');
-        if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
-      }
-      const saved = localStorage.getItem('ka_dark_mode');
-      if (saved === 'true') applyDark(true);
-      const btn = document.getElementById('dark-toggle-btn');
-      if (btn) btn.addEventListener('click', () => {
-        const isDark = document.body.classList.contains('dark');
-        applyDark(!isDark);
-        localStorage.setItem('ka_dark_mode', !isDark);
-      });
-    })();
+    Navbar.inject('navbar-container');
   </script>
 </body>
 </html>

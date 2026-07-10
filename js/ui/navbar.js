@@ -10,7 +10,7 @@ const Navbar = (() => {
     { href: '/ka-esports/global-leaderboard.html', labelKey: 'nav_global_leaderboard', icon: '🌍' },
     { href: '/ka-esports/monthly-leaderboard.html', labelKey: 'nav_monthly_leaderboard', icon: '📆' },
     { href: '/ka-esports/match-reports.html', labelKey: 'nav_match_reports', icon: '📋' },
-    { href: '/ka-esports/simulator.html', labelKey: 'nav_simulator', icon: '🧮' },
+    { href: '/ka-esports/player-profile.html', labelKey: 'nav_player_profile', icon: '👤' },
     { href: '/ka-esports/hall-of-fame.html', labelKey: 'nav_hall_of_fame', icon: '🏆' },
     { href: '/ka-esports/streams.html', labelKey: 'nav_streams', icon: '🔴' },
     { href: '/ka-esports/faq.html', labelKey: 'nav_faq', icon: '📘' },
