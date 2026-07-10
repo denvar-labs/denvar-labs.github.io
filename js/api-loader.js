@@ -673,10 +673,7 @@ function initSidebar() {
     .then(html => {
       target.innerHTML = html;
       highlightActiveSidebarLink();
-      // Init language switcher after sidebar loads
-      if (typeof LangSwitcher !== 'undefined') {
-        LangSwitcher.create('lang-switcher-container');
-      }
+      // Translate sidebar links
       if (typeof I18n !== 'undefined') {
         I18n.translatePage();
       }

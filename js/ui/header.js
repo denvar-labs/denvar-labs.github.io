@@ -13,7 +13,7 @@ const PageHeader = (() => {
       description = '',
       descKey = '',
       actions = [],
-      showDarkToggle = true
+      showDarkToggle = false
     } = config;
 
     const resolvedTitle = titleKey && typeof I18n !== 'undefined' ? I18n.t(titleKey) : title;

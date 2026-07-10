@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
+  <div id="navbar-container"></div>
   <div class="wrap">
     <div id="page-header"></div>
     <div class="grid">
@@ -39,9 +40,12 @@
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/i18n.js"></script>
+  <script src="../js/ui/navbar.js"></script>
   <script src="../js/ui/header.js"></script>
-  <script src="../js/ui/lang-switcher.js"></script>
+
   <script>
+    Navbar.inject('navbar-container');
+
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {
         titleKey: 'title_rage_quit_stats',

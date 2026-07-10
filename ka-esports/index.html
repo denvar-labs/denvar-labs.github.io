@@ -3,76 +3,276 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KA ESPORTS – Mario Kart 64 Hub</title>
+  <title>KA ESPORTS – Mario Kart 64 Competitive Hub</title>
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .hero-landing {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      color: #fff;
+      padding: var(--space-16) var(--space-6);
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+    .hero-landing h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: var(--space-3); letter-spacing: -0.02em; }
+    .hero-landing p { font-size: 1.15rem; opacity: 0.9; max-width: 600px; margin: 0 auto var(--space-6); }
+    .hero-actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
+    .hero-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-6);
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .hero-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .hero-btn-primary { background: #fff; color: var(--accent-dark); }
+    .hero-btn-secondary { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+
+    .landing-content { max-width: 1100px; margin: 0 auto; padding: 0 var(--space-4); }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--space-5);
+      margin-bottom: var(--space-8);
+    }
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      text-decoration: none;
+      color: var(--text);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+    }
+    .section-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--accent);
+    }
+    .section-card-icon { font-size: 2rem; margin-bottom: var(--space-3); }
+    .section-card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: var(--space-2); }
+    .section-card-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-8);
+      padding: var(--space-6);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: var(--space-1); }
+
+    .community-bar {
+      display: flex;
+      gap: var(--space-4);
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: var(--space-6);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-8);
+    }
+    .community-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-5);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+    .community-link:hover { background: var(--accent-light); border-color: var(--accent); }
+
+    .landing-footer {
+      text-align: center;
+      padding: var(--space-8) var(--space-4);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: var(--space-8);
+    }
+
+    body:not(.dark) .hero-landing { box-shadow: 0 4px 20px rgba(74,134,232,0.3); }
+    body.dark .hero-landing { background: linear-gradient(135deg, #2a3a5c 0%, #1a2540 100%); }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <div id="page-header"></div>
+  <div id="navbar-container"></div>
 
-    <div class="grid">
-      <div id="sidebar-container"></div>
-
-      <main class="content">
-        <section class="panel">
-          <div class="section-heading">📊 Data Views</div>
-          <div class="quick-links">
-            <a href="global-leaderboard.html">🌍 Global Leaderboard</a>
-            <a href="monthly-leaderboard.html">📆 Monthly Leaderboard</a>
-            <a href="match-reports.html">📋 Match Reports</a>
-            <a href="seasons-report.html">📊 Seasons Report</a>
-            <a href="h2h-details.html">🤼 Player H2H Details</a>
-            <a href="faq.html">📘 FAQ</a>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-heading">🧠 Tools & Analytics</div>
-          <div class="quick-links">
-            <a href="player-profile.html">👤 Player Profile</a>
-            <a href="player-comparison.html">⚔️ Player Comparison</a>
-            <a href="simulator.html">🧮 Rating Simulator</a>
-            <a href="awards.html">🏅 Monthly Awards</a>
-            <a href="hall-of-fame.html">🏆 Hall of Fame</a>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-heading">📜 Discipline & Rules</div>
-          <div class="quick-links">
-            <a href="rage-quit-rules.html">📜 Rage Quit Rule</a>
-            <a href="rage-quit-stats.html">📊 Rage Quit Stats</a>
-            <a href="suspension-list.html">🚫 Suspension List</a>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-heading">📺 Live & Community</div>
-          <div class="quick-links">
-            <a href="streams.html">🔴 Live Streams</a>
-            <a href="https://discord.gg/4QpvzysKv" target="_blank" rel="noopener">💬 Discord</a>
-            <a href="https://www.twitch.tv/devarsc" target="_blank" rel="noopener">📺 Twitch – devarsc</a>
-          </div>
-        </section>
-      </main>
+  <div class="hero-landing">
+    <h1>🏆 KA ESPORTS</h1>
+    <p data-i18n="desc_home">Tu acceso central a todos los datos competitivos de Mario Kart 64.</p>
+    <div class="hero-actions">
+      <a href="global-leaderboard.html" class="hero-btn hero-btn-primary">
+        <span>🌍</span>
+        <span data-i18n="nav_global_leaderboard">Leaderboard Global</span>
+      </a>
+      <a href="simulator.html" class="hero-btn hero-btn-secondary">
+        <span>🧮</span>
+        <span data-i18n="nav_simulator">Simulador de Rating</span>
+      </a>
+      <a href="streams.html" class="hero-btn hero-btn-secondary">
+        <span>🔴</span>
+        <span data-i18n="nav_streams">Transmisiones en Vivo</span>
+      </a>
     </div>
   </div>
+
+  <div class="landing-content">
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value" id="stat-players">—</div>
+        <div class="stat-label" data-i18n="home_active_players">Jugadores Activos</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-matches">—</div>
+        <div class="stat-label" data-i18n="home_matches_this_month">Partidas este Mes</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-seasons">—</div>
+        <div class="stat-label" data-i18n="home_seasons">Temporadas</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-top-rating">—</div>
+        <div class="stat-label" data-i18n="home_highest_rating">Rating Más Alto</div>
+      </div>
+    </div>
+
+    <div class="section-grid">
+      <a href="global-leaderboard.html" class="section-card">
+        <div class="section-card-icon">🌍</div>
+        <div class="section-card-title" data-i18n="nav_global_leaderboard">Leaderboard Global</div>
+        <div class="section-card-desc" data-i18n="home_card_leaderboard">Ranking general basado en el sistema Glicko-2. Compite por la cima.</div>
+      </a>
+      <a href="player-profile.html" class="section-card">
+        <div class="section-card-icon">👤</div>
+        <div class="section-card-title" data-i18n="nav_player_profile">Perfil de Jugador</div>
+        <div class="section-card-desc" data-i18n="home_card_profile">Estadísticas detalladas, evolución de rating y gráficas de rendimiento.</div>
+      </a>
+      <a href="simulator.html" class="section-card">
+        <div class="section-card-icon">🧮</div>
+        <div class="section-card-title" data-i18n="nav_simulator">Simulador de Rating</div>
+        <div class="section-card-desc" data-i18n="home_card_simulator">Predice cómo cambia tu rating antes de jugar una partida.</div>
+      </a>
+      <a href="awards.html" class="section-card">
+        <div class="section-card-icon">🏅</div>
+        <div class="section-card-title" data-i18n="nav_awards">Premios Mensuales</div>
+        <div class="section-card-desc" data-i18n="home_card_awards">Reconociendo las mejores actuaciones de cada temporada.</div>
+      </a>
+      <a href="hall-of-fame.html" class="section-card">
+        <div class="section-card-icon">🏆</div>
+        <div class="section-card-title" data-i18n="nav_hall_of_fame">Salón de la Fama</div>
+        <div class="section-card-desc" data-i18n="home_card_hall">Los más grandes de todos los tiempos y récords históricos.</div>
+      </a>
+      <a href="streams.html" class="section-card">
+        <div class="section-card-icon">🔴</div>
+        <div class="section-card-title" data-i18n="nav_streams">Transmisiones en Vivo</div>
+        <div class="section-card-desc" data-i18n="home_card_streams">Sigue las partidas en vivo con los streamers de la comunidad.</div>
+      </a>
+      <a href="match-reports.html" class="section-card">
+        <div class="section-card-icon">📋</div>
+        <div class="section-card-title" data-i18n="nav_match_reports">Reportes de Partidas</div>
+        <div class="section-card-desc" data-i18n="home_card_reports">Detalles de cada partida: puntos, posiciones y cambios de rating.</div>
+      </a>
+      <a href="faq.html" class="section-card">
+        <div class="section-card-icon">📘</div>
+        <div class="section-card-title" data-i18n="nav_faq">Preguntas Frecuentes</div>
+        <div class="section-card-desc" data-i18n="home_card_faq">Todo lo que necesitas saber sobre el sistema de ranking.</div>
+      </a>
+    </div>
+
+    <div class="community-bar">
+      <a href="https://discord.gg/4QpvzysKv" target="_blank" rel="noopener" class="community-link">
+        💬 <span data-i18n="home_join_discord">Únete a Discord</span>
+      </a>
+      <a href="https://www.twitch.tv/devarsc" target="_blank" rel="noopener" class="community-link">
+        📺 <span data-i18n="home_watch_twitch">Mira en Twitch</span>
+      </a>
+      <a href="tournaments.html" class="community-link">
+        🏁 <span data-i18n="home_tournaments">Próximos Torneos</span>
+      </a>
+    </div>
+
+    <div class="landing-footer">
+      <p data-i18n="fair_play">La competencia justa, el respeto y el deportivismo son pilares fundamentales de nuestra comunidad.</p>
+      <p style="margin-top:var(--space-2);">KA ESPORTS &copy; 2026 — Mario Kart 64 Competitive Platform</p>
+    </div>
+  </div>
+
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/i18n.js"></script>
-  <script src="../js/ui/header.js"></script>
-  <script src="../js/ui/lang-switcher.js"></script>
+  <script src="../js/ui/navbar.js"></script>
+
   <script>
-    if (typeof PageHeader !== 'undefined') {
-      PageHeader.inject('page-header', {
-        titleKey: 'title_home',
-        descKey: 'desc_home'
-      });
+    Navbar.inject('navbar-container');
+
+    async function loadHomeStats() {
+      try {
+        const [playersData, seasonsData] = await Promise.all([
+          fetchSheetData('PLAYERS'),
+          fetchSheetList()
+        ]);
+
+        if (playersData && playersData.length > 1) {
+          const header = playersData[0].map(h => (h || '').toString().trim());
+          const activeIdx = header.indexOf('Active');
+          const ratingIdx = header.indexOf('Rating');
+          const matchesIdx = header.indexOf('Matches');
+
+          const rows = playersData.slice(1);
+          const activePlayers = activeIdx !== -1
+            ? rows.filter(r => (r[activeIdx] || '').toString().trim().toUpperCase() === 'ACTIVE')
+            : rows;
+
+          document.getElementById('stat-players').textContent = activePlayers.length;
+
+          // Total matches this month (sum from all active players)
+          if (matchesIdx !== -1) {
+            const totalMatches = activePlayers.reduce((sum, r) => sum + (parseInt(r[matchesIdx]) || 0), 0);
+            document.getElementById('stat-matches').textContent = totalMatches.toLocaleString();
+          }
+
+          // Highest rating
+          if (ratingIdx !== -1) {
+            const topRating = activePlayers.reduce((max, r) => {
+              const rating = parseFloat(r[ratingIdx]);
+              return !isNaN(rating) && rating > max ? rating : max;
+            }, 0);
+            document.getElementById('stat-top-rating').textContent = topRating > 0 ? topRating.toFixed(0) : '—';
+          }
+        }
+
+        // Seasons count
+        const seasons = seasonsData.filter(s => s.startsWith('LEADERBOARD_') && !s.includes('GLOBAL'));
+        document.getElementById('stat-seasons').textContent = seasons.length;
+      } catch (err) {
+        console.warn('Could not load home stats:', err);
+      }
     }
 
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadHomeStats);
+    } else {
+      loadHomeStats();
+    }
   </script>
 </body>
 </html>

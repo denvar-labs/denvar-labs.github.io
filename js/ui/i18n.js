@@ -95,10 +95,10 @@ const I18n = (() => {
       desc_admin: 'Gestión de penales y suspensiones.',
 
       // Buttons
-      btn_screenshot: '📸 Captura',
-      btn_csv: '📥 CSV',
-      btn_dark_mode: '🌙 Modo oscuro',
-      btn_light_mode: '☀️ Modo claro',
+      btn_screenshot: 'Captura',
+      btn_csv: 'CSV',
+      btn_dark_mode: 'Modo oscuro',
+      btn_light_mode: 'Modo claro',
       btn_simulate: 'Simular',
       btn_download: 'Descargar',
 
@@ -129,6 +129,23 @@ const I18n = (() => {
       coming_prox: 'Próximamente',
       coming_desc: 'Estamos preparando el calendario de torneos. ¡Vuelve pronto!',
       fair_play: 'La competencia justa, el respeto y el deportivismo son pilares fundamentales de nuestra comunidad.',
+
+      // Landing page
+      home_active_players: 'Jugadores Activos',
+      home_matches_this_month: 'Partidas Totales',
+      home_seasons: 'Temporadas',
+      home_highest_rating: 'Rating Más Alto',
+      home_card_leaderboard: 'Ranking general basado en el sistema Glicko-2. Compite por la cima.',
+      home_card_profile: 'Estadísticas detalladas, evolución de rating y gráficas de rendimiento.',
+      home_card_simulator: 'Predice cómo cambia tu rating antes de jugar una partida.',
+      home_card_awards: 'Reconociendo las mejores actuaciones de cada temporada.',
+      home_card_hall: 'Los más grandes de todos los tiempos y récords históricos.',
+      home_card_streams: 'Sigue las partidas en vivo con los streamers de la comunidad.',
+      home_card_reports: 'Detalles de cada partida: puntos, posiciones y cambios de rating.',
+      home_card_faq: 'Todo lo que necesitas saber sobre el sistema de ranking.',
+      home_join_discord: 'Únete a Discord',
+      home_watch_twitch: 'Mira en Twitch',
+      home_tournaments: 'Próximos Torneos',
     },
 
     en: {
@@ -251,6 +268,23 @@ const I18n = (() => {
       coming_prox: 'Coming Soon',
       coming_desc: 'We are preparing the tournament calendar. Check back soon!',
       fair_play: 'Fair competition, respect, and sportsmanship are fundamental pillars of our community.',
+
+      // Landing page
+      home_active_players: 'Active Players',
+      home_matches_this_month: 'Total Matches',
+      home_seasons: 'Seasons',
+      home_highest_rating: 'Highest Rating',
+      home_card_leaderboard: 'Overall ranking based on the Glicko-2 system. Compete for the top.',
+      home_card_profile: 'Detailed stats, rating evolution, and performance charts.',
+      home_card_simulator: 'Predict how your rating changes before playing a match.',
+      home_card_awards: 'Recognizing the best performances of each completed season.',
+      home_card_hall: 'All-time greats and historical records.',
+      home_card_streams: 'Follow live matches with community streamers.',
+      home_card_reports: 'Match details: points, positions, and rating changes.',
+      home_card_faq: 'Everything you need to know about the ranking system.',
+      home_join_discord: 'Join Discord',
+      home_watch_twitch: 'Watch on Twitch',
+      home_tournaments: 'Upcoming Tournaments',
     }
   };
 
@@ -288,8 +322,10 @@ const I18n = (() => {
       const key = el.getAttribute('data-i18n-placeholder');
       el.placeholder = t(key);
     });
-    // Re-render headers that use i18n
-    if (typeof PageHeader !== 'undefined' && PageHeader.rerender) {
+    // Re-render components that use i18n
+    if (typeof Navbar !== 'undefined' && Navbar.rerender) {
+      Navbar.rerender();
+    } else if (typeof PageHeader !== 'undefined' && PageHeader.rerender) {
       PageHeader.rerender();
     }
   }
