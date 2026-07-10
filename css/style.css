@@ -1,35 +1,7 @@
-/* ===== KA ESPORTS – Google Sheets Inspired Light Theme ===== */
-/* v2 — added: consistent loading/error/empty states, focus-visible,
-   reduced-motion support, small accessibility & polish fixes.
-   Nothing structural was removed from the original theme. */
-
-:root {
-  --bg: #f5f7fa;
-  --surface: #ffffff;
-  --surface-alt: #f0f2f5;
-  --border: #dce1e8;
-  --border-light: #eef0f4;
-  --text: #1a1d23;
-  --text-muted: #5f6b7a;
-  --accent: #4a86e8;
-  --accent-dark: #3b6fd4;
-  --success: #10b981;
-  --success-bg: #d1fae5;
-  --danger: #e53935;
-  --danger-bg: #fdecea;
-  --warning: #f59e0b;
-  --warning-bg: #fff7e6;
-  --rank-gm: #f1c232;
-  --rank-master: #FFD966;
-  --rank-pro: #CCE5FF;
-  --rank-expert: #FF5C5C;
-  --rank-advanced: #FFF38A;
-  --rank-amateur: #9AFF7D;
-  --rank-padawan: #C7C1C1;
-  --max-width: 1600px;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-}
+/* ===== KA ESPORTS - Layout & Utilities ===== */
+/* Import design tokens and component library first */
+@import url('tokens.css');
+@import url('components.css');
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -47,276 +19,74 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-dark); text-decoration: underline; }
 
-/* Accessible focus ring for keyboard navigation, without adding
-   an outline on mouse click (focus-visible handles that split). */
-a:focus-visible,
-button:focus-visible,
-select:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-}
-
-.wrap {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 20px 16px 40px;
-  width: 100%;
-}
-
-/* ===== Header ===== */
-.hero {
-  background: var(--accent);
-  color: #fff;
-  padding: 28px 32px;
-  margin-bottom: 24px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.eyebrow {
-  display: inline-block;
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-
-h1 {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 6px;
-}
-
-.hero p {
-  color: rgba(255,255,255,0.85);
-  font-size: 0.95rem;
-}
-
-/* ===== Grid ===== */
-.grid {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-/* Large screens: expand content area */
-@media (min-width: 1400px) {
-  .grid { grid-template-columns: 280px 1fr; }
-}
-@media (min-width: 1800px) {
-  .grid { grid-template-columns: 300px 1fr; }
-}
-@media (min-width: 2200px) {
-  .grid { grid-template-columns: 320px 1fr; }
-}
-
-/* ===== Sidebar ===== */
-.sidebar { position: sticky; top: 24px; }
-
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: var(--shadow);
-}
-
-.panel-heading {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-/* ===== Quick Links ===== */
-.quick-links {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.quick-links a {
-  display: block;
-  padding: 9px 12px;
-  background: var(--surface-alt);
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  transition: all 0.2s;
-}
-
-.quick-links a:hover {
-  background: var(--accent);
-  color: #fff;
-  text-decoration: none;
-}
-
-.quick-links a.active {
-  background: var(--accent-dark);
-  color: #fff;
-  font-weight: 700;
-}
-
-/* ===== Section Heading ===== */
+/* ===== SECTION HEADING ===== */
 .section-heading {
-  font-size: 18px;
+  font-size: var(--text-xl);
   font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   color: var(--text);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
-/* ===== Form controls (shared look across all pages) ===== */
-.field-select {
-  padding: 6px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 14px;
-}
-
-/* ===== Responsive Table Wrapper ===== */
+/* ===== TABLE RESPONSIVE ===== */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* ===== Generic Data Table ===== */
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--surface);
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 1px solid var(--border);
-  min-width: 1100px;
+.data-table { min-width: 1100px; }
+.data-table th { position: sticky; top: 0; z-index: var(--z-sticky); }
+.data-table th:first-child { left: 0; z-index: calc(var(--z-sticky) + 1); }
+.data-table th:last-child { right: 0; z-index: calc(var(--z-sticky) + 1); }
+
+/* Dark mode table hover */
+body.dark .data-table tbody tr:hover td:not([class*="rank-"]) {
+  background-color: #2a3a5e;
 }
 
-.data-table th {
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 2px solid var(--accent-dark);
-  white-space: nowrap;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.data-table thead th:first-child { left: 0; z-index: 2; }
-
-.data-table td {
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-light);
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.data-table tr:last-child td { border-bottom: none; }
-
-.data-table tbody tr:hover td:not([class*="rank-"]) {
-  background-color: #f0f4ff;
-}
-
-/* ===== Leaderboard row rank background ===== */
-tr.rank-grand-master td { background-color: var(--rank-gm); }
-tr.rank-master td       { background-color: var(--rank-master); }
-tr.rank-pro td          { background-color: var(--rank-pro); }
-tr.rank-expert td       { background-color: var(--rank-expert); }
-tr.rank-advanced td     { background-color: var(--rank-advanced); }
-tr.rank-amateur td      { background-color: var(--rank-amateur); }
-tr.rank-padawan td      { background-color: var(--rank-padawan); }
-
-/* Leaderboard left border accent */
+/* Rank left borders */
 tr.rank-grand-master td:first-child { border-left: 3px solid #d4a017; }
-tr.rank-master td:first-child       { border-left: 3px solid #e6a800; }
-tr.rank-pro td:first-child          { border-left: 3px solid #5b9bd5; }
-tr.rank-expert td:first-child       { border-left: 3px solid #d63434; }
-tr.rank-advanced td:first-child     { border-left: 3px solid #e6d740; }
-tr.rank-amateur td:first-child      { border-left: 3px solid #5fbf5f; }
-tr.rank-padawan td:first-child      { border-left: 3px solid #9b9b9b; }
+tr.rank-master td:first-child { border-left: 3px solid #e6a800; }
+tr.rank-pro td:first-child { border-left: 3px solid #5b9bd5; }
+tr.rank-expert td:first-child { border-left: 3px solid #d63434; }
+tr.rank-advanced td:first-child { border-left: 3px solid #e6d740; }
+tr.rank-amateur td:first-child { border-left: 3px solid #5fbf5f; }
+tr.rank-padawan td:first-child { border-left: 3px solid #9b9b9b; }
 
-/* ===== Match Reports: individual cell rank background ===== */
-td.rank-grand-master { background-color: #f1c232; }
-td.rank-master       { background-color: #FFD966; }
-td.rank-pro          { background-color: #CCE5FF; }
-td.rank-expert       { background-color: #FF5C5C; }
-td.rank-advanced     { background-color: #FFF38A; }
-td.rank-amateur      { background-color: #9AFF7D; }
-td.rank-padawan      { background-color: #C7C1C1; }
+/* Match Report column widths */
+.match-report-table .col-player { width: 220px; }
+.match-report-table .col-points { width: 70px; }
+.match-report-table .col-pos { width: 60px; }
+.match-report-table .col-rating-before { width: 140px; }
+.match-report-table .col-rd-before { width: 120px; }
+.match-report-table .col-delta { width: 100px; }
+.match-report-table .col-new-rating { width: 120px; }
+.match-report-table .col-new-rd { width: 100px; }
+.align-right { text-align: right !important; }
 
-/* Prevent hover from removing rank color on individual cells */
-.data-table tbody td[class*="rank-"]:hover {
-  background-color: inherit !important;
-}
-
-/* ===== Delta Rating colors (pastel green / red) ===== */
+/* Delta Rating colors */
 td.delta-positive { background-color: #c8e6c9; }
 td.delta-negative { background-color: #ffcdd2; }
 
-/* ===== Match Report column widths and alignment ===== */
-.match-report-table .col-player          { width: 220px; }
-.match-report-table .col-points          { width: 70px; }
-.match-report-table .col-pos             { width: 60px; }
-.match-report-table .col-rating-before   { width: 140px; }
-.match-report-table .col-rd-before       { width: 120px; }
-.match-report-table .col-delta           { width: 100px; }
-.match-report-table .col-new-rating      { width: 120px; }
-.match-report-table .col-new-rd          { width: 100px; }
-
-/* Right-align numeric columns */
-.align-right {
-  text-align: right !important;
-}
-
-/* ===== Shared status states (loading / error / empty) =====
-   Use these classes from JS instead of ad-hoc inline <p> tags,
-   so every page looks and behaves the same way. */
+/* ===== STATE BOXES ===== */
 .state-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 40px 20px;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
   text-align: center;
   color: var(--text-muted);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
 }
-
-.state-box.state-loading {
-  background: var(--surface-alt);
-}
+.state-box.state-loading { background: var(--surface-alt); }
+.state-box.state-error { background: var(--danger-bg); color: #7a1f1a; border: 1px solid #f3b6b2; }
+.state-box.state-empty { background: var(--surface-alt); }
 
 .state-box .spinner {
   width: 28px;
@@ -326,201 +96,32 @@ td.delta-negative { background-color: #ffcdd2; }
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.state-box.state-error {
-  background: var(--danger-bg);
-  color: #7a1f1a;
-  border: 1px solid #f3b6b2;
-}
-
-.state-box.state-empty {
-  background: var(--surface-alt);
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .state-box .state-title {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--text-base);
   color: var(--text);
 }
-
 .state-box .state-detail {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   max-width: 480px;
 }
-
 .retry-btn {
-  margin-top: 4px;
-  padding: 8px 16px;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 .retry-btn:hover { background: var(--accent-dark); }
 
-/* ===== Badges (used by admin panel / confirmations) ===== */
-.badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.badge-success { background: var(--success-bg); color: #065f46; }
-.badge-danger  { background: var(--danger-bg); color: #7a1f1a; }
-.badge-warning { background: var(--warning-bg); color: #92620a; }
-
-/* ===== Footer ===== */
-.site-footer {
-  text-align: center;
-  padding: 32px 0 16px;
-  color: var(--text-muted);
-  font-size: 13px;
-  border-top: 1px solid var(--border);
-  margin-top: 40px;
-}
-
-/* ===== Skip link (accessibility: lets keyboard users jump to content) ===== */
-.skip-link {
-  position: absolute;
-  left: -999px;
-  top: auto;
-  background: var(--accent);
-  color: #fff;
-  padding: 10px 16px;
-  border-radius: 0 0 6px 0;
-  z-index: 1000;
-}
-.skip-link:focus {
-  left: 0;
-  top: 0;
-}
-
-/* ===== Dark Mode ===== */
-body.dark {
-  --bg: #1a1d23;
-  --surface: #23272e;
-  --surface-alt: #1e2127;
-  --border: #3a3f4a;
-  --border-light: #2d3139;
-  --text: #e8eaed;
-  --text-muted: #9aa4b2;
-  --accent: #6ba3f8;
-  --accent-dark: #4a86e8;
-  --success-bg: #064e3b;
-  --danger-bg: #5f1a1a;
-  --warning-bg: #5f4a0a;
-  --rank-gm: #d4a017;
-  --rank-master: #e6a800;
-  --rank-pro: #5b9bd5;
-  --rank-expert: #d63434;
-  --rank-advanced: #e6d740;
-  --rank-amateur: #5fbf5f;
-  --rank-padawan: #9b9b9b;
-}
-
-body.dark .data-table th { background: var(--accent); position: sticky; top: 0; z-index: 1; }
-body.dark .data-table thead th:first-child { left: 0; z-index: 2; }
-body.dark .data-table tbody tr:hover td:not([class*="rank-"]) { background: #2a3a5e; }
-body.dark .quick-links a { background: var(--surface-alt); }
-body.dark .quick-links a:hover { background: var(--accent); color: #fff; }
-body.dark .state-box.state-loading { background: var(--surface-alt); }
-body.dark .state-box.state-error { background: var(--danger-bg); border-color: #8a2a2a; color: #f8b4b4; }
-body.dark .state-box.state-empty { background: var(--surface-alt); }
-body.dark .retry-btn { background: var(--accent); }
-body.dark .retry-btn:hover { background: var(--accent-dark); }
-body.dark .skip-link { background: var(--accent); }
-body.dark .field-select { background: var(--surface); border-color: var(--border); color: var(--text); }
-body.dark .panel { background: var(--surface); border-color: var(--border); }
-body.dark .panel-heading { border-color: var(--border); }
-body.dark .hero { background: var(--accent); }
-body.dark .site-footer { border-color: var(--border); color: var(--text-muted); }
-body.dark .stat-card { background: var(--surface); border-color: var(--border); }
-body.dark .admin-box.panel { background: var(--surface); border-color: var(--border); }
-body.dark input, body.dark select, body.dark textarea { background: var(--surface); border-color: var(--border); color: var(--text); }
-body.dark .warning-banner { background: #5f4a0a; border-color: #ffc107; color: #fff3cd; }
-body.dark .confirm-box { background: #3a1a1a; border-color: #e53935; }
-body.dark .chart-container { background: var(--surface); }
-
-/* ===== Mobile ===== */
-@media (max-width: 768px) {
-  .grid { grid-template-columns: 1fr; }
-  .sidebar { position: static; }
-  h1 { font-size: 1.6rem; }
-  .data-table { min-width: 100%; }
-  .data-table td, .data-table th { padding: 8px 10px; font-size: 13px; }
-  .hero { padding: 20px; }
-
-  /* Table card layout on mobile */
-  .data-table thead { display: none; }
-  .data-table, .data-table tbody, .data-table tr, .data-table td {
-    display: block; width: 100%;
-  }
-  .data-table tr {
-    margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: var(--surface);
-  }
-  .data-table td {
-    display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-light); text-align: right;
-  }
-  .data-table td:last-child { border-bottom: none; }
-  .data-table td::before {
-    content: attr(data-label);
-    font-weight: 600; color: var(--text-muted); text-align: left;
-  }
-  .data-table td[class*="rank-"]::before { content: "Rank"; }
-}
-
-/* ===== Toast Notifications ===== */
-.toast-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  animation: slideIn 0.2s ease;
-  min-width: 280px;
-  max-width: 400px;
-}
-.toast-success { border-left: 4px solid var(--success); }
-.toast-error { border-left: 4px solid var(--danger); }
-.toast-info { border-left: 4px solid var(--accent); }
-.toast button {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--text-muted);
-}
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(100%); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* ===== Skeleton Loading ===== */
-.skeleton-row {
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
+/* ===== SKELETON LOADERS ===== */
+.skeleton-row { animation: skeleton-pulse 1.5s ease-in-out infinite; }
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
@@ -530,7 +131,7 @@ body.dark .chart-container { background: var(--surface); }
   background: linear-gradient(90deg, var(--surface-alt) 25%, var(--border-light) 50%, var(--surface-alt) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border-bottom: 1px solid var(--border-light);
 }
 @keyframes skeleton-shimmer {
@@ -538,6 +139,44 @@ body.dark .chart-container { background: var(--surface); }
   100% { background-position: -200% 0; }
 }
 
-/* ===== Sort Indicators ===== */
+/* ===== SORT INDICATORS ===== */
 .data-table th.sort-asc::after { content: ' ▲'; font-size: 0.7em; }
 .data-table th.sort-desc::after { content: ' ▼'; font-size: 0.7em; }
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .grid { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  h1 { font-size: 1.6rem; }
+  .data-table { min-width: 100%; }
+  .data-table td, .data-table th { padding: var(--space-2) var(--space-3); font-size: var(--text-sm); }
+  .hero { padding: var(--space-5); }
+
+  /* Table card layout on mobile */
+  .data-table thead { display: none; }
+  .data-table, .data-table tbody, .data-table tr, .data-table td {
+    display: block; width: 100%;
+  }
+  .data-table tr {
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    background: var(--surface);
+  }
+  .data-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-light);
+    text-align: right;
+  }
+  .data-table td:last-child { border-bottom: none; }
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: left;
+  }
+  .data-table td[class*="rank-"]::before { content: "Rank"; }
+}

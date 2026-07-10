@@ -28,16 +28,7 @@
 </head>
 <body>
   <div class="wrap">
-    <header class="hero">
-      <div class="eyebrow">KA ESPORTS</div>
-      <h1>Live Streams & Content</h1>
-      <p>Community streamers. Green badge = LIVE now. Click the preview to start watching.</p>
-      <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <button id="dark-toggle-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Toggle dark mode">
-          <span id="dark-label">🌙 Dark mode</span>
-        </button>
-      </div>
-    </header>
+    <div id="page-header"></div>
     <div class="grid">
       <div id="sidebar-container"></div>
       <main class="content">
@@ -53,6 +44,7 @@
 
   <script src="../js/config.js"></script>
   <script>
+    PageHeader.inject('page-header', { title: 'Live Streams & Content', description: 'Community streamers. Green badge = LIVE now. Click the preview to start watching.' });
     // Ya no está hardcodeada aquí — viene de config.js
     const SCRIPT_URL = KA_API_BASE;
 
@@ -204,22 +196,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', init);
-    (function () {
-      function applyDark(on) {
-        document.body.classList.toggle('dark', on);
-        const label = document.getElementById('dark-label');
-        if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
-      }
-      const saved = localStorage.getItem('ka_dark_mode');
-      if (saved === 'true') applyDark(true);
-      const btn = document.getElementById('dark-toggle-btn');
-      if (btn) btn.addEventListener('click', () => {
-        const isDark = document.body.classList.contains('dark');
-        applyDark(!isDark);
-        localStorage.setItem('ka_dark_mode', !isDark);
-      });
-    })();
+
   </script>
   <script src="../js/api-loader.js"></script>
+  <script src="../js/ui/darkmode.js"></script>
 </body>
 </html>
