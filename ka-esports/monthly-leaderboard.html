@@ -92,18 +92,31 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
 
     // Bind export buttons with month-aware filenames
-    document.addEventListener('DOMContentLoaded', () => {
+    function initExportButtons() {
       const getMonthPrefix = () => {
         const params = new URLSearchParams(window.location.search);
         return params.get('month') || 'current';
       };
 
       document.getElementById('csv-btn')?.addEventListener('click', () => {
-        ExportUtils.exportCSV('data-table', `monthly-leaderboard-${getMonthPrefix()}-{date}.csv`);
+        ExportUtils.exportCSV('data-table', `monthly-leaderboard-${getMonthPrefix()}-${date}.csv`);
       });
+      document.getElementById('screenshot-btn')?.addEventListener('click', () => {
+        ExportUtils.exportScreenshot('data-table', `monthly-leaderboard-${getMonthPrefix()}-${date}.png`, document.getElementById('screenshot-btn'));
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initExportButtons);
+    } else {
+      initExportButtons();
+    }
       document.getElementById('screenshot-btn')?.addEventListener('click', () => {
         ExportUtils.exportScreenshot('data-table', `monthly-leaderboard-${getMonthPrefix()}-{date}.png`, document.getElementById('screenshot-btn'));
       });

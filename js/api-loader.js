@@ -688,4 +688,8 @@ function highlightActiveSidebarLink() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', initSidebar);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSidebar);
+} else {
+  initSidebar();
+}
