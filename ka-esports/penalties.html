@@ -29,9 +29,15 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/header.js"></script>
   <script>
     PageHeader.inject('page-header', { title: 'Penalties & Sanctions', description: 'Rage quit and suspension records.' });
-    document.addEventListener('DOMContentLoaded', () => loadTableFromSheet('PENALTIES', 'data-table', -1));
+    function initPenalties() { loadTableFromSheet('PENALTIES', 'data-table', -1); }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPenalties);
+    } else {
+      initPenalties();
+    }
 
   </script>
 </body>

@@ -43,6 +43,9 @@
   </div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/api-loader.js"></script>
+  <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/header.js"></script>
   <script>
     PageHeader.inject('page-header', { title: 'Live Streams & Content', description: 'Community streamers. Green badge = LIVE now. Click the preview to start watching.' });
     // Ya no está hardcodeada aquí — viene de config.js
@@ -195,10 +198,12 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
 
   </script>
-  <script src="../js/api-loader.js"></script>
-  <script src="../js/ui/darkmode.js"></script>
 </body>
 </html>

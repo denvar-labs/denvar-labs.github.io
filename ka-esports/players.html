@@ -29,12 +29,18 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/header.js"></script>
   <script>
     PageHeader.inject('page-header', {
       title: 'Players',
       description: 'Complete list of registered players.'
     });
-    document.addEventListener('DOMContentLoaded', () => loadTableFromSheet('PLAYERS', 'data-table', -1));
+    function initPlayers() { loadTableFromSheet('PLAYERS', 'data-table', -1); }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPlayers);
+    } else {
+      initPlayers();
+    }
   </script>
 </body>
 </html>

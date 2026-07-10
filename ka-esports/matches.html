@@ -29,12 +29,18 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/header.js"></script>
   <script>
     PageHeader.inject('page-header', {
       title: 'Match History',
       description: 'All matches processed by the system.'
     });
-    document.addEventListener('DOMContentLoaded', () => loadTableFromSheet('MATCHES', 'data-table', -1));
+    function initMatches() { loadTableFromSheet('MATCHES', 'data-table', -1); }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initMatches);
+    } else {
+      initMatches();
+    }
   </script>
 </body>
 </html>

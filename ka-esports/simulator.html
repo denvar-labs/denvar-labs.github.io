@@ -35,6 +35,7 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/header.js"></script>
   <script>
     PageHeader.inject('page-header', {
       title: 'Rating Simulator',
@@ -161,7 +162,11 @@
       `).join('');
     }
 
-    document.addEventListener('DOMContentLoaded', loadPlayers);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadPlayers);
+    } else {
+      loadPlayers();
+    }
   </script>
 </body>
 </html>

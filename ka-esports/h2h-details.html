@@ -38,6 +38,7 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/header.js"></script>
   <script>
     PageHeader.inject('page-header', {
       title: 'Player Head-to-Head',
@@ -123,7 +124,7 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
+    async function initH2H() {
       await initPlayerDropdown();
       document.getElementById('player-select').addEventListener('change', e => {
         if (e.target.value) {
@@ -133,7 +134,12 @@
           renderTableState(tbody, 7, 'empty', { title: 'Select a player to see H2H statistics.' });
         }
       });
-    });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initH2H);
+    } else {
+      initH2H();
+    }
   </script>
 </body>
 </html>

@@ -38,6 +38,7 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/header.js"></script>
   <script>
     PageHeader.inject('page-header', { title: 'Rage Quit Statistics', description: 'Each penalty is recorded with date and time. Clean play is rewarded.' });
     // Confirmed PENALTIES layout (no header row):
@@ -119,7 +120,11 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadRageQuitStats);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadRageQuitStats);
+    } else {
+      loadRageQuitStats();
+    }
 
   </script>
 </body>
