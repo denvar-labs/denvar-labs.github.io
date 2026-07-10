@@ -49,8 +49,10 @@ const PageHeader = (() => {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = render(config);
-    // Bind dark mode
-    DarkMode.bind('dark-toggle-btn');
+    // Bind dark mode (safe check)
+    if (typeof DarkMode !== 'undefined' && DarkMode.bind) {
+      DarkMode.bind('dark-toggle-btn');
+    }
   }
 
   return { render, inject };

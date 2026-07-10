@@ -35,7 +35,9 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', { title: 'Community', description: 'Join the conversation and stay connected.' });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', { title: 'Community', description: 'Join the conversation and stay connected.' });
+    }
 
   </script>
 </body>

@@ -55,10 +55,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Hall of Fame',
-      description: 'Historical records and all-time greats. Toggle between All-Time and Monthly views.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Hall of Fame',
+        description: 'Historical records and all-time greats. Toggle between All-Time and Monthly views.'
+      });
+    }
 
     let currentMode = 'alltime';
     let currentChart = null;

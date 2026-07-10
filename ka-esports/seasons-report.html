@@ -31,10 +31,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Seasons Report',
-      description: 'Summary of all recorded seasons.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Seasons Report',
+        description: 'Summary of all recorded seasons.'
+      });
+    }
     function initSeasonsReport() { loadTableFromSheet('SEASONS_REPORT', 'data-table', -1); }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initSeasonsReport);

@@ -40,10 +40,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Player Head-to-Head',
-      description: 'Select a player to view their match history against others. Inactive players are hidden.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Player Head-to-Head',
+        description: 'Select a player to view their match history against others. Inactive players are hidden.'
+      });
+    }
 
     async function initPlayerDropdown() {
       try {

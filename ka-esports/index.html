@@ -65,10 +65,12 @@
   <script src="../js/ui/header.js"></script>
   <script>
     // Inject page header
-    PageHeader.inject('page-header', {
-      title: 'KA ESPORTS',
-      description: 'Your central access to all Mario Kart 64 competitive data.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'KA ESPORTS',
+        description: 'Your central access to all Mario Kart 64 competitive data.'
+      });
+    }
   </script>
 </body>
 </html>

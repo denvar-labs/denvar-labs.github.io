@@ -56,10 +56,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Player Comparison',
-      description: 'Compare up to 4 active players. Rating evolution aligned by date.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Player Comparison',
+        description: 'Compare up to 4 active players. Rating evolution aligned by date.'
+      });
+    }
 
     const chartInstances = [];
     let evolutionChart = null;

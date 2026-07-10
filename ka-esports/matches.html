@@ -31,10 +31,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Match History',
-      description: 'All matches processed by the system.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Match History',
+        description: 'All matches processed by the system.'
+      });
+    }
     function initMatches() { loadTableFromSheet('MATCHES', 'data-table', -1); }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initMatches);

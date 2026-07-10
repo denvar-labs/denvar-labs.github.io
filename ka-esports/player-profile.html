@@ -44,10 +44,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Player Profile',
-      description: 'Select a player to view detailed statistics and rating evolution.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Player Profile',
+        description: 'Select a player to view detailed statistics and rating evolution.'
+      });
+    }
 
     let chart = null;
 

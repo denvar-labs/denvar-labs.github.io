@@ -32,30 +32,24 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script src="../js/ui/exports.js"></script>
-  <script src="../js/ui/pagination.js"></script>
-  <script src="../js/ui/selection.js"></script>
   <script src="../js/ui/column-resize.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     // Inject page header
-    PageHeader.inject('page-header', {
-      title: 'Global Leaderboard',
-      description: 'Overall ranking based on the Glicko-2 system.',
-      actions: [
-        { id: 'screenshot-btn', icon: '📸', label: 'Screenshot', ariaLabel: 'Download high-res screenshot of table' },
-        { id: 'csv-btn', icon: '📥', label: 'CSV', ariaLabel: 'Download table as CSV' }
-      ]
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Global Leaderboard',
+        description: 'Overall ranking based on the Glicko-2 system.',
+        actions: [
+          { id: 'screenshot-btn', icon: '📸', label: 'Screenshot', ariaLabel: 'Download high-res screenshot of table' },
+          { id: 'csv-btn', icon: '📥', label: 'CSV', ariaLabel: 'Download table as CSV' }
+        ]
+      });
+    }
 
     // Load table data
     function initLeaderboard() {
       loadTableFromSheet('LEADERBOARD_GLOBAL', 'data-table');
-
-      // Initialize pagination after data loads
-      setTimeout(() => {
-        TablePagination.create('data-table', { pageSize: 25 });
-        ColumnResize.create('data-table');
-      }, 2000);
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initLeaderboard);

@@ -47,7 +47,9 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', { title: 'Live Streams & Content', description: 'Community streamers. Green badge = LIVE now. Click the preview to start watching.' });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', { title: 'Live Streams & Content', description: 'Community streamers. Green badge = LIVE now. Click the preview to start watching.' });
+    }
     // Ya no está hardcodeada aquí — viene de config.js
     const SCRIPT_URL = KA_API_BASE;
 

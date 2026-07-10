@@ -31,10 +31,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Players',
-      description: 'Complete list of registered players.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Players',
+        description: 'Complete list of registered players.'
+      });
+    }
     function initPlayers() { loadTableFromSheet('PLAYERS', 'data-table', -1); }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initPlayers);

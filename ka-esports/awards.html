@@ -58,10 +58,12 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', {
-      title: 'Monthly Awards',
-      description: 'Recognizing the best performances of each completed season. Select a month to dive in.'
-    });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', {
+        title: 'Monthly Awards',
+        description: 'Recognizing the best performances of each completed season. Select a month to dive in.'
+      });
+    }
     let evolutionChart = null;
 
     function getLastCompletedMonth(availableMonths) {

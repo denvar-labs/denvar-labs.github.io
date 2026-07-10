@@ -359,7 +359,9 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', { title: 'Frequently Asked Questions', description: 'Everything you need to know about the Glicko-2 ranking system for Mario Kart 64.' });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', { title: 'Frequently Asked Questions', description: 'Everything you need to know about the Glicko-2 ranking system for Mario Kart 64.' });
+    }
 
   </script>
 </body>

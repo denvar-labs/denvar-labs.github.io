@@ -31,7 +31,9 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', { title: 'Penalties & Sanctions', description: 'Rage quit and suspension records.' });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', { title: 'Penalties & Sanctions', description: 'Rage quit and suspension records.' });
+    }
     function initPenalties() { loadTableFromSheet('PENALTIES', 'data-table', -1); }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initPenalties);

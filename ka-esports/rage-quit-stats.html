@@ -40,7 +40,9 @@
   <script src="../js/ui/darkmode.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
-    PageHeader.inject('page-header', { title: 'Rage Quit Statistics', description: 'Each penalty is recorded with date and time. Clean play is rewarded.' });
+    if (typeof PageHeader !== 'undefined') {
+      PageHeader.inject('page-header', { title: 'Rage Quit Statistics', description: 'Each penalty is recorded with date and time. Clean play is rewarded.' });
+    }
     // Confirmed PENALTIES layout (no header row):
     // [0]Timestamp [1]PlayerID [2]PlayerName [3]Reason [4]Type [5]Points [6]Month [7]StartDate [8]EndDate [9]Status
     const PCOL = { timestamp: 0, playerId: 1, playerName: 2, reason: 3, type: 4, points: 5, month: 6, startDate: 7, endDate: 8, status: 9 };
