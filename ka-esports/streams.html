@@ -45,10 +45,19 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/header.js"></script>
+  <script src="../js/ui/lang-switcher.js"></script>
   <script>
     if (typeof PageHeader !== 'undefined') {
-      PageHeader.inject('page-header', { title: 'Live Streams & Content', description: 'Community streamers. Green badge = LIVE now. Click the preview to start watching.' });
+      PageHeader.inject('page-header', {
+        titleKey: 'title_streams',
+        descKey: 'desc_streams'
+      });
+    }
+    if (typeof LangSwitcher !== 'undefined') {
+      LangSwitcher.create('lang-switcher-container');
+      if (typeof I18n !== 'undefined') I18n.translatePage();
     }
     // Ya no está hardcodeada aquí — viene de config.js
     const SCRIPT_URL = KA_API_BASE;

@@ -35,7 +35,9 @@
   <script src="../js/api-loader.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/header.js"></script>
+  <script src="../js/ui/lang-switcher.js"></script>
   <script src="../js/ui/exports.js"></script>
   <script src="../js/ui/column-resize.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -49,13 +51,18 @@
       // Inject page header
       if (typeof PageHeader !== 'undefined') {
         PageHeader.inject('page-header', {
-          title: 'Monthly Leaderboard',
-          description: 'Select a season to view its leaderboard. The URL updates automatically so you can share a direct link.',
+          titleKey: 'title_monthly_leaderboard',
+          descKey: 'desc_monthly_leaderboard',
           actions: [
-            { id: 'screenshot-btn', icon: '📸', label: 'Screenshot', ariaLabel: 'Download high-res screenshot of table' },
-            { id: 'csv-btn', icon: '📥', label: 'CSV', ariaLabel: 'Download table as CSV' }
+            { id: 'screenshot-btn', icon: '📸', labelKey: 'btn_screenshot', ariaLabel: 'Download high-res screenshot of table' },
+            { id: 'csv-btn', icon: '📥', labelKey: 'btn_csv', ariaLabel: 'Download table as CSV' }
           ]
         });
+      }
+      // Language switcher
+      if (typeof LangSwitcher !== 'undefined') {
+        LangSwitcher.create('lang-switcher-container');
+        if (typeof I18n !== 'undefined') I18n.translatePage();
       }
 
       // Bind export buttons

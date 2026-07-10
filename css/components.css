@@ -718,3 +718,25 @@ body.dark .dark-toggle::after { transform: translateX(22px); }
   from { opacity: 1; transform: translateX(0); }
   to { opacity: 0; transform: translateX(100%); }
 }
+
+/* ===== LANGUAGE SWITCHER ===== */
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.lang-switcher:hover {
+  background: var(--surface-alt);
+  border-color: var(--primary);
+}
+.lang-flag { font-size: 1rem; line-height: 1; }
+.lang-label { font-weight: 600; letter-spacing: 0.02em; }

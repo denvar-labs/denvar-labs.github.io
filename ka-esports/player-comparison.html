@@ -54,13 +54,19 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/header.js"></script>
+  <script src="../js/ui/lang-switcher.js"></script>
   <script>
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {
-        title: 'Player Comparison',
-        description: 'Compare up to 4 active players. Rating evolution aligned by date.'
+        titleKey: 'title_player_comparison',
+        descKey: 'desc_player_comparison'
       });
+    }
+    if (typeof LangSwitcher !== 'undefined') {
+      LangSwitcher.create('lang-switcher-container');
+      if (typeof I18n !== 'undefined') I18n.translatePage();
     }
 
     const chartInstances = [];

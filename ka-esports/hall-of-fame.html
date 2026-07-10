@@ -53,13 +53,19 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/header.js"></script>
+  <script src="../js/ui/lang-switcher.js"></script>
   <script>
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {
-        title: 'Hall of Fame',
-        description: 'Historical records and all-time greats. Toggle between All-Time and Monthly views.'
+        titleKey: 'title_hall_of_fame',
+        descKey: 'desc_hall_of_fame'
       });
+    }
+    if (typeof LangSwitcher !== 'undefined') {
+      LangSwitcher.create('lang-switcher-container');
+      if (typeof I18n !== 'undefined') I18n.translatePage();
     }
 
     let currentMode = 'alltime';
