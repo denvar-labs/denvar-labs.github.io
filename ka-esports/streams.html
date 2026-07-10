@@ -55,10 +55,6 @@
         descKey: 'desc_streams'
       });
     }
-    if (typeof LangSwitcher !== 'undefined') {
-      LangSwitcher.create('lang-switcher-container');
-      if (typeof I18n !== 'undefined') I18n.translatePage();
-    }
     // Ya no está hardcodeada aquí — viene de config.js
     const SCRIPT_URL = KA_API_BASE;
 

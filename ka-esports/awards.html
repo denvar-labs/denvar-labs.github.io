@@ -66,10 +66,6 @@
         descKey: 'desc_awards'
       });
     }
-    if (typeof LangSwitcher !== 'undefined') {
-      LangSwitcher.create('lang-switcher-container');
-      if (typeof I18n !== 'undefined') I18n.translatePage();
-    }
     let evolutionChart = null;
 
     function getLastCompletedMonth(availableMonths) {

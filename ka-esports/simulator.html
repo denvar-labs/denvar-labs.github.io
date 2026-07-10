@@ -45,10 +45,6 @@
         descKey: 'desc_simulator'
       });
     }
-    if (typeof LangSwitcher !== 'undefined') {
-      LangSwitcher.create('lang-switcher-container');
-      if (typeof I18n !== 'undefined') I18n.translatePage();
-    }
 
     // ========== Glicko-2 Simplified Simulator ==========
     function g(phi) { return 1 / Math.sqrt(1 + 3 * phi * phi / (Math.PI * Math.PI)); }

@@ -5,37 +5,38 @@
 
 const I18n = (() => {
   const STORAGE_KEY = 'ka_lang';
-  let currentLang = localStorage.getItem(STORAGE_KEY) || 'es';
+  const browserLang = (navigator.language || '').toLowerCase().startsWith('es') ? 'es' : 'en';
+  let currentLang = localStorage.getItem(STORAGE_KEY) || browserLang;
 
   const translations = {
     es: {
       // Navigation
-      nav_home: 'Inicio',
-      nav_ka_esports: 'KA ESPORTS',
-      nav_data_views: 'Vistas de Datos',
-      nav_global_leaderboard: 'Leaderboard Global',
-      nav_monthly_leaderboard: 'Leaderboard Mensual',
-      nav_match_reports: 'Reportes de Partidas',
-      nav_seasons_report: 'Reporte de Temporadas',
-      nav_h2h_details: 'H2H de Jugadores',
-      nav_faq: 'Preguntas Frecuentes',
-      nav_tools: 'Herramientas y Análisis',
-      nav_player_profile: 'Perfil de Jugador',
-      nav_player_comparison: 'Comparación de Jugadores',
-      nav_simulator: 'Simulador de Rating',
-      nav_awards: 'Premios Mensuales',
-      nav_hall_of_fame: 'Salón de la Fama',
-      nav_discipline: 'Disciplina y Reglas',
-      nav_rage_quit_rules: 'Regla de Rage Quit',
-      nav_rage_quit_stats: 'Estadísticas de Rage Quit',
-      nav_penalties: 'Historial de Penales',
-      nav_suspensions: 'Lista de Suspensiones',
-      nav_live: 'En Vivo y Comunidad',
-      nav_streams: 'Transmisiones en Vivo',
-      nav_tournaments: 'Torneos',
-      nav_community: 'Comunidad',
-      nav_discord: 'Discord',
-      nav_twitch: 'Twitch',
+      nav_home: '🏠 Inicio',
+      nav_ka_esports: '🏆 KA ESPORTS',
+      nav_data_views: '📊 Datos',
+      nav_global_leaderboard: '🌍 Leaderboard Global',
+      nav_monthly_leaderboard: '📆 Leaderboard Mensual',
+      nav_match_reports: '📋 Reportes de Partidas',
+      nav_seasons_report: '📊 Reporte de Temporadas',
+      nav_h2h_details: '🤼 H2H de Jugadores',
+      nav_faq: '📘 Preguntas Frecuentes',
+      nav_tools: '🧠 Herramientas y Análisis',
+      nav_player_profile: '👤 Perfil de Jugador',
+      nav_player_comparison: '⚔️ Comparación de Jugadores',
+      nav_simulator: '🧮 Simulador de Rating',
+      nav_awards: '🏅 Premios Mensuales',
+      nav_hall_of_fame: '🏆 Salón de la Fama',
+      nav_discipline: '📜 Disciplina y Reglas',
+      nav_rage_quit_rules: '📜 Regla de Rage Quit',
+      nav_rage_quit_stats: '📊 Estadísticas de Rage Quit',
+      nav_penalties: '🧾 Historial de Penales',
+      nav_suspensions: '🚫 Lista de Suspensiones',
+      nav_live: '📺 En Vivo y Comunidad',
+      nav_streams: '🔴 Transmisiones en Vivo',
+      nav_tournaments: '🏁 Torneos',
+      nav_community: '💬 Comunidad',
+      nav_discord: '💬 Discord',
+      nav_twitch: '📺 Twitch',
 
       // Common
       choose_month: '-- Elegir un mes --',
@@ -132,32 +133,32 @@ const I18n = (() => {
 
     en: {
       // Navigation
-      nav_home: 'Home',
-      nav_ka_esports: 'KA ESPORTS',
-      nav_data_views: 'Data Views',
-      nav_global_leaderboard: 'Global Leaderboard',
-      nav_monthly_leaderboard: 'Monthly Leaderboard',
-      nav_match_reports: 'Match Reports',
-      nav_seasons_report: 'Seasons Report',
-      nav_h2h_details: 'Player H2H',
-      nav_faq: 'FAQ',
-      nav_tools: 'Tools & Analytics',
-      nav_player_profile: 'Player Profile',
-      nav_player_comparison: 'Player Comparison',
-      nav_simulator: 'Rating Simulator',
-      nav_awards: 'Monthly Awards',
-      nav_hall_of_fame: 'Hall of Fame',
-      nav_discipline: 'Discipline & Rules',
-      nav_rage_quit_rules: 'Rage Quit Rule',
-      nav_rage_quit_stats: 'Rage Quit Stats',
-      nav_penalties: 'Penalty History',
-      nav_suspensions: 'Suspension List',
-      nav_live: 'Live & Community',
-      nav_streams: 'Live Streams',
-      nav_tournaments: 'Tournaments',
-      nav_community: 'Community',
-      nav_discord: 'Discord',
-      nav_twitch: 'Twitch',
+      nav_home: '🏠 Home',
+      nav_ka_esports: '🏆 KA ESPORTS',
+      nav_data_views: '📊 Data Views',
+      nav_global_leaderboard: '🌍 Global Leaderboard',
+      nav_monthly_leaderboard: '📆 Monthly Leaderboard',
+      nav_match_reports: '📋 Match Reports',
+      nav_seasons_report: '📊 Seasons Report',
+      nav_h2h_details: '🤼 Player H2H',
+      nav_faq: '📘 FAQ',
+      nav_tools: '🧠 Tools & Analytics',
+      nav_player_profile: '👤 Player Profile',
+      nav_player_comparison: '⚔️ Player Comparison',
+      nav_simulator: '🧮 Rating Simulator',
+      nav_awards: '🏅 Monthly Awards',
+      nav_hall_of_fame: '🏆 Hall of Fame',
+      nav_discipline: '📜 Discipline & Rules',
+      nav_rage_quit_rules: '📜 Rage Quit Rule',
+      nav_rage_quit_stats: '📊 Rage Quit Stats',
+      nav_penalties: '🧾 Penalty History',
+      nav_suspensions: '🚫 Suspension List',
+      nav_live: '📺 Live & Community',
+      nav_streams: '🔴 Live Streams',
+      nav_tournaments: '🏁 Tournaments',
+      nav_community: '💬 Community',
+      nav_discord: '💬 Discord',
+      nav_twitch: '📺 Twitch',
 
       // Common
       choose_month: '-- Choose a month --',
@@ -296,6 +297,12 @@ const I18n = (() => {
   function init() {
     document.documentElement.lang = currentLang;
     document.addEventListener('lang:change', translatePage);
+    // Translate headers on page load (before sidebar finishes loading)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', translatePage);
+    } else {
+      translatePage();
+    }
   }
 
   init();
