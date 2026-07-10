@@ -818,7 +818,6 @@ body.dark .dark-toggle::after { transform: translateX(22px); }
 }
 .nav-link:hover { color: var(--text); background: var(--surface-alt); }
 .nav-link.active { color: var(--accent); background: var(--accent-light); }
-.nav-icon { font-size: 0.9rem; line-height: 1; }
 
 .navbar-actions {
   display: flex;

@@ -6,14 +6,14 @@
 const Navbar = (() => {
 
   const NAV_ITEMS = [
-    { href: '/', labelKey: 'nav_home', icon: '🏠' },
-    { href: '/ka-esports/global-leaderboard.html', labelKey: 'nav_global_leaderboard', icon: '🌍' },
-    { href: '/ka-esports/monthly-leaderboard.html', labelKey: 'nav_monthly_leaderboard', icon: '📆' },
-    { href: '/ka-esports/match-reports.html', labelKey: 'nav_match_reports', icon: '📋' },
-    { href: '/ka-esports/player-profile.html', labelKey: 'nav_player_profile', icon: '👤' },
-    { href: '/ka-esports/hall-of-fame.html', labelKey: 'nav_hall_of_fame', icon: '🏆' },
-    { href: '/ka-esports/streams.html', labelKey: 'nav_streams', icon: '🔴' },
-    { href: '/ka-esports/faq.html', labelKey: 'nav_faq', icon: '📘' },
+    { href: '/', labelKey: 'nav_home' },
+    { href: '/ka-esports/global-leaderboard.html', labelKey: 'nav_global_leaderboard' },
+    { href: '/ka-esports/monthly-leaderboard.html', labelKey: 'nav_monthly_leaderboard' },
+    { href: '/ka-esports/match-reports.html', labelKey: 'nav_match_reports' },
+    { href: '/ka-esports/player-profile.html', labelKey: 'nav_player_profile' },
+    { href: '/ka-esports/hall-of-fame.html', labelKey: 'nav_hall_of_fame' },
+    { href: '/ka-esports/streams.html', labelKey: 'nav_streams' },
+    { href: '/ka-esports/faq.html', labelKey: 'nav_faq' },
   ];
 
   function getActiveHref() {
@@ -41,7 +41,7 @@ const Navbar = (() => {
     const navLinks = NAV_ITEMS.map(item => {
       const isActive = item.href === currentHref ? ' active' : '';
       const label = t(item.labelKey);
-      return `<a href="${item.href}" class="nav-link${isActive}"><span class="nav-icon">${item.icon}</span><span class="nav-text">${label}</span></a>`;
+      return `<a href="${item.href}" class="nav-link${isActive}"><span class="nav-text">${label}</span></a>`;
     }).join('');
 
     const langLabel = lang === 'es' ? 'Español' : 'English';
