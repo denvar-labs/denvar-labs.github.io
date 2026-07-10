@@ -24,6 +24,8 @@
         <button id="dark-toggle-btn" class="retry-btn" style="padding: 6px 12px; font-size: 0.85rem;" aria-label="Toggle dark mode">
           <span id="dark-label">🌙 Dark mode</span>
         </button>
+        <div id="filter-container" style="flex:1; max-width:300px;"></div>
+        <div id="column-picker-container" style="margin-left:auto;"></div>
       </div>
     </header>
     <div class="grid">
@@ -159,6 +161,22 @@
         link.click();
         showToast('CSV downloaded successfully', 'success');
       });
+    })();
+
+    // Table enhance: sort, filter, column picker, deep links
+    (function () {
+      const script = document.createElement('script');
+      script.src = '../js/table-enhance.js';
+      script.onload = () => {
+        new TableEnhance('data-table').init({
+          sortable: true,
+          filterable: true,
+          filterPlaceholder: 'Search players...',
+          columnPicker: true,
+          deepLink: true
+        });
+      };
+      document.body.appendChild(script);
     })();
   </script>
 </body>

@@ -86,6 +86,22 @@
         localStorage.setItem('ka_dark_mode', !isDark);
       });
     })();
+
+    // Table enhance: sort, filter, column picker, deep links
+    (function () {
+      const script = document.createElement('script');
+      script.src = '../js/table-enhance.js';
+      script.onload = () => {
+        new TableEnhance('data-table').init({
+          sortable: true,
+          filterable: true,
+          filterPlaceholder: 'Search players...',
+          columnPicker: true,
+          deepLink: true
+        });
+      };
+      document.body.appendChild(script);
+    })();
   </script>
 </body>
 </html>

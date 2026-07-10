@@ -292,7 +292,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   if (!thead || !tbody) return;
 
   const colCount = Math.max(thead.querySelectorAll('th').length, 20) || 20;
-  renderTableState(tbody, colCount, 'loading');
+  renderTableState(tbody, colCount, 'loading', { skeletonRows: 7 });
 
   try {
     const allRows = await fetchSheetData(sheetName);
@@ -320,6 +320,9 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     }
 
     thead.innerHTML = headerRow.length ? '<tr>' + headerRow.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>' : '';
+
+    // Expose headerRow globally for table-enhance module
+    window.__TABLE_HEADER_ROW__ = headerRow;
 
     let dataRows = allRows.slice(dataStartIndex).filter(row => {
       const firstCell = (row[0] || '').toString().trim();
