@@ -13,12 +13,7 @@ const DarkMode = (() => {
   function apply(on) {
     document.body.classList.toggle('dark', on);
     const label = document.getElementById('dark-label');
-    if (label) {
-      const iconName = on ? 'sun' : 'moon';
-      const iconSvg = typeof Icon !== 'undefined' ? Icon.get(iconName) : (on ? '☀️' : '🌙');
-      const modeText = typeof I18n !== 'undefined' ? I18n.t(on ? 'btn_light_mode' : 'btn_dark_mode') : (on ? 'Light mode' : 'Dark mode');
-      label.innerHTML = iconSvg + ' ' + modeText;
-    }
+    if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
     // Update all dark toggle buttons
     document.querySelectorAll('[data-dark-toggle]').forEach(btn => {
       btn.setAttribute('aria-pressed', on);

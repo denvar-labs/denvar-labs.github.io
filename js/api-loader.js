@@ -110,7 +110,7 @@ function cellToString(cell) {
 function renderState(container, type, opts = {}) {
   if (!container) return;
   const { title, detail, onRetry } = opts;
-  const iconSvg = { loading: '', error: 'alert-triangle', empty: 'inbox' };
+  const icons = { loading: '', error: '⚠️', empty: '📭' };
   const defaultTitles = {
     loading: 'Loading…',
     error: 'Something went wrong',
@@ -121,8 +121,7 @@ function renderState(container, type, opts = {}) {
   if (type === 'loading') {
     inner = `<div class="spinner" aria-hidden="true"></div><div class="state-title">${escapeHtml(title || defaultTitles.loading)}</div>`;
   } else {
-    const svgIcon = (typeof Icon !== 'undefined' && iconSvg[type]) ? Icon.get(iconSvg[type], { size: 20 }) : '';
-    inner = `<div class="state-title">${svgIcon} ${escapeHtml(title || defaultTitles[type] || '')}</div>`;
+    inner = `<div class="state-title">${icons[type] || ''} ${escapeHtml(title || defaultTitles[type] || '')}</div>`;
   }
   if (detail) {
     inner += `<div class="state-detail">${escapeHtml(detail)}</div>`;

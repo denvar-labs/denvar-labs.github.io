@@ -23,16 +23,14 @@ const PageHeader = (() => {
     if (actions.length > 0 || showDarkToggle) {
       actionsHTML = '<div class="hero-actions">';
       actions.forEach(action => {
-        const iconKey = action.icon || '';
-        const iconSvg = typeof Icon !== 'undefined' && iconKey ? Icon.get(iconKey) : '';
+        const icon = action.icon || '';
         const label = action.labelKey && typeof I18n !== 'undefined' ? I18n.t(action.labelKey) : (action.label || '');
         const id = action.id || '';
         const ariaLabel = action.ariaLabel || label;
-        actionsHTML += `<button id="${id}" class="btn btn-sm btn-ghost" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);" aria-label="${ariaLabel}"><span>${iconSvg} ${label}</span></button>`;
+        actionsHTML += `<button id="${id}" class="btn btn-sm btn-ghost" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);" aria-label="${ariaLabel}"><span>${icon} ${label}</span></button>`;
       });
       if (showDarkToggle) {
-        const darkIcon = typeof Icon !== 'undefined' ? Icon.get('moon') : '🌙';
-        actionsHTML += `<button id="dark-toggle-btn" class="btn btn-sm btn-ghost" data-dark-toggle style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);" aria-label="Toggle dark mode"><span id="dark-label">${darkIcon} Dark mode</span></button>`;
+        actionsHTML += `<button id="dark-toggle-btn" class="btn btn-sm btn-ghost" data-dark-toggle style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);" aria-label="Toggle dark mode"><span id="dark-label">🌙 Dark mode</span></button>`;
       }
       actionsHTML += '</div>';
     }
