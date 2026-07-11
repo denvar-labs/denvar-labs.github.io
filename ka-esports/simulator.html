@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/icons.css">
   <style>
     .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
     .sim-row select, .sim-row input { padding: 6px; border-radius: 4px; border: 1px solid var(--border); }
@@ -36,12 +37,14 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/icon.js"></script>
   <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/navbar.js"></script>
   <script src="../js/ui/header.js"></script>
 
   <script>
     Navbar.inject('navbar-container');
+    Icon.renderAll();
 
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {

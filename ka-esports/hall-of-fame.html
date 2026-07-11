@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/icons.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
@@ -30,8 +31,8 @@
       <main class="content">
         <section class="panel">
           <div class="mode-switch" id="mode-switch">
-            <button class="mode-btn active" data-mode="alltime">🏆 All‑Time</button>
-            <button class="mode-btn" data-mode="monthly">📅 Monthly</button>
+            <button class="mode-btn active" data-mode="alltime"><span data-icon="trophy"></span> All‑Time</button>
+            <button class="mode-btn" data-mode="monthly"><span data-icon="calendar"></span> Monthly</button>
           </div>
 
           <div id="month-selector" style="display:none; margin-bottom:16px;">
@@ -54,12 +55,14 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/icon.js"></script>
   <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/navbar.js"></script>
   <script src="../js/ui/header.js"></script>
 
   <script>
     Navbar.inject('navbar-container');
+    Icon.renderAll();
 
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {
@@ -79,8 +82,9 @@
     }
 
     function buildRecordCard(icon, title, player, value) {
+      const iconSvg = typeof Icon !== 'undefined' ? Icon.get(icon, { size: 24 }) : icon;
       return `<div class="record-card">
-        <div class="record-icon">${icon}</div>
+        <div class="record-icon">${iconSvg}</div>
         <div class="record-title">${escapeHtml(title)}</div>
         <div class="record-value">${escapeHtml(value)}</div>
         <div class="record-player">${escapeHtml(player)}</div>
@@ -131,10 +135,10 @@
         const highWR = players.filter(p => p.matches >= 10).sort((a, b) => (b.wins / b.matches) - (a.wins / a.matches))[0];
 
         let html = '';
-        html += buildRecordCard('👑', 'Highest Rating Ever', topRating.name, topRating.rating.toFixed(2));
-        html += buildRecordCard('🎮', 'Most Matches Played', topMatches.name, topMatches.matches + ' matches');
-        html += buildRecordCard('🏅', 'Most Wins', topWins.name, topWins.wins + ' wins');
-        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
+        html += buildRecordCard('crown', 'Highest Rating Ever', topRating.name, topRating.rating.toFixed(2));
+        html += buildRecordCard('gamepad-2', 'Most Matches Played', topMatches.name, topMatches.matches + ' matches');
+        html += buildRecordCard('medal', 'Most Wins', topWins.name, topWins.wins + ' wins');
+        if (highWR) html += buildRecordCard('target', 'Best Win Rate (min 10 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
         container.innerHTML = html || '<div class="state-box state-empty"><div class="state-title">Not enough data.</div></div>';
 
         const top10 = players.sort((a, b) => b.rating - a.rating).slice(0, 10);
@@ -195,10 +199,10 @@
         const highWR = players.filter(p => p.matches >= 3).sort((a, b) => (b.wins / b.matches) - (a.wins / a.matches))[0];
 
         let html = '';
-        html += buildRecordCard('👑', 'Highest Rating This Month', topRating.name, topRating.rating.toFixed(2));
-        html += buildRecordCard('🎮', 'Most Matches This Month', topMatches.name, topMatches.matches + ' matches');
-        html += buildRecordCard('🏅', 'Most Wins This Month', topWins.name, topWins.wins + ' wins');
-        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
+        html += buildRecordCard('crown', 'Highest Rating This Month', topRating.name, topRating.rating.toFixed(2));
+        html += buildRecordCard('gamepad-2', 'Most Matches This Month', topMatches.name, topMatches.matches + ' matches');
+        html += buildRecordCard('medal', 'Most Wins This Month', topWins.name, topWins.wins + ' wins');
+        if (highWR) html += buildRecordCard('target', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
         container.innerHTML = html || '<div class="state-box state-empty"><div class="state-title">Not enough data.</div></div>';
 
         const top5 = players.sort((a, b) => b.rating - a.rating).slice(0, 5);

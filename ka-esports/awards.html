@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/icons.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .awards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
@@ -57,12 +58,14 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/icon.js"></script>
   <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/navbar.js"></script>
   <script src="../js/ui/header.js"></script>
 
   <script>
     Navbar.inject('navbar-container');
+    Icon.renderAll();
 
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {
@@ -89,9 +92,10 @@
     }
 
     function buildAwardCard(icon, title, player, stat) {
+      const iconSvg = typeof Icon !== 'undefined' ? Icon.get(icon, { size: 24 }) : icon;
       return `
         <div class="award-card">
-          <div class="award-icon">${icon}</div>
+          <div class="award-icon">${iconSvg}</div>
           <div class="award-title">${escapeHtml(title)}</div>
           <div class="award-player">${escapeHtml(player)}</div>
           <div class="award-stat">${escapeHtml(stat)}</div>
@@ -182,13 +186,13 @@
         const ironWall = players.reduce((a, b) => (a.rd || 0) < (b.rd || 0) ? a : b);
 
         let html = '';
-        html += buildAwardCard('👑', 'MVP of the Month', mvp.name, `${(mvp.rating || 0).toFixed(2)} rating`);
-        html += buildAwardCard('🚀', 'Most Improved', mostImproved.name, `+${(mostImproved.improvement || 0).toFixed(2)} points`);
+        html += buildAwardCard('crown', 'MVP of the Month', mvp.name, `${(mvp.rating || 0).toFixed(2)} rating`);
+        html += buildAwardCard('rocket', 'Most Improved', mostImproved.name, `+${(mostImproved.improvement || 0).toFixed(2)} points`);
         if (risingStar) {
           const wr = risingStar.matches ? (risingStar.wins / risingStar.matches * 100).toFixed(0) : 0;
-          html += buildAwardCard('🌟', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
+          html += buildAwardCard('star', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
         }
-        html += buildAwardCard('🛡️', 'Iron Wall', ironWall.name, `RD ${(ironWall.rd || 0).toFixed(0)}`);
+        html += buildAwardCard('shield', 'Iron Wall', ironWall.name, `RD ${(ironWall.rd || 0).toFixed(0)}`);
         cardsContainer.innerHTML = `<div class="awards-grid">${html}</div>`;
 
         const top5 = players.sort((a, b) => b.rating - a.rating).slice(0, 5);

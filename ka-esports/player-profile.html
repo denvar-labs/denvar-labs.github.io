@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/icons.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -43,12 +44,14 @@
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/icon.js"></script>
   <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/navbar.js"></script>
   <script src="../js/ui/header.js"></script>
 
   <script>
     Navbar.inject('navbar-container');
+    Icon.renderAll();
 
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {

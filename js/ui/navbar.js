@@ -6,14 +6,14 @@
 const Navbar = (() => {
 
   const NAV_ITEMS = [
-    { href: '/', labelKey: 'nav_home' },
-    { href: '/ka-esports/global-leaderboard.html', labelKey: 'nav_global_leaderboard' },
-    { href: '/ka-esports/monthly-leaderboard.html', labelKey: 'nav_monthly_leaderboard' },
-    { href: '/ka-esports/match-reports.html', labelKey: 'nav_match_reports' },
-    { href: '/ka-esports/player-profile.html', labelKey: 'nav_player_profile' },
-    { href: '/ka-esports/hall-of-fame.html', labelKey: 'nav_hall_of_fame' },
-    { href: '/ka-esports/streams.html', labelKey: 'nav_streams' },
-    { href: '/ka-esports/faq.html', labelKey: 'nav_faq' },
+    { href: '/', labelKey: 'nav_home', icon: 'house' },
+    { href: '/ka-esports/global-leaderboard.html', labelKey: 'nav_global_leaderboard', icon: 'globe' },
+    { href: '/ka-esports/monthly-leaderboard.html', labelKey: 'nav_monthly_leaderboard', icon: 'calendar' },
+    { href: '/ka-esports/match-reports.html', labelKey: 'nav_match_reports', icon: 'clipboard-list' },
+    { href: '/ka-esports/player-profile.html', labelKey: 'nav_player_profile', icon: 'user' },
+    { href: '/ka-esports/hall-of-fame.html', labelKey: 'nav_hall_of_fame', icon: 'trophy' },
+    { href: '/ka-esports/streams.html', labelKey: 'nav_streams', icon: 'radio' },
+    { href: '/ka-esports/faq.html', labelKey: 'nav_faq', icon: 'book-open' },
   ];
 
   function getActiveHref() {
@@ -41,7 +41,8 @@ const Navbar = (() => {
     const navLinks = NAV_ITEMS.map(item => {
       const isActive = item.href === currentHref ? ' active' : '';
       const label = t(item.labelKey);
-      return `<a href="${item.href}" class="nav-link${isActive}"><span class="nav-text">${label}</span></a>`;
+      const iconSvg = typeof Icon !== 'undefined' ? Icon.get(item.icon) : '';
+      return `<a href="${item.href}" class="nav-link${isActive}">${iconSvg}<span class="nav-text">${label}</span></a>`;
     }).join('');
 
     const langLabel = lang === 'es' ? 'Español' : 'English';
@@ -52,7 +53,7 @@ const Navbar = (() => {
       <nav class="navbar" role="navigation" aria-label="Main navigation">
         <div class="navbar-inner">
           <a href="/" class="navbar-brand">
-            <span class="navbar-logo">🏆</span>
+            <span class="navbar-logo">${typeof Icon !== 'undefined' ? Icon.get('trophy') : '🏆'}</span>
             <span class="navbar-title">KA ESPORTS</span>
           </a>
 
@@ -68,7 +69,7 @@ const Navbar = (() => {
             <div class="navbar-actions">
               <div class="lang-dropdown" id="lang-dropdown">
                 <button class="lang-trigger" id="lang-trigger" aria-label="Change language" aria-expanded="false">
-                  <span class="globe-icon">🌐</span>
+                  <span class="globe-icon">${typeof Icon !== 'undefined' ? Icon.get('globe-2') : '🌐'}</span>
                   <span class="lang-current">${langLabel}</span>
                   <span class="caret">▾</span>
                 </button>
@@ -83,7 +84,7 @@ const Navbar = (() => {
               </div>
 
               <button class="navbar-icon-btn" id="dark-toggle-btn" data-dark-toggle aria-label="Toggle dark mode">
-                <span id="dark-label">🌙</span>
+                <span id="dark-label">${typeof Icon !== 'undefined' ? Icon.get('moon') : '🌙'}</span>
               </button>
             </div>
           </div>

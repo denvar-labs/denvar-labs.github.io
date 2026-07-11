@@ -5,7 +5,10 @@
   function applyDark(on) {
     document.body.classList.toggle('dark', on);
     const label = document.getElementById('dark-label');
-    if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
+    if (label) {
+      const iconSvg = typeof Icon !== 'undefined' ? Icon.get(on ? 'sun' : 'moon') : (on ? '☀️' : '🌙');
+      label.innerHTML = iconSvg + ' ' + (on ? 'Light mode' : 'Dark mode');
+    }
   }
 
   const saved = localStorage.getItem('ka_dark_mode');
