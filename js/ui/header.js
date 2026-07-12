@@ -54,8 +54,8 @@ const PageHeader = (() => {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = render(config);
-    // Bind dark mode (safe check)
-    if (typeof DarkMode !== 'undefined' && DarkMode.bind) {
+    // Bind dark mode only if page uses showDarkToggle (navbar handles its own binding)
+    if (config.showDarkToggle && typeof DarkMode !== 'undefined' && DarkMode.bind) {
       DarkMode.bind('dark-toggle-btn');
     }
     // Store config for re-render on language change
