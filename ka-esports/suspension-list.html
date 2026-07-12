@@ -19,6 +19,7 @@
     .suspension-dates { color: var(--text-muted); font-size: 0.9rem; margin: 4px 0; }
     .suspension-reason { margin-top: 8px; font-style: italic; color: var(--text-muted); }
   </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 </head>
 <body>
   <div id="navbar-container"></div>
@@ -35,12 +36,12 @@
         <section class="panel" style="margin-top:20px;">
           <div class="section-heading">ℹ️ Important Considerations</div>
           <ul style="list-style-type: disc; margin-left: 20px; color: var(--text-muted);">
-            <li>Suspensions are temporary unless the administration states otherwise.</li>
-            <li>Players may rejoin competitions once the sanction period ends.</li>
-            <li>Any appeal must be submitted to the KA ESPORTS administrative team.</li>
-            <li>All sanctions are recorded to guarantee transparency and competitive integrity.</li>
+            <li data-i18n="suspension-list_suspensions_are_temporary_unless_the_adm">Suspensions are temporary unless the administration states otherwise.</li>
+            <li data-i18n="suspension-list_players_may_rejoin_competitions_once_the">Players may rejoin competitions once the sanction period ends.</li>
+            <li data-i18n="suspension-list_any_appeal_must_be_submitted_to_the_ka_e">Any appeal must be submitted to the KA ESPORTS administrative team.</li>
+            <li data-i18n="suspension-list_all_sanctions_are_recorded_to_guarantee_">All sanctions are recorded to guarantee transparency and competitive integrity.</li>
           </ul>
-          <p style="margin-top: 12px; color: var(--text-muted);">
+          <p style="margin-top: 12px; color: var(--text-muted);" data-i18n="fair_play">
             Fair competition, respect, and sportsmanship are fundamental pillars of our community.
           </p>
         </section>

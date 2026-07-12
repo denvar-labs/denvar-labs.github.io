@@ -32,6 +32,7 @@
     .confirm-box.visible { display: block; }
     label { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
   </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 </head>
 <body>
   <div id="navbar-container"></div>
@@ -54,16 +55,16 @@
         <select id="player-select">
           <option value="">-- Choose player --</option>
         </select>
-        <label>Or Player ID manually:</label>
+        <label data-i18n="admin_penalty_or_player_id_manually">Or Player ID manually:</label>
         <input type="text" id="player-id" placeholder="P_...">
-        <label>Admin Key</label>
+        <label data-i18n="admin_penalty_admin_key">Admin Key</label>
         <input type="password" id="admin-key" placeholder="Secret key" autocomplete="off">
         <br><br>
-        <button id="penalty-btn" onclick="requestPenaltyConfirm()">Apply -40 Penalty</button>
+        <button id="penalty-btn" onclick="requestPenaltyConfirm()" data-i18n="admin_penalty_apply_40_penalty">Apply -40 Penalty</button>
         <div id="penalty-confirm" class="confirm-box">
           <p id="penalty-confirm-text"></p>
-          <button class="danger" onclick="applyPenalty()">Sí, confirmar penalización</button>
-          <button class="neutral" onclick="cancelPenaltyConfirm()">Cancelar</button>
+          <button class="danger" onclick="applyPenalty()" data-i18n="admin_penalty_s_confirmar_penalizacin">Sí, confirmar penalización</button>
+          <button class="neutral" onclick="cancelPenaltyConfirm()" data-i18n="admin_penalty_cancelar">Cancelar</button>
         </div>
         <div id="penalty-result" class="result"></div>
       </div>
@@ -77,22 +78,22 @@
         <select id="susp-player-select">
           <option value="">-- Choose player --</option>
         </select>
-        <label>Or Player ID manually:</label>
+        <label data-i18n="admin_penalty_or_player_id_manually">Or Player ID manually:</label>
         <input type="text" id="susp-player-id" placeholder="P_...">
-        <label>Start Date & Time</label>
+        <label data-i18n="admin_penalty_start_date_time">Start Date & Time</label>
         <input type="datetime-local" id="susp-start">
-        <label>End Date & Time</label>
+        <label data-i18n="admin_penalty_end_date_time">End Date & Time</label>
         <input type="datetime-local" id="susp-end">
-        <label>Reason</label>
+        <label data-i18n="admin_penalty_reason">Reason</label>
         <input type="text" id="susp-reason" placeholder="Conducta antideportiva, etc.">
-        <label>Admin Key</label>
+        <label data-i18n="admin_penalty_admin_key">Admin Key</label>
         <input type="password" id="susp-admin-key" placeholder="Secret key" autocomplete="off">
         <br><br>
-        <button id="susp-btn" onclick="requestSuspensionConfirm()">Add Suspension</button>
+        <button id="susp-btn" onclick="requestSuspensionConfirm()" data-i18n="admin_penalty_add_suspension">Add Suspension</button>
         <div id="susp-confirm" class="confirm-box">
           <p id="susp-confirm-text"></p>
-          <button class="danger" onclick="addSuspension()">Sí, confirmar suspensión</button>
-          <button class="neutral" onclick="cancelSuspensionConfirm()">Cancelar</button>
+          <button class="danger" onclick="addSuspension()" data-i18n="admin_penalty_s_confirmar_suspensin">Sí, confirmar suspensión</button>
+          <button class="neutral" onclick="cancelSuspensionConfirm()" data-i18n="admin_penalty_cancelar">Cancelar</button>
         </div>
         <div id="suspension-result" class="result"></div>
       </div>

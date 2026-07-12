@@ -24,6 +24,7 @@
     .mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .chart-container { max-width: 800px; margin: 20px auto; }
   </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 </head>
 <body>
   <div id="navbar-container"></div>
@@ -34,8 +35,8 @@
       <main class="content">
         <section class="panel">
           <div class="mode-switch" id="mode-switch">
-            <button class="mode-btn active" data-mode="alltime">🏆 All‑Time</button>
-            <button class="mode-btn" data-mode="monthly">📅 Monthly</button>
+            <button class="mode-btn active" data-mode="alltime" data-i18n="hall-of-fame_alltime">🏆 All‑Time</button>
+            <button class="mode-btn" data-mode="monthly" data-i18n="hall-of-fame_monthly">📅 Monthly</button>
           </div>
 
           <div id="month-selector" style="display:none; margin-bottom:16px;">
