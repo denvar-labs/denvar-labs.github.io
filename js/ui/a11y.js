@@ -136,7 +136,11 @@ const A11y = (() => {
     if (!document.querySelector('.skip-link')) {
       const skip = document.createElement('a');
       skip.className = 'skip-link';
-      skip.href = '#main-content, main, .content';
+      const target = document.querySelector('#main-content, main, .content');
+      if (target) {
+        if (!target.id) target.id = 'main-content';
+        skip.href = '#' + target.id;
+      }
       skip.textContent = 'Skip to content';
       document.body.insertBefore(skip, document.body.firstChild);
     }

@@ -8,7 +8,7 @@ const ExportUtils = (() => {
   function exportCSV(tableId, filename) {
     const table = document.getElementById(tableId);
     if (!table || !table.querySelector('thead th')) {
-      if (typeof showToast === 'function') showToast('Table not loaded yet.', 'error');
+      AdvancedToast.error('Table not loaded yet.');
       return false;
     }
     const rows = table.querySelectorAll('tr');
@@ -23,18 +23,18 @@ const ExportUtils = (() => {
     const dateStr = new Date().toISOString().split('T')[0];
     link.download = filename.replace('{date}', dateStr);
     link.click();
-    if (typeof showToast === 'function') showToast('CSV downloaded successfully', 'success');
+    AdvancedToast.success('CSV downloaded successfully');
     return true;
   }
 
   async function exportScreenshot(tableId, filename, btn) {
     const table = document.getElementById(tableId);
     if (!table || !table.querySelector('thead th')) {
-      if (typeof showToast === 'function') showToast('Table not loaded yet.', 'error');
+      AdvancedToast.error('Table not loaded yet.');
       return false;
     }
     if (typeof html2canvas === 'undefined') {
-      if (typeof showToast === 'function') showToast('Screenshot library not loaded.', 'error');
+      AdvancedToast.error('Screenshot library not loaded.');
       return false;
     }
 
@@ -72,11 +72,11 @@ const ExportUtils = (() => {
       link.download = filename.replace('{date}', dateStr);
       link.href = canvas.toDataURL('image/png');
       link.click();
-      if (typeof showToast === 'function') showToast('Screenshot downloaded', 'success');
+      AdvancedToast.success('Screenshot downloaded');
       return true;
     } catch (err) {
       console.error('Screenshot failed:', err);
-      if (typeof showToast === 'function') showToast('Failed to generate screenshot.', 'error');
+      AdvancedToast.error('Failed to generate screenshot.');
       return false;
     } finally {
       if (btn) {

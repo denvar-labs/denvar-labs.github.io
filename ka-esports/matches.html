@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/esports.css">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
   <meta name="description" content="All matches processed by the Glicko-2 ranking system.">
   <meta property="og:title" content="Matches – KA ESPORTS">
@@ -27,6 +27,7 @@
   <meta name="twitter:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
 </head>
 <body>
+  <div id="navbar-container"></div>
   <div class="wrap">
     <div id="page-header"></div>
     <div class="grid">
@@ -46,9 +47,13 @@
   </div>
   <script src="../js/config.js"></script>
   <script src="../js/api-loader.js"></script>
+  <script src="../js/ui/toast-advanced.js"></script>
   <script src="../js/ui/darkmode.js"></script>
+  <script src="../js/ui/i18n.js"></script>
+  <script src="../js/ui/navbar.js"></script>
   <script src="../js/ui/header.js"></script>
   <script>
+    Navbar.inject('navbar-container');
     if (typeof PageHeader !== 'undefined') {
       PageHeader.inject('page-header', {
         title: 'Match History',

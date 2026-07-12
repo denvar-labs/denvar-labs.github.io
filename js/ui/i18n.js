@@ -495,6 +495,17 @@ const I18n = (() => {
       admin_penalty_s_confirmar_penalización: 'Sí, confirmar penalización',
       admin_penalty_s_confirmar_suspensión: 'Sí, confirmar suspensión',
       admin_penalty_start_date_time: 'Fecha y Hora de Inicio',
+      admin_rate_limit: 'Demasiados intentos. Espere {s}s para reintentar.',
+      admin_select_player: 'Seleccione o ingrese un jugador.',
+      admin_confirm_penalty: 'Aplicar penalización de -40 Rating a {player}. Esta acción no se puede deshacer.',
+      admin_penalty_applied: 'Penalización aplicada correctamente.',
+      admin_penalty_error: 'Error al aplicar penalización. Verifique la clave e intente de nuevo.',
+      admin_susp_fill_dates: 'Complete las fechas de inicio y fin.',
+      admin_susp_end_after_start: 'La fecha de fin debe ser posterior a la de inicio.',
+      admin_susp_enter_reason: 'Ingrese un motivo (mín. 3 caracteres).',
+      admin_susp_confirm_text: 'Suspender a {player} desde {start} hasta {end}. Motivo: {reason}',
+      admin_susp_applied: 'Suspensión aplicada correctamente.',
+      admin_susp_error: 'Error al aplicar suspensión. Verifique la clave e intente de nuevo.',
       awards_rating_evolution_of_the_top_5_players_du: 'Evolución del Rating del Top 5 durante este mes',
       community_discord: '💬 Discord',
       community_join_the_ka_esports_community_server: 'Únete al servidor comunitario de KA ESPORTS.',
@@ -1087,6 +1098,17 @@ const I18n = (() => {
       admin_penalty_s_confirmar_penalización: 'Yes, confirm penalty',
       admin_penalty_s_confirmar_suspensión: 'Yes, confirm suspension',
       admin_penalty_start_date_time: 'Start Date & Time',
+      admin_rate_limit: 'Too many attempts. Wait {s}s to retry.',
+      admin_select_player: 'Select or enter a player.',
+      admin_confirm_penalty: 'Apply -40 Rating penalty to {player}. This action cannot be undone.',
+      admin_penalty_applied: 'Penalty applied successfully.',
+      admin_penalty_error: 'Error applying penalty. Check the key and try again.',
+      admin_susp_fill_dates: 'Fill in the start and end dates.',
+      admin_susp_end_after_start: 'The end date must be after the start date.',
+      admin_susp_enter_reason: 'Enter a reason (min. 3 characters).',
+      admin_susp_confirm_text: 'Suspend {player} from {start} to {end}. Reason: {reason}',
+      admin_susp_applied: 'Suspension applied successfully.',
+      admin_susp_error: 'Error applying suspension. Check the key and try again.',
       awards_rating_evolution_of_the_top_5_players_du: 'Rating evolution of the Top 5 players during this month',
       community_discord: '💬 Discord',
       community_join_the_ka_esports_community_server: 'Join the KA ESPORTS community server.',
@@ -1195,7 +1217,7 @@ const I18n = (() => {
   };
 
   function t(key) {
-    const val = translations[currentLang]?.[key] || translations['es']?.[key];
+    const val = translations[currentLang]?.[key] || translations['en']?.[key];
     return val || key;
   }
 

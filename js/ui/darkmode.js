@@ -11,6 +11,7 @@ const DarkMode = (() => {
   }
 
   function apply(on) {
+    if (!document.body) return;
     document.body.classList.toggle('dark', on);
     const label = document.getElementById('dark-label');
     if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';

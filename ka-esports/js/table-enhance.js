@@ -79,13 +79,17 @@ export class TableEnhance {
   }
 
   createFilterInput(placeholder) {
-    const container = document.getElementById('filter-container') || this.table.parentElement;
     this.filterInput = document.createElement('input');
     this.filterInput.type = 'search';
     this.filterInput.placeholder = placeholder;
     this.filterInput.className = 'table-filter-input';
     this.filterInput.style.cssText = 'width:100%; padding:8px 12px; margin-bottom:12px; border:1px solid var(--border); border-radius:6px; font-size:14px;';
-    container.appendChild(this.filterInput); // appendChild, not insertBefore
+    const filterContainer = document.getElementById('filter-container');
+    if (filterContainer) {
+      filterContainer.appendChild(this.filterInput);
+    } else {
+      this.table.parentNode.insertBefore(this.filterInput, this.table);
+    }
 
     let debounceTimer;
     this.filterInput.addEventListener('input', () => {
@@ -104,18 +108,24 @@ export class TableEnhance {
   }
 
   createColumnPicker() {
-    const container = document.getElementById('column-picker-container') || this.table.parentElement;
     this.columnPickerBtn = document.createElement('button');
     this.columnPickerBtn.type = 'button';
     this.columnPickerBtn.className = 'column-picker-btn';
     this.columnPickerBtn.textContent = 'Columns ▼';
     this.columnPickerBtn.style.cssText = 'padding:6px 12px; margin-bottom:12px; border:1px solid var(--border); border-radius:6px; background:var(--surface); cursor:pointer; font-size:13px;';
-    container.appendChild(this.columnPickerBtn);
 
     this.columnPickerDropdown = document.createElement('div');
     this.columnPickerDropdown.className = 'column-picker-dropdown';
     this.columnPickerDropdown.style.cssText = 'position:absolute; display:none; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); z-index:100; min-width:180px;';
-    container.appendChild(this.columnPickerDropdown);
+
+    const pickerContainer = document.getElementById('column-picker-container');
+    if (pickerContainer) {
+      pickerContainer.appendChild(this.columnPickerBtn);
+      pickerContainer.appendChild(this.columnPickerDropdown);
+    } else {
+      this.table.parentNode.insertBefore(this.columnPickerBtn, this.table);
+      this.table.parentNode.insertBefore(this.columnPickerDropdown, this.table);
+    }
 
     this.columnPickerBtn.addEventListener('click', (e) => {
       e.stopPropagation();

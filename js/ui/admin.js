@@ -41,7 +41,7 @@ const Admin = (() => {
       return el;
     })();
     cooldownTimer = setInterval(() => {
-      msg.textContent = `Demasiados intentos. Espere ${remaining}s para reintentar.`;
+      msg.textContent = I18n.t('admin_rate_limit').replace('{s}', remaining);
       remaining--;
       if (remaining < 0) {
         clearInterval(cooldownTimer);
@@ -75,11 +75,11 @@ const Admin = (() => {
     const playerId = document.getElementById('player-id');
     const pid = playerId?.value?.trim() || playerSelect?.value || '';
     if (!pid || pid === '') {
-      showError('penalty-result', 'Seleccione o ingrese un jugador.');
+      showError('penalty-result', I18n.t('admin_select_player'));
       return;
     }
     document.getElementById('penalty-confirm-text').textContent =
-      `Aplicar penalización de -40 Rating a ${escapeHtml(pid)}. Esta acción no se puede deshacer.`;
+      I18n.t('admin_confirm_penalty').replace('{player}', escapeHtml(pid));
     document.getElementById('penalty-confirm').classList.add('visible');
     document.getElementById('penalty-btn').disabled = true;
   }
@@ -97,12 +97,14 @@ const Admin = (() => {
       const resp = await fetch(KA_API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const result = await resp.json().catch(() => ({}));
-      showSuccess('penalty-result', result.message || 'Penalización aplicada correctamente.');
+      showSuccess('penalty-result', result.message || I18n.t('admin_penalty_applied'));
       cancelPenaltyConfirm();
     } catch (err) {
-      showError('penalty-result', 'Error al aplicar penalización. Verifique la clave e intente de nuevo.');
+      showError('penalty-result', I18n.t('admin_penalty_error'));
       console.error('[Admin] Penalty error:', err);
       cancelPenaltyConfirm();
+    } finally {
+      clearKey();
     }
   }
 
@@ -114,13 +116,13 @@ const Admin = (() => {
     const end = document.getElementById('susp-end')?.value;
     const reason = document.getElementById('susp-reason')?.value?.trim();
 
-    if (!pid) { showError('suspension-result', 'Seleccione o ingrese un jugador.'); return; }
-    if (!start || !end) { showError('suspension-result', 'Complete las fechas de inicio y fin.'); return; }
-    if (new Date(end) <= new Date(start)) { showError('suspension-result', 'La fecha de fin debe ser posterior a la de inicio.'); return; }
-    if (!reason || reason.length < 3) { showError('suspension-result', 'Ingrese un motivo (mín. 3 caracteres).'); return; }
+    if (!pid) { showError('suspension-result', I18n.t('admin_select_player')); return; }
+    if (!start || !end) { showError('suspension-result', I18n.t('admin_susp_fill_dates')); return; }
+    if (new Date(end) <= new Date(start)) { showError('suspension-result', I18n.t('admin_susp_end_after_start')); return; }
+    if (!reason || reason.length < 3) { showError('suspension-result', I18n.t('admin_susp_enter_reason')); return; }
 
     document.getElementById('susp-confirm-text').textContent =
-      `Suspender a ${escapeHtml(pid)} desde ${start} hasta ${end}. Motivo: ${escapeHtml(reason)}`;
+      I18n.t('admin_susp_confirm_text').replace('{player}', escapeHtml(pid)).replace('{start}', start).replace('{end}', end).replace('{reason}', escapeHtml(reason));
     document.getElementById('susp-confirm').classList.add('visible');
     document.getElementById('susp-btn').disabled = true;
   }
@@ -141,12 +143,14 @@ const Admin = (() => {
       const resp = await fetch(KA_API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const result = await resp.json().catch(() => ({}));
-      showSuccess('suspension-result', result.message || 'Suspensión aplicada correctamente.');
+      showSuccess('suspension-result', result.message || I18n.t('admin_susp_applied'));
       cancelSuspensionConfirm();
     } catch (err) {
-      showError('suspension-result', 'Error al aplicar suspensión. Verifique la clave e intente de nuevo.');
+      showError('suspension-result', I18n.t('admin_susp_error'));
       console.error('[Admin] Suspension error:', err);
       cancelSuspensionConfirm();
+    } finally {
+      clearKey();
     }
   }
 
