@@ -1,0 +1,40 @@
+﻿656c355 feat: add Orbitron font and esports.css to index.html
+
+## Files changed
+
+ index.html | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+## Diff
+
+diff --git a/index.html b/index.html
+index b52461f..dc081e8 100644
+--- a/index.html
++++ b/index.html
+@@ -1,21 +1,26 @@
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://script.google.com; img-src 'self' https: data:; frame-src https://www.twitch.tv https://player.twitch.tv https://www.youtube.com;">
+   <title>Denvar Labs ÔÇô Gaming Projects</title>
+   <meta name="description" content="Home of KA ESPORTS and other gaming projects by Denvar.">
+   <link rel="canonical" href="https://denvar-labs.github.io/">
+   <link rel="preconnect" href="https://script.google.com" crossorigin>
+   <link rel="dns-prefetch" href="https://script.google.com">
+   <link rel="stylesheet" href="css/style.css">
++  <link rel="preconnect" href="https://fonts.googleapis.com">
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
++  <link rel="stylesheet" href="css/esports.css">
+   <style>
+     .hero-root {
+       background: linear-gradient(135deg, #6366f1 0%, #4a86e8 100%);
+       color: #fff;
+       padding: 4rem 1.5rem;
+       text-align: center;
+     }
+     body.dark .hero-root { background: linear-gradient(135deg, #3730a3 0%, #2a3a5c 100%); }
+     .hero-root h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; }
+     .hero-root p { font-size: 1.1rem; opacity: 0.9; max-width: 500px; margin: 0 auto; }

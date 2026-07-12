@@ -1,0 +1,63 @@
+﻿5a79221 feat: add neon tokens for esports visual identity
+
+## Files changed
+
+ css/tokens.css | 23 +++++++++++++++--------
+ 1 file changed, 15 insertions(+), 8 deletions(-)
+
+## Diff
+
+diff --git a/css/tokens.css b/css/tokens.css
+index 935f981..128af30 100644
+--- a/css/tokens.css
++++ b/css/tokens.css
+@@ -106,34 +106,41 @@
+   --transition-slow: 300ms ease;
+ 
+   /* ===== TYPOGRAPHY ===== */
+   --text-xs: 0.75rem;
+   --text-sm: 0.875rem;
+   --text-base: 1rem;
+   --text-lg: 1.125rem;
+   --text-xl: 1.25rem;
+   --text-2xl: 1.5rem;
+   --text-3xl: 1.875rem;
++
++  /* ===== E-SPORTS/DISPLAY ===== */
++  --font-display: 'Orbitron', 'Inter', system-ui, sans-serif;
++  --accent-glow: 0 0 20px rgba(0, 212, 255, 0.4);
++  --accent-glow-strong: 0 0 30px rgba(0, 212, 255, 0.6);
++  --accent-glow-text: 0 0 10px rgba(0, 212, 255, 0.5);
+ }
+ 
+ /* ===== DARK MODE ===== */
+ body.dark {
+-  --bg: #1a1d23;
+-  --surface: #23272e;
+-  --surface-alt: #1e2127;
+-  --surface-hover: #2a2e36;
+-  --border: #3a3f4a;
+-  --border-light: #2d3139;
++  --bg: #0d1117;
++  --surface: #161b22;
++  --surface-alt: #1c2333;
++  --surface-hover: #21262d;
++  --border: rgba(0, 212, 255, 0.15);
++  --border-light: rgba(0, 212, 255, 0.08);
+   --text: #e8eaed;
+   --text-muted: #9aa4b2;
+-  --accent: #6ba3f8;
+-  --accent-dark: #4a86e8;
++  --accent: #00d4ff;
++  --accent-dark: #00b8e6;
++  --accent-light: rgba(0, 212, 255, 0.15);
+   --success-bg: #064e3b;
+   --danger-bg: #5f1a1a;
+   --warning-bg: #5f4a0a;
+   --rank-gm: #d4a017;
+   --rank-master: #e6a800;
+   --rank-pro: #5b9bd5;
+   --rank-expert: #d63434;
+   --rank-advanced: #e6d740;
+   --rank-amateur: #5fbf5f;
+   --rank-padawan: #9b9b9b;

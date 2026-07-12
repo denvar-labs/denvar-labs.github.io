@@ -1,0 +1,5 @@
+﻿Task 1: complete (commits 434f1c5..5a79221, review clean)
+Task 2: complete (commits 5a79221..3be29d7, review clean)
+Task 3: complete (commits 3be29d7..ae249fa, CSP fixed)
+Task 4: complete (commits d2da614..9f19e10, review concerns addressed - font-src added)
+Task 5: complete (commit af284fe)

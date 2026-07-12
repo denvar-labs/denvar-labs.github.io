@@ -1,0 +1,166 @@
+### Task 2: Create css/esports.css
+
+**Files:**
+- Create: `css/esports.css`
+- Test: verify in dark mode in browser
+
+**Interfaces:** Consumes: CSS variables from tokens.css. Produces: gaming visual overrides active in dark mode.
+
+- [ ] **Step 1: Create css/esports.css**
+
+```css
+/* ===== KA ESPORTS - Esports Visual Identity ===== */
+/* Gaming/neon overrides for dark mode — additive, loaded after style.css */
+
+/* ===== HERO GLOW (dark mode) ===== */
+body.dark .hero {
+  background: linear-gradient(135deg, #0d1117 0%, rgba(0, 212, 255, 0.07) 50%, #0d1117 100%);
+  background-size: 200% 200%;
+  animation: heroGlow 8s ease infinite;
+  border: 1px solid var(--border);
+}
+
+@keyframes heroGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body.dark .hero h1 {
+  text-shadow: var(--accent-glow-text);
+}
+
+body.dark .eyebrow {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent);
+}
+
+/* ===== PANEL/CARD GLOW (dark mode) ===== */
+body.dark .panel {
+  border-color: var(--border);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+body.dark .panel:hover {
+  border-color: rgba(0, 212, 255, 0.3);
+  box-shadow: var(--accent-glow);
+}
+
+body.dark .panel-heading {
+  border-bottom-color: var(--border);
+}
+
+/* ===== DATA TABLE (dark mode) ===== */
+body.dark .data-table th {
+  background: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
+  border-bottom: none;
+}
+
+body.dark .data-table tbody tr:hover td:not([class*="rank-"]) {
+  background-color: rgba(0, 212, 255, 0.05);
+}
+
+/* ===== NAVBAR (dark mode) ===== */
+body.dark .navbar-brand {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+
+body.dark .navbar {
+  border-bottom-color: var(--border);
+}
+
+body.dark .nav-link.active {
+  color: var(--accent);
+  text-shadow: var(--accent-glow-text);
+}
+
+/* ===== BUTTONS (dark mode) ===== */
+body.dark .btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 700;
+}
+
+body.dark .btn-primary:hover:not(:disabled) {
+  background: #00e6ff;
+  box-shadow: var(--accent-glow);
+  border-color: #00e6ff;
+}
+
+body.dark .btn-secondary {
+  border-color: var(--border);
+}
+
+body.dark .btn-secondary:hover:not(:disabled) {
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+/* ===== SECTION HEADINGS (dark mode) ===== */
+body.dark .section-heading {
+  font-family: var(--font-display);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ===== QUICK LINKS SIDEBAR (dark mode) ===== */
+body.dark .quick-links a:hover {
+  background: var(--accent);
+  color: #000;
+  box-shadow: var(--accent-glow);
+}
+
+/* ===== BADGE (dark mode) ===== */
+body.dark .badge-primary {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent);
+}
+
+/* ===== PAGINATION (dark mode) ===== */
+body.dark .page-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  box-shadow: var(--accent-glow);
+}
+
+/* ===== DARK TOGGLE (dark mode — already neon-matched) ===== */
+body.dark .dark-toggle {
+  background: var(--accent);
+}
+
+/* ===== STATE BOXES (dark mode) ===== */
+body.dark .state-box.state-error {
+  border-color: rgba(229, 57, 53, 0.3);
+}
+
+body.dark .retry-btn {
+  background: var(--accent);
+  color: #000;
+}
+
+body.dark .retry-btn:hover {
+  box-shadow: var(--accent-glow);
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  body.dark .hero {
+    animation: none;
+  }
+}
+```
+
+- [ ] **Step 2: Verify file syntax**
+
+Run: `node -e "const fs = require('fs'); const css = fs.readFileSync('css/esports.css','utf8'); console.log('OK,', css.split('\n').length, 'lines');"`
+Expected: OK, ~130 lines
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add css/esports.css
+git commit -m "feat: add esports.css with neon dark mode overrides"
+```
