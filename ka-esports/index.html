@@ -113,10 +113,44 @@
       margin-top: var(--space-8);
     }
 
+    .section-card {
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+    }
+    .section-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(74,134,232,0.2), 0 0 40px rgba(74,134,232,0.08);
+    }
+    body.dark .section-card:hover {
+      box-shadow: 0 0 12px rgba(100,160,255,0.15), 0 0 30px rgba(100,160,255,0.06);
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      transition: background var(--transition-fast), color var(--transition-fast);
+      cursor: default;
+    }
+    .live-indicator.live { background: rgba(16,185,129,0.15); color: #10b981; }
+    .live-indicator.offline { background: rgba(156,163,175,0.12); color: var(--text-muted); }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block;
+    }
+    .live-indicator.live .live-dot { background: #10b981; animation: pulse 2s infinite; }
+    .live-indicator.offline .live-dot { background: #9ca3af; }
+    .hero-top { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-3); flex-wrap: wrap; }
+
     body:not(.dark) .hero-landing { box-shadow: 0 4px 20px rgba(74,134,232,0.3); }
     body.dark .hero-landing { background: linear-gradient(135deg, #2a3a5c 0%, #1a2540 100%); }
   </style>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com https://unpkg.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
   <meta name="description" content="Your central access to all Mario Kart 64 competitive data. Rankings, match reports, player profiles, and more.">
   <meta property="og:title" content="KA ESPORTS – Mario Kart 64 Competitive Hub">
@@ -130,25 +164,31 @@
   <meta name="twitter:title" content="KA ESPORTS – Mario Kart 64 Competitive Hub">
   <meta name="twitter:description" content="Your central access to all Mario Kart 64 competitive data. Rankings, match reports, player profiles, and more.">
   <meta name="twitter:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
-</head>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script></head>
 <body>
   <div id="navbar-container"></div>
 
   <main>
   <div class="hero-landing">
-    <h1 data-i18n="index_ka_esports">🏆 KA ESPORTS</h1>
+    <div class="hero-top">
+      <h1><i class="ph-bold ph-trophy emoji-hero" aria-hidden="true"></i> <span data-i18n="index_ka_esports">KA ESPORTS</span></h1>
+      <div class="live-indicator offline" id="live-indicator" title="Check live stream status">
+        <span class="live-dot"></span>
+        <span id="live-label" data-i18n="live_checking">Checking…</span>
+      </div>
+    </div>
     <p data-i18n="desc_home">Tu acceso central a todos los datos competitivos de Mario Kart 64.</p>
     <div class="hero-actions">
       <a href="global-leaderboard.html" class="hero-btn hero-btn-primary">
-        <span>🌍</span>
+        <i class="ph-bold ph-globe" aria-hidden="true"></i>
         <span data-i18n="nav_global_leaderboard">Leaderboard Global</span>
       </a>
       <a href="monthly-leaderboard.html" class="hero-btn hero-btn-secondary">
-        <span>📆</span>
+        <i class="ph-bold ph-calendar" aria-hidden="true"></i>
         <span data-i18n="nav_monthly_leaderboard">Leaderboard Mensual</span>
       </a>
       <a href="match-reports.html" class="hero-btn hero-btn-secondary">
-        <span>📋</span>
+        <i class="ph-bold ph-clipboard-text" aria-hidden="true"></i>
         <span data-i18n="nav_match_reports">Reportes de Partidas</span>
       </a>
     </div>
@@ -176,42 +216,42 @@
 
     <div class="section-grid">
       <a href="global-leaderboard.html" class="section-card">
-        <div class="section-card-icon">🌍</div>
+        <div class="section-card-icon"><i class="ph ph-globe section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_global_leaderboard">Leaderboard Global</div>
         <div class="section-card-desc" data-i18n="home_card_leaderboard">Ranking general basado en el sistema Glicko-2. Compite por la cima.</div>
       </a>
       <a href="monthly-leaderboard.html" class="section-card">
-        <div class="section-card-icon">📆</div>
+        <div class="section-card-icon"><i class="ph ph-calendar section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_monthly_leaderboard">Leaderboard Mensual</div>
         <div class="section-card-desc" data-i18n="home_card_monthly">Ranking por temporada. Compara tu rendimiento mes a mes.</div>
       </a>
       <a href="match-reports.html" class="section-card">
-        <div class="section-card-icon">📋</div>
+        <div class="section-card-icon"><i class="ph ph-clipboard-text section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_match_reports">Reportes de Partidas</div>
         <div class="section-card-desc" data-i18n="home_card_reports">Detalles de cada partida: puntos, posiciones y cambios de rating.</div>
       </a>
       <a href="player-profile.html" class="section-card">
-        <div class="section-card-icon">👤</div>
+        <div class="section-card-icon"><i class="ph ph-user section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_player_profile">Perfil de Jugador</div>
         <div class="section-card-desc" data-i18n="home_card_profile">Estadísticas detalladas, evolución de rating y gráficas de rendimiento.</div>
       </a>
       <a href="awards.html" class="section-card">
-        <div class="section-card-icon">🏅</div>
+        <div class="section-card-icon"><i class="ph ph-medal section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_awards">Premios Mensuales</div>
         <div class="section-card-desc" data-i18n="home_card_awards">Reconociendo las mejores actuaciones de cada temporada.</div>
       </a>
       <a href="hall-of-fame.html" class="section-card">
-        <div class="section-card-icon">🏆</div>
+        <div class="section-card-icon"><i class="ph ph-trophy section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_hall_of_fame">Salón de la Fama</div>
         <div class="section-card-desc" data-i18n="home_card_hall">Los más grandes de todos los tiempos y récords históricos.</div>
       </a>
       <a href="streams.html" class="section-card">
-        <div class="section-card-icon">🔴</div>
+        <div class="section-card-icon"><i class="ph ph-broadcast section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_streams">Transmisiones en Vivo</div>
         <div class="section-card-desc" data-i18n="home_card_streams">Sigue las partidas en vivo con los streamers de la comunidad.</div>
       </a>
       <a href="faq.html" class="section-card">
-        <div class="section-card-icon">📘</div>
+        <div class="section-card-icon"><i class="ph ph-book-open section-card-icon" aria-hidden="true"></i></div>
         <div class="section-card-title" data-i18n="nav_faq">Preguntas Frecuentes</div>
         <div class="section-card-desc" data-i18n="home_card_faq">Todo lo que necesitas saber sobre el sistema de ranking.</div>
       </a>
@@ -219,13 +259,13 @@
 
     <div class="community-bar">
       <a href="https://discord.gg/4QpvzysKv" target="_blank" rel="noopener" class="community-link">
-        🎮 <span data-i18n="home_join_discord">Únete a Discord</span>
+        <i class="ph ph-game-controller" aria-hidden="true"></i> <span data-i18n="home_join_discord">Únete a Discord</span>
       </a>
       <a href="https://www.twitch.tv/devarsc" target="_blank" rel="noopener" class="community-link">
-        📺 <span data-i18n="home_watch_twitch">Mira en Twitch</span>
+        <i class="ph ph-monitor" aria-hidden="true"></i> <span data-i18n="home_watch_twitch">Mira en Twitch</span>
       </a>
       <a href="tournaments.html" class="community-link">
-        🏁 <span data-i18n="home_tournaments">Próximos Torneos</span>
+        <i class="ph ph-flag" aria-hidden="true"></i> <span data-i18n="home_tournaments">Próximos Torneos</span>
       </a>
     </div>
 
@@ -245,6 +285,78 @@
   <script>
     Navbar.inject('navbar-container');
 
+    const channels = [
+      { name: "Grey0__", plat: "Twitch", type: "twitch", id: "grey0__", url: "https://www.twitch.tv/grey0__" },
+      { name: "FX6400",  plat: "Twitch", type: "twitch", id: "fx6400",  url: "https://www.twitch.tv/fx6400" },
+      { name: "DenvarSC", plat: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
+      { name: "WahMaster", plat: "Twitch", type: "twitch", id: "wahmaster31", url: "https://www.twitch.tv/wahmaster31" },
+      { name: "Red Buffalo", plat: "YouTube", type: "yt", handle: "@redbuffalo2170", url: "https://www.youtube.com/@redbuffalo2170" },
+      { name: "El Super Cien", plat: "YouTube", type: "yt", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" },
+      { name: "Vena Monterrey", plat: "YouTube", type: "yt", handle: "@venamonterrey3957", url: "https://www.youtube.com/@venamonterrey3957" },
+      { name: "Cheech", plat: "YouTube", type: "yt", handle: "@Cheech331", url: "https://www.youtube.com/@Cheech331" },
+      { name: "Skedar", plat: "YouTube", type: "yt", handle: "@DavidSkedarWarrior", url: "https://www.youtube.com/@DavidSkedarWarrior" },
+      { name: "Andrew MK64", plat: "YouTube", type: "yt", handle: "@andrewMK64", url: "https://www.youtube.com/@andrewMK64" },
+      { name: "Tom (Wormkiller007)", plat: "YouTube", type: "yt", handle: "@Wormkiller007", url: "https://www.youtube.com/@Wormkiller007" },
+      { name: "Yale", plat: "YouTube", type: "yt", handle: "@youngYale", url: "https://www.youtube.com/@youngYale" },
+      { name: "Justase", plat: "YouTube", type: "yt", handle: "@justase64", url: "https://www.youtube.com/@justase64" },
+      { name: "Velizer0", plat: "YouTube", type: "yt", handle: "@velizer0", url: "https://www.youtube.com/@velizer0" },
+      { name: "NICOCRACK", plat: "YouTube", type: "yt", handle: "@NICOCRACK24", url: "https://www.youtube.com/@NICOCRACK24" },
+      { name: "WahMaster", plat: "YouTube", type: "yt", handle: "@wahmaster31", url: "https://www.youtube.com/@wahmaster31" }
+    ];
+
+    async function fetchLiveStatus() {
+      const twNames = channels.filter(c => c.type === 'twitch').map(c => c.id).join(',');
+      const ytNames = channels.filter(c => c.type === 'yt').map(c => c.handle).join(',');
+      const url = `${KA_API_BASE}?action=live&tw=${encodeURIComponent(twNames)}&yt=${encodeURIComponent(ytNames)}`;
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        return { tw: data.tw || {}, yt: data.yt || {} };
+      } catch (err) {
+        console.warn('Live check failed:', err);
+        return null;
+      }
+    }
+
+    function updateLiveIndicator(liveData) {
+      const indicator = document.getElementById('live-indicator');
+      const label = document.getElementById('live-label');
+      if (!indicator || !label) return;
+      if (!liveData) {
+        indicator.className = 'live-indicator offline';
+        label.textContent = 'Offline';
+        return;
+      }
+      let liveCount = 0;
+      const { tw = {}, yt = {} } = liveData;
+      channels.forEach(ch => {
+        const info = ch.type === 'twitch' ? tw[ch.id] : yt[ch.handle];
+        if (info && info.isLive) liveCount++;
+      });
+      if (liveCount > 0) {
+        indicator.className = 'live-indicator live';
+        label.textContent = liveCount + ' live';
+      } else {
+        indicator.className = 'live-indicator offline';
+        label.textContent = 'Offline';
+      }
+    }
+
+    function animateValue(el, start, end, duration) {
+      if (!el) return;
+      const startTime = performance.now();
+      function step(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + (end - start) * eased);
+        el.textContent = current.toLocaleString();
+        if (progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
     async function loadHomeStats() {
       try {
         const [playersData, seasonsData] = await Promise.all([
@@ -252,6 +364,7 @@
           fetchSheetList()
         ]);
 
+        let targetPlayers = 0, targetMatches = 0, targetRating = 0;
         if (playersData && playersData.length > 1) {
           const header = playersData[0].map(h => (h || '').toString().trim());
           const activeIdx = header.indexOf('Active');
@@ -263,36 +376,46 @@
             ? rows.filter(r => (r[activeIdx] || '').toString().trim().toUpperCase() === 'ACTIVE')
             : rows;
 
-          document.getElementById('stat-players').textContent = activePlayers.length;
+          targetPlayers = activePlayers.length;
+          animateValue(document.getElementById('stat-players'), 0, targetPlayers, 800);
 
-          // Total matches this month (sum from all active players)
           if (matchesIdx !== -1) {
-            const totalMatches = activePlayers.reduce((sum, r) => sum + (parseInt(r[matchesIdx]) || 0), 0);
-            document.getElementById('stat-matches').textContent = totalMatches.toLocaleString();
+            targetMatches = activePlayers.reduce((sum, r) => sum + (parseInt(r[matchesIdx]) || 0), 0);
+            animateValue(document.getElementById('stat-matches'), 0, targetMatches, 800);
           }
 
-          // Highest rating
           if (ratingIdx !== -1) {
-            const topRating = activePlayers.reduce((max, r) => {
+            targetRating = activePlayers.reduce((max, r) => {
               const rating = parseFloat(r[ratingIdx]);
               return !isNaN(rating) && rating > max ? rating : max;
             }, 0);
-            document.getElementById('stat-top-rating').textContent = topRating > 0 ? topRating.toFixed(0) : '—';
+            if (targetRating > 0) {
+              document.getElementById('stat-top-rating').textContent = targetRating.toFixed(0);
+            }
           }
         }
 
-        // Seasons count
         const seasons = seasonsData.filter(s => s.startsWith('LEADERBOARD_') && !s.includes('GLOBAL'));
-        document.getElementById('stat-seasons').textContent = seasons.length;
+        animateValue(document.getElementById('stat-seasons'), 0, seasons.length, 600);
       } catch (err) {
         console.warn('Could not load home stats:', err);
       }
     }
 
+    async function initHome() {
+      await loadHomeStats();
+      const liveData = await fetchLiveStatus();
+      updateLiveIndicator(liveData);
+      setInterval(async () => {
+        const freshData = await fetchLiveStatus();
+        updateLiveIndicator(freshData);
+      }, 120000);
+    }
+
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadHomeStats);
+      document.addEventListener('DOMContentLoaded', initHome);
     } else {
-      loadHomeStats();
+      initHome();
     }
   </script>
 </body>

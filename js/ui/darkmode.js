@@ -14,7 +14,10 @@ const DarkMode = (() => {
     if (!document.body) return;
     document.body.classList.toggle('dark', on);
     const label = document.getElementById('dark-label');
-    if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
+    if (label) {
+      label.className = on ? 'ph ph-sun' : 'ph ph-moon';
+      label.textContent = on ? ' Light mode' : ' Dark mode';
+    }
     document.querySelectorAll('[data-dark-toggle]').forEach(btn => {
       btn.setAttribute('aria-pressed', on);
       btn.setAttribute('aria-label', on ? 'Switch to light mode' : 'Switch to dark mode');

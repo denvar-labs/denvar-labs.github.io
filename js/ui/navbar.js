@@ -54,7 +54,7 @@ const Navbar = (() => {
       <nav class="navbar" role="navigation" aria-label="Main navigation">
         <div class="navbar-inner">
           <a href="/" class="navbar-brand">
-            <span class="navbar-logo">🏆</span>
+            <i class="ph-bold ph-trophy navbar-logo" aria-hidden="true"></i>
             <span class="navbar-title">KA ESPORTS</span>
           </a>
 
@@ -70,7 +70,7 @@ const Navbar = (() => {
             <div class="navbar-actions">
               <div class="lang-dropdown" id="lang-dropdown">
                 <button class="lang-trigger" id="lang-trigger" aria-label="Change language" aria-expanded="false">
-                  <span class="globe-icon">🌐</span>
+                  <i class="ph ph-globe-hemisphere-west globe-icon" aria-hidden="true"></i>
                   <span class="lang-current">${langLabel}</span>
                   <span class="caret">▾</span>
                 </button>
@@ -85,7 +85,7 @@ const Navbar = (() => {
               </div>
 
               <button class="navbar-icon-btn" id="dark-toggle-btn" data-dark-toggle>
-                <span id="dark-label">🌙</span>
+                <span id="dark-label"><i class="ph ph-moon" aria-hidden="true"></i> Dark mode</span>
               </button>
             </div>
           </div>

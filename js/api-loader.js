@@ -102,10 +102,15 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+// Strips emoji characters from a string (prevents emoji duplication in UI)
+function stripEmojis(str) {
+  return String(str ?? '').replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]/gu, '').trim();
+}
+
 // Safely convert any cell value to escaped string
 function cellToString(cell) {
   if (cell === null || cell === undefined) return '';
-  return escapeHtml(String(cell).trim());
+  return escapeHtml(stripEmojis(String(cell).trim()));
 }
 
 // ===== Consistent UI state rendering (loading / error / empty) =====
