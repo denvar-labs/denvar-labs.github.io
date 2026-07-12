@@ -49,8 +49,8 @@ body.dark .data-table tbody tr:hover td:not([class*="rank-"]) {
   background-color: rgba(0, 212, 255, 0.05);
 }
 
-/* ===== NAVBAR (dark mode) ===== */
-body.dark .navbar-brand {
+/* ===== NAVBAR ===== */
+.navbar-brand {
   font-family: var(--font-display);
   font-size: 1.2rem;
   letter-spacing: 1px;
@@ -87,8 +87,8 @@ body.dark .btn-secondary:hover:not(:disabled) {
   border-color: rgba(0, 212, 255, 0.3);
 }
 
-/* ===== SECTION HEADINGS (dark mode) ===== */
-body.dark .section-heading {
+/* ===== SECTION HEADINGS ===== */
+.section-heading {
   font-family: var(--font-display);
   letter-spacing: 2px;
   text-transform: uppercase;
