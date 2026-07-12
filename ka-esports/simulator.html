@@ -20,6 +20,19 @@
     .player-card { border: 1px solid var(--border); padding: 10px; border-radius: 4px; margin-bottom: 10px; }
   </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
+
+  <meta name="description" content="Predict rating changes for a 4-player match using the Glicko-2 simulator.">
+  <meta property="og:title" content="Rating Simulator – KA ESPORTS">
+  <meta property="og:description" content="Predict rating changes for a 4-player match using the Glicko-2 simulator.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://denvar-labs.github.io/ka-esports/simulator.html">
+  <meta property="og:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Rating Simulator – KA ESPORTS">
+  <meta name="twitter:description" content="Predict rating changes for a 4-player match using the Glicko-2 simulator.">
+  <meta name="twitter:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
 </head>
 <body>
   <div id="navbar-container"></div>
@@ -29,9 +42,9 @@
       <div id="sidebar-container"></div>
       <main class="content">
         <section class="panel">
-          <div class="section-heading">Set Up the Match</div>
+          <div class="section-heading" data-i18n="simulator_heading">Set Up the Match</div>
           <div id="sim-players"></div>
-          <button id="simulate-btn" onclick="simulate()">Simulate</button>
+          <button id="simulate-btn" onclick="simulate()" data-i18n="btn_simulate">Simulate</button>
           <div id="sim-result"></div>
         </section>
       </main>
@@ -89,7 +102,7 @@
 
     async function loadPlayers() {
       const container = document.getElementById('sim-players');
-      renderState(container, 'loading', { title: 'Loading players…' });
+      renderState(container, 'loading', { title: I18n.t('simulator_loading') });
       try {
         const all = await fetchSheetData('PLAYERS');
         const header = all[0].map(h => (h || '').toString().trim());
@@ -119,7 +132,7 @@
           .filter(p => p.name && !isNaN(p.rating) && !isNaN(p.rd) && !isNaN(p.vol));
 
         if (playerPool.length < 4) {
-          renderState(container, 'empty', { title: 'Not enough active players with valid rating data to simulate a 4-player match.' });
+          renderState(container, 'empty', { title: I18n.t('simulator_not_enough') });
           document.getElementById('simulate-btn').disabled = true;
           return;
         }
@@ -136,9 +149,9 @@
       const options = playerPool.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${p.rating.toFixed(0)})</option>`).join('');
       container.innerHTML = [1, 2, 3, 4].map(i => `
         <div class="sim-row">
-          <span>P${i}:</span>
+          <span>${I18n.t('simulator_p')}${i}:</span>
           <select id="player${i}">${options}</select>
-          <span>Pos:</span>
+          <span>${I18n.t('simulator_pos')}</span>
           <input type="number" id="pos${i}" min="1" max="4" value="${i}">
         </div>
       `).join('');
@@ -149,12 +162,12 @@
       for (let i = 1; i <= 4; i++) {
         const sel = document.getElementById(`player${i}`).value;
         const player = playerPool.find(p => p.name === sel);
-        if (!player) { alert('Select all players'); return; }
+        if (!player) { alert(I18n.t('simulator_select_all')); return; }
         const pos = parseInt(document.getElementById(`pos${i}`).value);
-        if (isNaN(pos) || pos < 1 || pos > 4) { alert(`Invalid position for Player ${i}`); return; }
+        if (isNaN(pos) || pos < 1 || pos > 4) { alert(I18n.t('simulator_invalid_position').replace('{i}', i)); return; }
         selected.push({ ...player, position: pos });
       }
-      if (new Set(selected.map(p => p.name)).size < 4) { alert('Duplicate players'); return; }
+      if (new Set(selected.map(p => p.name)).size < 4) { alert(I18n.t('simulator_duplicate_players')); return; }
 
       const results = selected.map((p, i) =>
         selected.map((q, j) => {
@@ -167,10 +180,10 @@
       const newRatings = simulateMatch(selected, results);
 
       const resultDiv = document.getElementById('sim-result');
-      resultDiv.innerHTML = '<h3>Simulation Results</h3>' + newRatings.map(r => `
+      resultDiv.innerHTML = '<h3>' + I18n.t('simulator_results') + '</h3>' + newRatings.map(r => `
         <div class="player-card">
           <strong>${escapeHtml(r.name)}</strong>: ${r.rating.toFixed(2)} (${r.change > 0 ? '+' : ''}${r.change.toFixed(2)})
-          <br>New RD: ${r.rd.toFixed(2)}
+          <br>${I18n.t('simulator_new_rd')} ${r.rd.toFixed(2)}
         </div>
       `).join('');
     }

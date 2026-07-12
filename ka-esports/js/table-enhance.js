@@ -37,7 +37,12 @@ export class TableEnhance {
     const next = current === 'asc' ? 'desc' : current === 'desc' ? null : 'asc';
     this.sortState.set(column, next);
 
-    this.table.tHead.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    this.table.tHead.querySelectorAll('th').forEach(h => {
+      h.classList.remove('sort-asc', 'sort-desc');
+      h.removeAttribute('aria-sort');
+    });
+    if (next === 'asc') th.setAttribute('aria-sort', 'ascending');
+    else if (next === 'desc') th.setAttribute('aria-sort', 'descending');
     if (next) th.classList.add(`sort-${next}`);
 
     if (next === null) this.restoreOriginalOrder();

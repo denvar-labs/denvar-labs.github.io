@@ -14,9 +14,9 @@ const DarkMode = (() => {
     document.body.classList.toggle('dark', on);
     const label = document.getElementById('dark-label');
     if (label) label.textContent = on ? '☀️ Light mode' : '🌙 Dark mode';
-    // Update all dark toggle buttons
     document.querySelectorAll('[data-dark-toggle]').forEach(btn => {
       btn.setAttribute('aria-pressed', on);
+      btn.setAttribute('aria-label', on ? 'Switch to light mode' : 'Switch to dark mode');
     });
   }
 

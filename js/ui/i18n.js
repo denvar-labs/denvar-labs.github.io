@@ -110,6 +110,15 @@ const I18n = (() => {
       col_matches: 'Partidas',
       col_wins: 'Victorias',
       col_country: 'País',
+      col_volatility: 'Volatilidad',
+      col_last_match: 'Última Partida',
+      col_opponent: 'Oponente',
+      col_losses: 'Derrotas',
+      col_ties: 'Empates',
+      col_win_pct: '% Victoria',
+      col_avg_race_pts: 'Pts Promedio',
+      chart_label_date: 'Fecha',
+      chart_label_rating: 'Rating',
 
       // Awards
       award_mvp: 'MVP del Mes',
@@ -532,6 +541,64 @@ const I18n = (() => {
       rage-quit-rules_ranking_suspension: '🚫 SUSPENSIÓN DEL RANKING',
       rage-quit-rules_round_validation_or_cancellation: '🏁 VALIDACIÓN O CANCELACIÓN DE RONDA',
       rage-quit-rules_purpose_of_this_rule: '🎯 PROPÓSITO DE ESTA REGLA',
+
+      // Player Profile
+      player_profile_select_prompt: 'Selecciona un jugador para ver su perfil.',
+      player_profile_inactive: 'Este jugador está actualmente inactivo y su perfil no está disponible.',
+      player_profile_not_found: 'Jugador no encontrado.',
+      player_profile_no_data: 'No hay datos de partidas disponibles.',
+      player_profile_columns_not_found: 'Columnas de datos de partidas no encontradas.',
+      player_profile_never: 'Nunca',
+      player_profile_evolution: 'Evolución de Rating (últimas 50 partidas)',
+      player_profile_no_matches: 'No se encontraron partidas procesadas para este jugador.',
+
+      // Player Comparison
+      comp_player_1: 'Jugador 1',
+      comp_player_2: 'Jugador 2',
+      comp_player_3: 'Jugador 3',
+      comp_player_4: 'Jugador 4',
+      comp_choose: '-- Elegir --',
+      comp_select_two: 'Selecciona al menos dos jugadores para comparar.',
+      comp_select_different: 'Por favor selecciona jugadores diferentes.',
+      comp_inactive: 'Uno de los jugadores seleccionados está inactivo.',
+      comp_evolution_title: 'Evolución de Rating (últimos 60 días)',
+      comp_metric_win_rate: '% Victoria',
+      comp_metric_avg_position: 'Pos. Promedio',
+      comp_metric_sos: 'SOS',
+
+      // H2H
+      h2h_select_prompt: 'Selecciona un jugador para ver estadísticas H2H.',
+      h2h_no_data: 'No se encontraron datos H2H para este jugador.',
+      h2h_no_active_opponents: 'No hay datos H2H contra oponentes activos.',
+
+      // Leaderboard
+      leaderboard_all_players: 'Todos los Jugadores',
+
+      // Seasons
+      seasons_summary: 'Resumen de Temporadas',
+
+      // Penalties
+      penalty_history: 'Historial de Penales',
+
+      // Streams
+      streams_heading: '🔴 Canales de la Comunidad',
+      streams_loading: 'Cargando transmisiones…',
+      streams_offline: '(Desconectado)',
+      streams_live: 'EN VIVO',
+      streams_click_to_watch: '▶ Haz clic para ver',
+      streams_open_channel: 'Abrir canal ↗',
+
+      // Simulator
+      simulator_heading: 'Configurar la Partida',
+      simulator_loading: 'Cargando jugadores…',
+      simulator_not_enough: 'No hay suficientes jugadores activos para simular una partida de 4 jugadores.',
+      simulator_results: 'Resultados de la Simulación',
+      simulator_new_rd: 'Nuevo RD:',
+      simulator_select_all: 'Selecciona todos los jugadores',
+      simulator_invalid_position: 'Posición inválida para el Jugador {i}',
+      simulator_duplicate_players: 'Jugadores duplicados',
+      simulator_p: 'P',
+      simulator_pos: 'Pos:',
     },
 
     en: {
@@ -635,6 +702,15 @@ const I18n = (() => {
       col_matches: 'Matches',
       col_wins: 'Wins',
       col_country: 'Country',
+      col_volatility: 'Volatility',
+      col_last_match: 'Last Match',
+      col_opponent: 'Opponent',
+      col_losses: 'Losses',
+      col_ties: 'Ties',
+      col_win_pct: 'Win %',
+      col_avg_race_pts: 'Avg Race Pts',
+      chart_label_date: 'Date',
+      chart_label_rating: 'Rating',
 
       // Awards
       award_mvp: 'MVP of the Month',
@@ -1057,11 +1133,84 @@ const I18n = (() => {
       rage-quit-rules_ranking_suspension: '🚫 RANKING SUSPENSION',
       rage-quit-rules_round_validation_or_cancellation: '🏁 ROUND VALIDATION OR CANCELLATION',
       rage-quit-rules_purpose_of_this_rule: '🎯 PURPOSE OF THIS RULE',
+
+      // Player Profile
+      player_profile_select_prompt: 'Select a player to view their profile.',
+      player_profile_inactive: 'This player is currently inactive and their profile is not available.',
+      player_profile_not_found: 'Player not found.',
+      player_profile_no_data: 'No match data available.',
+      player_profile_columns_not_found: 'Match data columns not found.',
+      player_profile_never: 'Never',
+      player_profile_evolution: 'Rating evolution (last 50 matches)',
+      player_profile_no_matches: 'No processed matches found for this player.',
+
+      // Player Comparison
+      comp_player_1: 'Player 1',
+      comp_player_2: 'Player 2',
+      comp_player_3: 'Player 3',
+      comp_player_4: 'Player 4',
+      comp_choose: '-- Choose --',
+      comp_select_two: 'Select at least two players to compare.',
+      comp_select_different: 'Please select different players.',
+      comp_inactive: 'One of the selected players is inactive.',
+      comp_evolution_title: 'Rating Evolution (last 60 days)',
+      comp_metric_win_rate: 'Win Rate %',
+      comp_metric_avg_position: 'Avg Position',
+      comp_metric_sos: 'SOS',
+
+      // H2H
+      h2h_select_prompt: 'Select a player to see H2H statistics.',
+      h2h_no_data: 'No H2H data found for this player.',
+      h2h_no_active_opponents: 'No H2H data against active opponents.',
+
+      // Leaderboard
+      leaderboard_all_players: 'All Players',
+
+      // Seasons
+      seasons_summary: 'Seasons Summary',
+
+      // Penalties
+      penalty_history: 'Penalty History',
+
+      // Streams
+      streams_heading: '🔴 Community Channels',
+      streams_loading: 'Loading streams…',
+      streams_offline: '(Offline)',
+      streams_live: 'LIVE',
+      streams_click_to_watch: '▶ Click to watch',
+      streams_open_channel: 'Open channel ↗',
+
+      // Simulator
+      simulator_heading: 'Set Up the Match',
+      simulator_loading: 'Loading players…',
+      simulator_not_enough: 'Not enough active players with valid rating data to simulate a 4-player match.',
+      simulator_results: 'Simulation Results',
+      simulator_new_rd: 'New RD:',
+      simulator_select_all: 'Select all players',
+      simulator_invalid_position: 'Invalid position for Player {i}',
+      simulator_duplicate_players: 'Duplicate players',
+      simulator_p: 'P',
+      simulator_pos: 'Pos:',
     }
   };
 
   function t(key) {
-    return translations[currentLang]?.[key] || translations['es']?.[key] || key;
+    const val = translations[currentLang]?.[key] || translations['es']?.[key];
+    return val || key;
+  }
+
+  function safeHtml(str) {
+    const allowed = { br: true, strong: true, em: true, b: true, i: true, a: { href: true } };
+    return str.replace(/<(\/)?(\w+)([^>]*)>/g, (match, close, tag, attrs) => {
+      const rule = allowed[tag.toLowerCase()];
+      if (!rule) return '';
+      if (rule === true) return `<${close || ''}${tag}>`;
+      if (typeof rule === 'object') {
+        const safe = attrs.replace(/(\w+)\s*=\s*"[^"]*"/g, (a, attr) => rule[attr] ? a : '');
+        return `<${close || ''}${tag}${safe}>`;
+      }
+      return '';
+    });
   }
 
   function getLang() {
@@ -1080,24 +1229,24 @@ const I18n = (() => {
     setLang(currentLang === 'es' ? 'en' : 'es');
   }
 
-  function init() {
-    document.documentElement.lang = currentLang;
-  }
-
   function translatePage() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       const translated = t(key);
-      if (translated !== key) el.innerHTML = translated;
+      if (translated !== key) el.innerHTML = safeHtml(translated);
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');
       el.placeholder = t(key);
     });
-    // Re-render components that use i18n
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      el.title = t(key);
+    });
     if (typeof Navbar !== 'undefined' && Navbar.rerender) {
       Navbar.rerender();
-    } else if (typeof PageHeader !== 'undefined' && PageHeader.rerender) {
+    }
+    if (typeof PageHeader !== 'undefined' && PageHeader.rerender) {
       PageHeader.rerender();
     }
   }
@@ -1105,7 +1254,6 @@ const I18n = (() => {
   function init() {
     document.documentElement.lang = currentLang;
     document.addEventListener('lang:change', translatePage);
-    // Translate headers on page load (before sidebar finishes loading)
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', translatePage);
     } else {

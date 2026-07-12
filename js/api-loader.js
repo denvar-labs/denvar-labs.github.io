@@ -171,30 +171,50 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS)
 
 // ===== Session memory cache (prevents redundant refetches) =====
 const _sheetCache = new Map();
+const _fetchPromises = new Map();
 const SHEET_CACHE_TTL_MS = 60 * 1000; // 60 seconds
 
-async function fetchSheetData(sheetName, opts = {}) {
-  const bypassCache = opts.bypassCache === true;
+async function fetchSheetData(sheetName, ttl = 60000) {
   const cached = _sheetCache.get(sheetName);
-  if (!bypassCache && cached && (Date.now() - cached.time) < SHEET_CACHE_TTL_MS) {
+  if (cached && (Date.now() - cached.time) < ttl) {
     return cached.data;
   }
 
-  const url = `${API_BASE}?sheet=${encodeURIComponent(sheetName)}`;
-  const response = await fetchWithTimeout(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status} while loading "${sheetName}". Try refreshing the page.`);
-  
-  let json;
-  try {
-    json = await response.json();
-  } catch (e) {
-    throw new Error(`Invalid server response while loading "${sheetName}". Please try again.`);
+  if (_fetchPromises.has(sheetName)) {
+    return _fetchPromises.get(sheetName);
   }
-  
-  if (json.error) throw new Error(json.error);
-  const data = json.data || [];
-  _sheetCache.set(sheetName, { data, time: Date.now() });
-  return data;
+
+  const url = `${API_BASE}?sheet=${encodeURIComponent(sheetName)}`;
+
+  const promise = (async () => {
+    const delays = [2000, 5000];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status} while loading "${sheetName}". Try refreshing the page.`);
+
+        let json;
+        try {
+          json = await response.json();
+        } catch (e) {
+          throw new Error(`Invalid server response while loading "${sheetName}". Please try again.`);
+        }
+
+        if (json.error) throw new Error(json.error);
+        const data = json.data || [];
+        _sheetCache.set(sheetName, { data, time: Date.now() });
+        return data;
+      } catch (err) {
+        const isRetryable = err.message.startsWith('Request timed out') || err.message.startsWith('Network error');
+        if (!isRetryable || attempt === delays.length) throw err;
+        await new Promise(r => setTimeout(r, delays[attempt]));
+      }
+    }
+  })();
+
+  _fetchPromises.set(sheetName, promise);
+  promise.finally(() => _fetchPromises.delete(sheetName));
+  return promise;
 }
 
 function invalidateSheetCache(sheetName) {
@@ -688,7 +708,10 @@ function highlightActiveSidebarLink() {
   const current = window.location.pathname.replace(/\/+$/, '').split('/').pop() || 'index.html';
   document.querySelectorAll('.quick-links a').forEach(a => {
     const href = (a.getAttribute('href') || '').split('/').pop();
-    if (href === current) a.classList.add('active');
+    if (href === current) {
+      a.classList.add('active');
+      a.setAttribute('aria-current', 'page');
+    }
   });
 }
 

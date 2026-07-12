@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /ka-esports/admin/
+
+Sitemap: https://denvar-labs.github.io/ka-esports/sitemap.xml

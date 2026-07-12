@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="../css/esports.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
   <style>
@@ -35,6 +36,19 @@
     .evolution-chart-wrapper { position: relative; height: 320px; width: 100%; overflow: hidden; }
   </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
+
+  <meta name="description" content="Compare up to 4 active players. Rating evolution aligned by date.">
+  <meta property="og:title" content="Player Comparison – KA ESPORTS">
+  <meta property="og:description" content="Compare up to 4 active players. Rating evolution aligned by date.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://denvar-labs.github.io/ka-esports/player-comparison.html">
+  <meta property="og:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Player Comparison – KA ESPORTS">
+  <meta name="twitter:description" content="Compare up to 4 active players. Rating evolution aligned by date.">
+  <meta name="twitter:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
 </head>
 <body>
   <div id="navbar-container"></div>
@@ -45,13 +59,13 @@
       <main class="content">
         <section class="panel">
           <div class="comparison-setup">
-            <div class="player-selector"><label>Player 1</label><select id="player1-select"><option value="">-- Choose --</option></select></div>
-            <div class="player-selector"><label>Player 2</label><select id="player2-select"><option value="">-- Choose --</option></select></div>
-            <div class="player-selector"><label>Player 3</label><select id="player3-select"><option value="">-- Choose --</option></select></div>
-            <div class="player-selector"><label>Player 4</label><select id="player4-select"><option value="">-- Choose --</option></select></div>
+            <div class="player-selector"><label data-i18n="comp_player_1">Player 1</label><select id="player1-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
+            <div class="player-selector"><label data-i18n="comp_player_2">Player 2</label><select id="player2-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
+            <div class="player-selector"><label data-i18n="comp_player_3">Player 3</label><select id="player3-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
+            <div class="player-selector"><label data-i18n="comp_player_4">Player 4</label><select id="player4-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
           </div>
           <div id="comparison-content">
-            <div class="state-box state-empty"><div class="state-title">Select at least two players to compare.</div></div>
+            <div class="state-box state-empty"><div class="state-title" data-i18n="comp_select_two">Select at least two players to compare.</div></div>
           </div>
         </section>
       </main>
@@ -89,7 +103,7 @@
     async function init() {
       const names = await fetchPlayerNames();
       for (let i = 1; i <= 4; i++) {
-        populateSelectFromList(`player${i}-select`, names, '-- Choose --');
+        populateSelectFromList(`player${i}-select`, names, I18n.t('comp_choose'));
         document.getElementById(`player${i}-select`).addEventListener('change', compare);
       }
     }
@@ -103,21 +117,21 @@
       }
 
       if (chosen.length < 2) {
-        renderState(container, 'empty', { title: 'Select at least two players.' });
+        renderState(container, 'empty', { title: I18n.t('comp_select_two') });
         destroyAllCharts();
         return;
       }
       if (new Set(chosen).size !== chosen.length) {
-        renderState(container, 'empty', { title: 'Please select different players.' });
+        renderState(container, 'empty', { title: I18n.t('comp_select_different') });
         return;
       }
 
-      renderState(container, 'loading', { title: 'Loading comparison…' });
+      renderState(container, 'loading', { title: I18n.t('loading') });
 
       try {
         const inactiveNames = await getInactivePlayerNames();
         if (chosen.some(name => inactiveNames.has(name))) {
-          renderState(container, 'empty', { title: 'One of the selected players is inactive.' });
+          renderState(container, 'empty', { title: I18n.t('comp_inactive') });
           return;
         }
 
@@ -127,7 +141,7 @@
         html += '<div class="player-cards" id="player-cards"></div>';
         html += `
           <div class="evolution-container">
-            <h4>Rating Evolution (last 60 days)</h4>
+            <h4>${I18n.t('comp_evolution_title')}</h4>
             <div class="evolution-chart-wrapper">
               <canvas id="evolutionChart"></canvas>
             </div>
@@ -136,11 +150,11 @@
 
         const playerColors = ['#4a86e8', '#e94560', '#10b981', '#f59e0b'];
         const metricsDef = [
-          { key: 'rating', label: 'Rating', max: 2500 },
-          { key: 'rd', label: 'RD', max: 350 },
-          { key: 'winRate', label: 'Win Rate %', max: 100 },
-          { key: 'avgPosition', label: 'Avg Position', max: 4 },
-          { key: 'sos', label: 'SOS', max: 2500 }
+          { key: 'rating', label: I18n.t('col_rating'), max: 2500 },
+          { key: 'rd', label: I18n.t('col_rd'), max: 350 },
+          { key: 'winRate', label: I18n.t('comp_metric_win_rate'), max: 100 },
+          { key: 'avgPosition', label: I18n.t('comp_metric_avg_position'), max: 4 },
+          { key: 'sos', label: I18n.t('comp_metric_sos'), max: 2500 }
         ];
 
         destroyAllCharts();
@@ -317,17 +331,17 @@
           responsive: true,
           maintainAspectRatio: true,
           scales: {
-            x: {
-              title: { display: true, text: 'Date' },
-              ticks: {
-                maxTicksLimit: 20,
-                callback: function(val) {
-                  const d = new Date(this.getLabelForValue(val));
-                  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                }
-              }
-            },
-            y: { title: { display: true, text: 'Rating' } }
+                x: {
+                  title: { display: true, text: I18n.t('chart_label_date') },
+                  ticks: {
+                    maxTicksLimit: 20,
+                    callback: function(val) {
+                      const d = new Date(this.getLabelForValue(val));
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }
+                  }
+                },
+                y: { title: { display: true, text: I18n.t('chart_label_rating') } }
           },
           plugins: {
             legend: { position: 'top' },

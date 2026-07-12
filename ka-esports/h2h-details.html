@@ -12,6 +12,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/esports.css">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
+
+  <meta name="description" content="Select a player to view their match history against specific opponents.">
+  <meta property="og:title" content="Player H2H – KA ESPORTS">
+  <meta property="og:description" content="Select a player to view their match history against specific opponents.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://denvar-labs.github.io/ka-esports/h2h-details.html">
+  <meta property="og:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Player H2H – KA ESPORTS">
+  <meta name="twitter:description" content="Select a player to view their match history against specific opponents.">
+  <meta name="twitter:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
 </head>
 <body>
   <div id="navbar-container"></div>
@@ -22,18 +35,18 @@
       <main class="content">
         <section class="panel">
           <div class="section-heading">
-            <label for="player-select">Player:</label>
+            <label for="player-select" data-i18n="player">Player:</label>
             <select id="player-select" class="field-select">
-              <option value="">-- Choose a player --</option>
+              <option value="" data-i18n="choose_player">-- Choose a player --</option>
             </select>
           </div>
           <div class="table-responsive">
             <table id="h2h-table" class="data-table">
               <thead>
-                <tr><th>Opponent</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Ties</th><th>Win %</th><th>Avg Race Pts</th></tr>
+                <tr><th data-i18n="col_opponent">Opponent</th><th data-i18n="col_matches">Matches</th><th data-i18n="col_wins">Wins</th><th data-i18n="col_losses">Losses</th><th data-i18n="col_ties">Ties</th><th data-i18n="col_win_pct">Win %</th><th data-i18n="col_avg_race_pts">Avg Race Pts</th></tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Select a player to see H2H statistics.</td></tr>
+                <tr><td colspan="7" style="text-align:center; color:var(--text-muted);" data-i18n="h2h_select_prompt">Select a player to see H2H statistics.</td></tr>
               </tbody>
             </table>
           </div>
@@ -62,10 +75,10 @@
       try {
         const playerNames = await fetchPlayerNames(); // already filters inactives
         if (playerNames.length === 0) {
-          document.getElementById('player-select').innerHTML = '<option value="">No players found</option>';
+          document.getElementById('player-select').innerHTML = '<option value="">' + I18n.t('no_data') + '</option>';
           return;
         }
-        populateSelectFromList('player-select', playerNames, '-- Choose a player --');
+        populateSelectFromList('player-select', playerNames, I18n.t('choose_player'));
       } catch (err) {
         console.error(err);
       }
@@ -101,7 +114,7 @@
         });
 
         if (playerRows.length === 0) {
-          renderTableState(tbody, 7, 'empty', { title: 'No H2H data found for this player.' });
+          renderTableState(tbody, 7, 'empty', { title: I18n.t('h2h_no_data') });
           return;
         }
 
@@ -123,7 +136,7 @@
         const opponents = Object.entries(oppStats).sort((a, b) => b[1].matches - a[1].matches);
 
         if (opponents.length === 0) {
-          renderTableState(tbody, 7, 'empty', { title: 'No H2H data against active opponents.' });
+          renderTableState(tbody, 7, 'empty', { title: I18n.t('h2h_no_active_opponents') });
           return;
         }
 
@@ -144,7 +157,7 @@
           loadH2HForPlayer(e.target.value);
         } else {
           const tbody = document.querySelector('#h2h-table tbody');
-          renderTableState(tbody, 7, 'empty', { title: 'Select a player to see H2H statistics.' });
+          renderTableState(tbody, 7, 'empty', { title: I18n.t('h2h_select_prompt') });
         }
       });
     }

@@ -39,9 +39,11 @@ const Navbar = (() => {
     const lang = typeof I18n !== 'undefined' ? I18n.getLang() : 'es';
 
     const navLinks = NAV_ITEMS.map(item => {
-      const isActive = item.href === currentHref ? ' active' : '';
+      const isActive = item.href === currentHref;
+      const cls = isActive ? ' active' : '';
+      const ariac = isActive ? ' aria-current="page"' : '';
       const label = t(item.labelKey);
-      return `<a href="${item.href}" class="nav-link${isActive}"><span class="nav-text">${label}</span></a>`;
+      return `<a href="${item.href}" class="nav-link${cls}"${ariac}><span class="nav-text">${label}</span></a>`;
     }).join('');
 
     const langLabel = lang === 'es' ? 'Español' : 'English';
@@ -82,7 +84,7 @@ const Navbar = (() => {
                 </div>
               </div>
 
-              <button class="navbar-icon-btn" id="dark-toggle-btn" data-dark-toggle aria-label="Toggle dark mode">
+              <button class="navbar-icon-btn" id="dark-toggle-btn" data-dark-toggle>
                 <span id="dark-label">🌙</span>
               </button>
             </div>
