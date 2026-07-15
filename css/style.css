@@ -58,6 +58,9 @@ tr.rank-advanced td:first-child { border-left: 3px solid #e6d740; }
 tr.rank-amateur td:first-child { border-left: 3px solid #5fbf5f; }
 tr.rank-padawan td:first-child { border-left: 3px solid #9b9b9b; }
 
+/* Dark mode: Expert rank needs white text on dark red */
+body.dark .rank-expert { color: #fff !important; }
+
 /* Match Report column widths */
 .match-report-table .col-player { width: 220px; }
 .match-report-table .col-points { width: 70px; }
@@ -70,8 +73,10 @@ tr.rank-padawan td:first-child { border-left: 3px solid #9b9b9b; }
 .align-right { text-align: right !important; }
 
 /* Delta Rating colors */
-td.delta-positive { background-color: #c8e6c9; }
-td.delta-negative { background-color: #ffcdd2; }
+td.delta-positive { background-color: #c8e6c9; color: #1b5e20; }
+td.delta-negative { background-color: #ffcdd2; color: #b71c1c; }
+body.dark td.delta-positive { background-color: #1b4332; color: #81c784; }
+body.dark td.delta-negative { background-color: #4a1a1a; color: #ef9a9a; }
 
 /* ===== STATE BOXES ===== */
 .state-box {

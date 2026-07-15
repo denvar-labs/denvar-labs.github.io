@@ -156,6 +156,11 @@ const I18n = (() => {
       home_join_discord: 'Únete a Discord',
       home_watch_twitch: 'Mira en Twitch',
       home_tournaments: 'Próximos Torneos',
+      feed_live_now: 'En Vivo Ahora',
+      feed_recent_matches: 'Partidas Recientes',
+      feed_see_all: 'Ver todas →',
+      feed_no_matches: 'No hay partidas este mes',
+      home_search_placeholder: 'Buscar jugador...',
 
       // FAQ
       faq_heading: 'KA ESPORTS – SISTEMA DE RANKING PROFESIONAL GLICKO 2 PARA MARIO KART 64',
@@ -760,6 +765,11 @@ const I18n = (() => {
       home_join_discord: 'Join Discord',
       home_watch_twitch: 'Watch on Twitch',
       home_tournaments: 'Upcoming Tournaments',
+      feed_live_now: 'Live Now',
+      feed_recent_matches: 'Recent Matches',
+      feed_see_all: 'See all →',
+      feed_no_matches: 'No matches this month',
+      home_search_placeholder: 'Search player...',
 
       // FAQ
       faq_heading: 'KA ESPORTS – PROFESSIONAL GLICKO 2 RANKING SYSTEM FOR MARIO KART 64',

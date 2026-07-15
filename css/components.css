@@ -309,7 +309,7 @@ textarea:focus-visible,
 .rank-grand-master { background-color: var(--rank-gm) !important; color: #000 !important; }
 .rank-master { background-color: var(--rank-master) !important; color: #000 !important; }
 .rank-pro { background-color: var(--rank-pro) !important; color: #000 !important; }
-.rank-expert { background-color: var(--rank-expert) !important; color: #fff !important; }
+.rank-expert { background-color: var(--rank-expert) !important; color: #000 !important; }
 .rank-advanced { background-color: var(--rank-advanced) !important; color: #000 !important; }
 .rank-amateur { background-color: var(--rank-amateur) !important; color: #000 !important; }
 .rank-padawan { background-color: var(--rank-padawan) !important; color: #000 !important; }

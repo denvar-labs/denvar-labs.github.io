@@ -19,8 +19,42 @@
       padding: var(--space-16) var(--space-6);
       text-align: center;
       margin-bottom: var(--space-8);
+      position: relative;
+      overflow: hidden;
     }
-    .hero-landing h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: var(--space-3); letter-spacing: -0.02em; }
+    .hero-landing::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.03) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.03) 75%);
+      background-size: 40px 40px;
+      background-position: 0 0, 0 20px, 20px -20px, -20px 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-landing > * { position: relative; z-index: 1; }
+    .hero-landing h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: var(--space-3);
+      letter-spacing: -0.02em;
+    }
+    body:not(.dark) .hero-landing h1 {
+      background: linear-gradient(90deg, #fff, #ffd700, #fff);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 3s linear infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
     .hero-landing p { font-size: 1.15rem; opacity: 0.9; max-width: 600px; margin: 0 auto var(--space-6); }
     .hero-actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
     .hero-btn {
@@ -32,11 +66,47 @@
       font-weight: 600;
       font-size: 1rem;
       text-decoration: none;
+      position: relative;
+      overflow: hidden;
       transition: transform var(--transition-fast), box-shadow var(--transition-fast);
     }
+    .hero-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform 0.4s ease;
+    }
+    .hero-btn:hover::after { transform: translateX(100%); }
     .hero-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
     .hero-btn-primary { background: #fff; color: var(--accent-dark); }
     .hero-btn-secondary { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+    .hero-search { margin-top: var(--space-6); max-width: 480px; margin-left: auto; margin-right: auto; position: relative; }
+    .hero-search-wrap { display: flex; align-items: center; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: var(--radius-lg); padding: 0 var(--space-3); transition: background var(--transition-fast), border-color var(--transition-fast); }
+    .hero-search-wrap:focus-within { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
+    .hero-search-icon { color: rgba(255,255,255,0.6); font-size: 1.1rem; }
+    .hero-search-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; padding: var(--space-3) var(--space-2); font-size: 0.95rem; }
+    .hero-search-input::placeholder { color: rgba(255,255,255,0.5); }
+    .hero-search-kbd { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; color: rgba(255,255,255,0.5); font-family: monospace; }
+    .hero-search-results {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); margin-top: 4px;
+      max-height: 240px; overflow-y: auto;
+      display: none; z-index: 100; box-shadow: var(--shadow-lg);
+    }
+    .hero-search-results.open { display: block; }
+    .hero-search-result {
+      display: flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-3) var(--space-4); color: var(--text);
+      text-decoration: none; font-size: 0.9rem; cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    .hero-search-result:hover, .hero-search-result.active { background: var(--accent-bg); color: var(--accent); }
+    .hero-search-result .flag { font-size: 1.1rem; }
+    .hero-search-result .rank { margin-left: auto; font-size: 0.75rem; color: var(--text-muted); }
+    .hero-search-empty { padding: var(--space-3) var(--space-4); color: var(--text-muted); font-size: 0.85rem; text-align: center; }
 
     .landing-content { max-width: 1100px; margin: 0 auto; padding: 0 var(--space-4); }
 
@@ -53,7 +123,14 @@
       padding: var(--space-6);
       text-decoration: none;
       color: var(--text);
-      transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.5s ease-out, transform 0.5s ease-out, box-shadow var(--transition-fast), border-color var(--transition-fast);
+      will-change: transform, opacity;
+    }
+    .section-card.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
     .section-card:hover {
       transform: translateY(-4px);
@@ -61,8 +138,21 @@
       border-color: var(--accent);
     }
     .section-card-icon { font-size: 2rem; margin-bottom: var(--space-3); }
+    .section-card-icon i { display: inline-block; transition: transform 0.2s ease; }
+    .section-card:hover .section-card-icon i { animation: icon-pop 0.3s ease; }
+    @keyframes icon-pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
     .section-card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: var(--space-2); }
     .section-card-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+    @media (prefers-reduced-motion: reduce) {
+      .section-card { opacity: 1; transform: none; transition: none; }
+      .section-card:hover .section-card-icon i { animation: none; }
+      .hero-landing h1 { animation: none; }
+      .hero-btn::after { transition: none; }
+    }
 
     .stats-bar {
       display: grid;
@@ -77,6 +167,9 @@
     .stat-item { text-align: center; }
     .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
     .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: var(--space-1); }
+    .stat-trend { display: block; font-size: 0.7rem; font-weight: 600; margin-top: 2px; }
+    .stat-trend.up { color: #10b981; }
+    .stat-trend.down { color: #ef4444; }
 
     .community-bar {
       display: flex;
@@ -149,6 +242,83 @@
 
     body:not(.dark) .hero-landing { box-shadow: 0 4px 20px rgba(74,134,232,0.3); }
     body.dark .hero-landing { background: linear-gradient(135deg, #2a3a5c 0%, #1a2540 100%); }
+
+    .feed-section { margin-bottom: var(--space-8); }
+    .feed-stream-card {
+      background: var(--surface);
+      border: 1px solid #10b981;
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+    }
+    .feed-stream-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: 700;
+      margin-bottom: var(--space-3);
+      color: var(--text);
+    }
+    .feed-stream-header .live-badge {
+      background: #10b981;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      animation: pulse 2s infinite;
+      margin-left: auto;
+    }
+    .feed-stream-body {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: 0.95rem;
+    }
+    .feed-stream-body a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+      margin-left: auto;
+    }
+    .feed-stream-body a:hover { text-decoration: underline; }
+    .feed-matches { margin-bottom: var(--space-4); }
+    .feed-matches-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      margin-bottom: var(--space-3);
+      color: var(--text);
+    }
+    .feed-see-all {
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .feed-see-all:hover { text-decoration: underline; }
+    .feed-match-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-2);
+      font-size: 0.9rem;
+      transition: border-color var(--transition-fast);
+    }
+    .feed-match-item:hover { border-color: var(--accent); }
+    .feed-match-icon { color: var(--text-muted); flex-shrink: 0; }
+    .feed-match-players { flex: 1; color: var(--text); }
+    .feed-match-delta { font-weight: 700; white-space: nowrap; }
+    .feed-match-delta.positive { color: #10b981; }
+    .feed-match-delta.negative { color: #ef4444; }
+    .feed-match-time { color: var(--text-muted); font-size: 0.8rem; white-space: nowrap; }
+    .feed-empty { color: var(--text-muted); font-size: 0.9rem; padding: var(--space-3); text-align: center; }
   </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com https://unpkg.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
@@ -172,7 +342,7 @@
   <div class="hero-landing">
     <div class="hero-top">
       <h1><i class="ph-bold ph-trophy emoji-hero" aria-hidden="true"></i> <span data-i18n="index_ka_esports">KA ESPORTS</span></h1>
-      <div class="live-indicator offline" id="live-indicator" title="Check live stream status">
+      <div class="live-indicator offline" id="live-indicator" title="Check live stream status" role="status" aria-live="polite">
         <span class="live-dot"></span>
         <span id="live-label" data-i18n="live_checking">Checking…</span>
       </div>
@@ -191,6 +361,14 @@
         <i class="ph-bold ph-clipboard-text" aria-hidden="true"></i>
         <span data-i18n="nav_match_reports">Reportes de Partidas</span>
       </a>
+    </div>
+    <div class="hero-search">
+      <div class="hero-search-wrap">
+        <i class="ph ph-magnifying-glass hero-search-icon" aria-hidden="true"></i>
+        <input type="text" id="hero-search-input" class="hero-search-input" placeholder="Buscar jugador..." data-i18n-placeholder="home_search_placeholder" autocomplete="off" aria-label="Buscar jugador" role="combobox" aria-expanded="false" aria-controls="hero-search-results">
+        <kbd class="hero-search-kbd">/</kbd>
+      </div>
+      <div class="hero-search-results" id="hero-search-results"></div>
     </div>
   </div>
 
@@ -211,6 +389,24 @@
       <div class="stat-item">
         <div class="stat-value" id="stat-top-rating">—</div>
         <div class="stat-label" data-i18n="home_highest_rating">Rating Más Alto</div>
+      </div>
+    </div>
+
+    <div class="feed-section" id="feed-section" style="display:none;">
+      <div class="feed-stream-card" id="feed-stream-card" style="display:none;">
+        <div class="feed-stream-header">
+          <i class="ph ph-broadcast" aria-hidden="true"></i>
+          <span data-i18n="feed_live_now">En Vivo Ahora</span>
+          <span class="live-badge" data-i18n="streams_live">EN VIVO</span>
+        </div>
+        <div class="feed-stream-body" id="feed-stream-body"></div>
+      </div>
+      <div class="feed-matches">
+        <div class="feed-matches-header">
+          <span><i class="ph ph-flag" aria-hidden="true"></i> <span data-i18n="feed_recent_matches">Partidas Recientes</span></span>
+          <a href="match-reports.html" class="feed-see-all" data-i18n="feed_see_all">Ver todas →</a>
+        </div>
+        <div class="feed-matches-list" id="feed-matches-list"></div>
       </div>
     </div>
 
@@ -359,8 +555,9 @@
 
     async function loadHomeStats() {
       try {
-        const [playersData, seasonsData] = await Promise.all([
+        const [playersData, seasonsData, sheetsList] = await Promise.all([
           fetchSheetData('PLAYERS'),
+          fetchSheetList(),
           fetchSheetList()
         ]);
 
@@ -397,8 +594,178 @@
 
         const seasons = seasonsData.filter(s => s.startsWith('LEADERBOARD_') && !s.includes('GLOBAL'));
         animateValue(document.getElementById('stat-seasons'), 0, seasons.length, 600);
+
+        loadStatTrends(targetPlayers, targetMatches, targetRating, seasons.length);
       } catch (err) {
         console.warn('Could not load home stats:', err);
+      }
+    }
+
+    async function loadStatTrends(currentPlayers, currentMatches, currentRating, currentSeasons) {
+      try {
+        const sheets = await fetchSheetList();
+        const matchSheets = sheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse();
+        let prevPlayers = 0, prevMatches = 0, prevRating = 0;
+        if (matchSheets.length >= 2) {
+          const prevRows = await fetchSheetData(matchSheets[1]);
+          if (prevRows && prevRows.length > 1) {
+            const clean = prevRows.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
+            const header = clean[0];
+            const playerIdx = header.findIndex(h => h.toLowerCase().includes('player'));
+            const ratingIdx = header.findIndex(h => h === 'Rating' || h === 'Δ Rating');
+            const uniquePlayers = new Set();
+            let bestRating = 0;
+            for (let i = 1; i < clean.length; i++) {
+              if (clean[i][0] && clean[i][0].startsWith('## Match ID:')) {
+                const pr = clean.slice(i);
+                for (let j = 1; j < pr.length; j++) {
+                  if (pr[j][playerIdx]) uniquePlayers.add(pr[j][playerIdx]);
+                  if (ratingIdx >= 0) {
+                    const rt = parseFloat(pr[j][ratingIdx]);
+                    if (!isNaN(rt) && rt > bestRating) bestRating = rt;
+                  }
+                }
+              }
+            }
+            prevPlayers = uniquePlayers.size;
+            const prevMatchCount = matchSheets.length >= 2 ? (await fetchSheetData(matchSheets[0]) || []).filter(r => (r[0] || '').toString().startsWith('## Match ID:')).length : 0;
+            prevMatches = prevMatchCount;
+            prevRating = bestRating;
+          }
+        }
+
+        addTrend('stat-players', currentPlayers, prevPlayers);
+        addTrend('stat-matches', currentMatches, prevMatches);
+        if (currentRating > 0) addTrend('stat-top-rating', currentRating, prevRating);
+      } catch (err) {
+        console.warn('Could not load stat trends:', err);
+      }
+    }
+
+    function addTrend(elementId, current, previous) {
+      const el = document.getElementById(elementId);
+      if (!el || previous === 0) return;
+      const delta = current - previous;
+      const pct = previous > 0 ? ((delta / previous) * 100).toFixed(0) : 0;
+      if (delta === 0) return;
+      const arrow = document.createElement('span');
+      arrow.className = 'stat-trend ' + (delta > 0 ? 'up' : 'down');
+      arrow.textContent = (delta > 0 ? '▲' : '▼') + ' ' + Math.abs(pct) + '%';
+      arrow.title = (delta > 0 ? '+' : '') + delta + ' vs mes anterior';
+      el.parentNode.appendChild(arrow);
+    }
+
+    function initScrollReveal() {
+      if (!('IntersectionObserver' in window)) {
+        document.querySelectorAll('.section-card').forEach(c => c.classList.add('visible'));
+        return;
+      }
+      const cards = document.querySelectorAll('.section-card');
+      cards.forEach((card, i) => {
+        card.style.transitionDelay = (i * 80) + 'ms';
+      });
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      cards.forEach(card => observer.observe(card));
+    }
+
+    function timeAgo(dateStr) {
+      if (!dateStr) return '';
+      const now = Date.now();
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const diffMs = now - d.getTime();
+      const mins = Math.floor(diffMs / 60000);
+      if (mins < 1) return 'ahora';
+      if (mins < 60) return 'hace ' + mins + 'm';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return 'hace ' + hrs + 'h';
+      const days = Math.floor(hrs / 24);
+      if (days === 1) return 'ayer';
+      if (days < 7) return 'hace ' + days + 'd';
+      return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+    }
+
+    async function renderFeedStreamCard(liveData) {
+      const card = document.getElementById('feed-stream-card');
+      const body = document.getElementById('feed-stream-body');
+      if (!card || !body || !liveData) { if (card) card.style.display = 'none'; return; }
+      const { tw = {}, yt = {} } = liveData;
+      let liveStreamer = null;
+      for (const ch of channels) {
+        const info = ch.type === 'twitch' ? tw[ch.id] : yt[ch.handle];
+        if (info && info.isLive) { liveStreamer = { ...ch, ...info }; break; }
+      }
+      if (!liveStreamer) { card.style.display = 'none'; return; }
+      card.style.display = '';
+      const viewers = liveStreamer.viewers ? liveStreamer.viewers + ' viewers' : '';
+      body.innerHTML = '<span><strong>' + escapeHtml(liveStreamer.name) + '</strong> · ' + liveStreamer.plat + (viewers ? ' · ' + viewers : '') + '</span><a href="' + liveStreamer.url + '" target="_blank" rel="noopener">' + I18n.t('streams_click_to_watch') + '</a>';
+    }
+
+    async function renderFeedMatches() {
+      const list = document.getElementById('feed-matches-list');
+      const section = document.getElementById('feed-section');
+      if (!list || !section) return;
+      try {
+        const sheets = await fetchSheetList();
+        const matchSheets = sheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse();
+        if (matchSheets.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
+        const allRows = await fetchSheetData(matchSheets[0]);
+        if (!allRows || allRows.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
+        const cleanRows = allRows.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
+        const matchStartIndices = [];
+        for (let i = 0; i < cleanRows.length; i++) {
+          if (cleanRows[i][0] && cleanRows[i][0].startsWith('## Match ID:')) matchStartIndices.push(i);
+        }
+        const matches = [];
+        for (let idx = 0; idx < Math.min(matchStartIndices.length, 10); idx++) {
+          const start = matchStartIndices[idx];
+          const end = idx < matchStartIndices.length - 1 ? matchStartIndices[idx + 1] : cleanRows.length;
+          const block = cleanRows.slice(start, end);
+          const dateRow = block[1] ? block[1][0] : '';
+          let date = '';
+          const dm = dateRow ? dateRow.match(/\*\*Date:\*\*\s*(.*?)\s*\|/) : null;
+          if (dm) date = dm[1].trim();
+          let headerRow = null, dataStart = 0;
+          for (let j = 0; j < block.length; j++) {
+            if (block[j].some(c => c.toLowerCase().includes('player'))) { headerRow = block[j]; dataStart = j + 1; break; }
+          }
+          if (!headerRow) continue;
+          const deltaIdx = headerRow.findIndex(h => h === 'Δ Rating');
+          const playerIdx = headerRow.findIndex(h => h.toLowerCase().includes('player'));
+          const pointsIdx = headerRow.findIndex(h => h === 'Points');
+          const dataRows = [];
+          for (let j = dataStart; j < block.length; j++) {
+            if (block[j][0] === '---' || block[j][0] === '') break;
+            dataRows.push(block[j]);
+          }
+          if (dataRows.length < 2) continue;
+          let best = 0, bestIdx = 0;
+          dataRows.forEach((r, i) => { const p = parseInt(r[pointsIdx]); if (!isNaN(p) && p > best) { best = p; bestIdx = i; } });
+          let worst = Infinity, worstIdx = 0;
+          dataRows.forEach((r, i) => { const p = parseInt(r[pointsIdx]); if (!isNaN(p) && p < worst) { worst = p; worstIdx = i; } });
+          if (bestIdx === worstIdx) worstIdx = (bestIdx + 1) % dataRows.length;
+          const winner = (dataRows[bestIdx][playerIdx] || '').replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
+          const loser = (dataRows[worstIdx][playerIdx] || '').replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
+          const delta = deltaIdx >= 0 ? parseFloat(dataRows[bestIdx][deltaIdx]) : null;
+          matches.push({ winner, loser, delta, date });
+        }
+        if (matches.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
+        list.innerHTML = matches.slice(0, 5).map(m => {
+          const deltaHtml = m.delta != null ? '<span class="feed-match-delta ' + (m.delta >= 0 ? 'positive' : 'negative') + '">' + (m.delta >= 0 ? '+' : '') + m.delta.toFixed(1) + ' ⭐</span>' : '';
+          return '<div class="feed-match-item"><span class="feed-match-icon"><i class="ph ph-flag" aria-hidden="true"></i></span><span class="feed-match-players"><strong>' + escapeHtml(m.winner) + '</strong> vs ' + escapeHtml(m.loser) + '</span>' + deltaHtml + '<span class="feed-match-time">' + timeAgo(m.date) + '</span></div>';
+        }).join('');
+        section.style.display = '';
+      } catch (err) {
+        console.warn('Feed load error:', err);
+        list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>';
+        section.style.display = '';
       }
     }
 
@@ -410,6 +777,82 @@
         const freshData = await fetchLiveStatus();
         updateLiveIndicator(freshData);
       }, 120000);
+      initScrollReveal();
+      renderFeedStreamCard(liveData);
+      renderFeedMatches();
+      initPlayerSearch();
+    }
+
+    async function initPlayerSearch() {
+      const input = document.getElementById('hero-search-input');
+      const results = document.getElementById('hero-search-results');
+      if (!input || !results) return;
+      let players = [];
+      let loaded = false;
+      let activeIdx = -1;
+
+      async function loadPlayers() {
+        if (loaded) return;
+        try {
+          const data = await fetchSheetData('PLAYERS');
+          if (!data) return;
+          const clean = data.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
+          const header = clean[0];
+          const nameIdx = header.findIndex(h => h.toLowerCase().includes('player'));
+          const countryIdx = header.findIndex(h => h.toLowerCase().includes('country'));
+          const rankIdx = header.findIndex(h => h.toLowerCase().includes('rank'));
+          const ptsIdx = header.findIndex(h => h === 'Current Points' || h === 'Total Points');
+          for (let i = 1; i < clean.length; i++) {
+            const row = clean[i];
+            const name = nameIdx >= 0 ? row[nameIdx] : '';
+            if (!name) continue;
+            players.push({
+              name,
+              country: countryIdx >= 0 ? row[countryIdx] : '',
+              rank: rankIdx >= 0 ? row[rankIdx] : '',
+              pts: ptsIdx >= 0 ? parseInt(row[ptsIdx]) || 0 : 0
+            });
+          }
+          loaded = true;
+        } catch (err) {
+          console.warn('Player search load error:', err);
+        }
+      }
+
+      function render(query) {
+        if (!query || query.length < 2) { results.innerHTML = ''; results.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); activeIdx = -1; return; }
+        const q = query.toLowerCase();
+        const matches = players.filter(p => p.name.toLowerCase().includes(q)).slice(0, 8);
+        if (matches.length === 0) {
+          results.innerHTML = '<div class="hero-search-empty">No se encontraron jugadores</div>';
+          results.classList.add('open');
+          input.setAttribute('aria-expanded', 'true');
+          activeIdx = -1;
+          return;
+        }
+        activeIdx = -1;
+        results.innerHTML = matches.map((p, i) => {
+          const flag = FLAG_MAP[p.country] || p.country;
+          const rankClass = RANK_CLASS_MAP[p.rank] || '';
+          return '<a href="player-profile.html?player=' + encodeURIComponent(p.name) + '" class="hero-search-result" data-idx="' + i + '"><span class="flag">' + flag + '</span> ' + escapeHtml(p.name) + '<span class="rank ' + rankClass + '">' + escapeHtml(p.rank) + '</span></a>';
+        }).join('');
+        results.classList.add('open');
+        input.setAttribute('aria-expanded', 'true');
+      }
+
+      input.addEventListener('focus', async () => { await loadPlayers(); render(input.value); });
+      input.addEventListener('input', async () => { await loadPlayers(); render(input.value); });
+      document.addEventListener('click', (e) => { if (!e.target.closest('.hero-search')) { results.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); } });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== input) { e.preventDefault(); input.focus(); }
+        if (e.key === 'Escape' && document.activeElement === input) { results.classList.remove('open'); input.blur(); }
+      });
+      input.addEventListener('keydown', (e) => {
+        const items = results.querySelectorAll('.hero-search-result');
+        if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
+        else if (e.key === 'Enter') { e.preventDefault(); if (activeIdx >= 0 && items[activeIdx]) { window.location.href = items[activeIdx].href; } else if (input.value.trim()) { window.location.href = 'players.html?q=' + encodeURIComponent(input.value.trim()); } }
+      });
     }
 
     if (document.readyState === 'loading') {
