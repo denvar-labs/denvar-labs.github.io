@@ -94,9 +94,14 @@ body.dark .btn-secondary:hover:not(:disabled) {
   text-transform: uppercase;
 }
 
-/* ===== QUICK LINKS SIDEBAR (dark mode) ===== */
-body.dark .quick-links a:hover {
+/* ===== QUICK LINKS SIDEBAR (hover) ===== */
+.quick-links a:hover {
   background: var(--accent);
+  color: #fff;
+  transform: translateX(4px);
+  box-shadow: 0 0 12px rgba(74,134,232,0.25);
+}
+body.dark .quick-links a:hover {
   color: #000;
   box-shadow: var(--accent-glow);
 }

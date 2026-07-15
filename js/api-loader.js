@@ -108,9 +108,11 @@ function stripEmojis(str) {
 }
 
 // Safely convert any cell value to escaped string
-function cellToString(cell) {
+// preserveEmojis: true to keep medal icons (🥇🥈🥉) in POS column
+function cellToString(cell, preserveEmojis = false) {
   if (cell === null || cell === undefined) return '';
-  return escapeHtml(stripEmojis(String(cell).trim()));
+  const str = String(cell).trim();
+  return preserveEmojis ? escapeHtml(str) : escapeHtml(stripEmojis(str));
 }
 
 // ===== Consistent UI state rendering (loading / error / empty) =====
@@ -546,7 +548,8 @@ async function renderMatchReports(sheetName, containerId) {
         row.forEach((cell, colIdx) => {
           const headerName = headerRow[colIdx] || '';
           const colClass = colClasses[headerName] || '';
-          let display = cellToString(cell);
+          const isPos = headerName === 'Pos';
+          let display = cellToString(cell, isPos);
           let cellStyle = '';
 
           const numVal = parseFloat(cell);
