@@ -91,6 +91,7 @@
   <script src="../js/ui/i18n.js"></script>
   <script src="../js/ui/navbar.js"></script>
   <script src="../js/ui/header.js"></script>
+  <script src="../js/ui/follow.js"></script>
 
   <script>
     Navbar.inject('navbar-container');
@@ -249,6 +250,7 @@
           <div class="profile-header">
             <span class="rank-badge" style="background-color:${getRankColorHex(rank)}">${escapeHtml(rank)}</span>
             <h2>${escapeHtml(playerName)}</h2>
+            <span id="follow-btn-slot"></span>
           </div>
           <div class="stats-grid">
             <div class="stat-card"><h3>${I18n.t('col_rating')}</h3><div class="value">${isNaN(rating) ? '—' : rating.toFixed(2)}</div></div>
@@ -295,6 +297,11 @@
         }
 
         renderMatchHistory(playerName, container);
+
+        const followSlot = document.getElementById('follow-btn-slot');
+        if (followSlot && typeof KaFollows !== 'undefined') {
+          followSlot.appendChild(KaFollows.createButton(playerName));
+        }
       } catch (err) {
         console.error(err);
         renderState(container, 'error', { detail: err.message, onRetry: () => loadProfile(playerName) });
