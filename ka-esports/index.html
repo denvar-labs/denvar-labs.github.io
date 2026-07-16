@@ -272,17 +272,23 @@
     }
     .feed-stream-body {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: var(--space-3);
       font-size: 0.95rem;
     }
-    .feed-stream-body a {
+    .feed-streamer {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .feed-streamer-info { flex: 1; }
+    .feed-streamer a {
       color: var(--accent);
       font-weight: 600;
       text-decoration: none;
-      margin-left: auto;
+      white-space: nowrap;
     }
-    .feed-stream-body a:hover { text-decoration: underline; }
+    .feed-streamer a:hover { text-decoration: underline; }
     .feed-matches { margin-bottom: var(--space-4); }
     .feed-matches-header {
       display: flex;
@@ -486,6 +492,9 @@
       { name: "FX6400",  plat: "Twitch", type: "twitch", id: "fx6400",  url: "https://www.twitch.tv/fx6400" },
       { name: "DenvarSC", plat: "Twitch", type: "twitch", id: "denvarsc", url: "https://www.twitch.tv/denvarsc" },
       { name: "WahMaster", plat: "Twitch", type: "twitch", id: "wahmaster31", url: "https://www.twitch.tv/wahmaster31" },
+      { name: "D'Court Wreck", plat: "Twitch", type: "twitch", id: "dcourtwreck", url: "https://www.twitch.tv/dcourtwreck" },
+      { name: "Dopistola94", plat: "Twitch", type: "twitch", id: "dopistola94", url: "https://www.twitch.tv/dopistola94" },
+      { name: "RobertRJ0", plat: "Twitch", type: "twitch", id: "robertrj0", url: "https://www.twitch.tv/robertrj0" },
       { name: "Red Buffalo", plat: "YouTube", type: "yt", handle: "@redbuffalo2170", url: "https://www.youtube.com/@redbuffalo2170" },
       { name: "El Super Cien", plat: "YouTube", type: "yt", handle: "@ElSuperCien", url: "https://www.youtube.com/@ElSuperCien" },
       { name: "Vena Monterrey", plat: "YouTube", type: "yt", handle: "@venamonterrey3957", url: "https://www.youtube.com/@venamonterrey3957" },
@@ -497,7 +506,9 @@
       { name: "Justase", plat: "YouTube", type: "yt", handle: "@justase64", url: "https://www.youtube.com/@justase64" },
       { name: "Velizer0", plat: "YouTube", type: "yt", handle: "@velizer0", url: "https://www.youtube.com/@velizer0" },
       { name: "NICOCRACK", plat: "YouTube", type: "yt", handle: "@NICOCRACK24", url: "https://www.youtube.com/@NICOCRACK24" },
-      { name: "WahMaster", plat: "YouTube", type: "yt", handle: "@wahmaster31", url: "https://www.youtube.com/@wahmaster31" }
+      { name: "WahMaster", plat: "YouTube", type: "yt", handle: "@wahmaster31", url: "https://www.youtube.com/@wahmaster31" },
+      { name: "El Matador Games", plat: "YouTube", type: "yt", handle: "@elmatadorgames9326", url: "https://www.youtube.com/@elmatadorgames9326" },
+      { name: "Morton Channel", plat: "YouTube", type: "yt", handle: "@Morton-Channel", url: "https://www.youtube.com/@Morton-Channel" }
     ];
 
     async function fetchLiveStatus() {
@@ -555,9 +566,8 @@
 
     async function loadHomeStats() {
       try {
-        const [playersData, seasonsData, sheetsList] = await Promise.all([
+        const [playersData, allSheets] = await Promise.all([
           fetchSheetData('PLAYERS'),
-          fetchSheetList(),
           fetchSheetList()
         ]);
 
@@ -592,51 +602,52 @@
           }
         }
 
-        const seasons = seasonsData.filter(s => s.startsWith('LEADERBOARD_') && !s.includes('GLOBAL'));
+        const seasons = allSheets.filter(s => s.startsWith('LEADERBOARD_') && !s.includes('GLOBAL'));
         animateValue(document.getElementById('stat-seasons'), 0, seasons.length, 600);
 
-        loadStatTrends(targetPlayers, targetMatches, targetRating, seasons.length);
+        const matchSheets = allSheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse();
+        return { allSheets, matchSheets, targetPlayers, targetMatches, targetRating, seasons: seasons.length };
       } catch (err) {
         console.warn('Could not load home stats:', err);
+        return { allSheets: [], matchSheets: [], targetPlayers: 0, targetMatches: 0, targetRating: 0, seasons: 0 };
       }
     }
 
-    async function loadStatTrends(currentPlayers, currentMatches, currentRating, currentSeasons) {
+    async function loadStatTrends(matchSheets, currentPlayers, currentRating) {
       try {
-        const sheets = await fetchSheetList();
-        const matchSheets = sheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse();
-        let prevPlayers = 0, prevMatches = 0, prevRating = 0;
-        if (matchSheets.length >= 2) {
-          const prevRows = await fetchSheetData(matchSheets[1]);
-          if (prevRows && prevRows.length > 1) {
-            const clean = prevRows.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
-            const header = clean[0];
-            const playerIdx = header.findIndex(h => h.toLowerCase().includes('player'));
-            const ratingIdx = header.findIndex(h => h === 'Rating' || h === 'Δ Rating');
-            const uniquePlayers = new Set();
-            let bestRating = 0;
-            for (let i = 1; i < clean.length; i++) {
-              if (clean[i][0] && clean[i][0].startsWith('## Match ID:')) {
-                const pr = clean.slice(i);
-                for (let j = 1; j < pr.length; j++) {
-                  if (pr[j][playerIdx]) uniquePlayers.add(pr[j][playerIdx]);
-                  if (ratingIdx >= 0) {
-                    const rt = parseFloat(pr[j][ratingIdx]);
-                    if (!isNaN(rt) && rt > bestRating) bestRating = rt;
-                  }
+        if (matchSheets.length < 2) return;
+        const [prevRows, currentRows] = await Promise.all([
+          fetchSheetData(matchSheets[1]),
+          fetchSheetData(matchSheets[0])
+        ]);
+        function countMatchesAndPlayers(rows) {
+          if (!rows || rows.length <= 1) return { matchCount: 0, playerCount: 0, bestRating: 0 };
+          const clean = rows.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
+          const header = clean[0];
+          const playerIdx = header.findIndex(h => h.toLowerCase().includes('player'));
+          const ratingIdx = header.findIndex(h => h === 'Rating' || h === 'Δ Rating');
+          let matchCount = 0, bestRating = 0;
+          const uniquePlayers = new Set();
+          for (let i = 1; i < clean.length; i++) {
+            if (clean[i][0] && clean[i][0].startsWith('## Match ID:')) {
+              matchCount++;
+              for (let j = i + 1; j < clean.length; j++) {
+                if (clean[j][0] && clean[j][0].startsWith('## Match ID:')) break;
+                if (playerIdx >= 0 && clean[j][playerIdx]) uniquePlayers.add(clean[j][playerIdx]);
+                if (ratingIdx >= 0) {
+                  const rt = parseFloat(clean[j][ratingIdx]);
+                  if (!isNaN(rt) && rt > bestRating) bestRating = rt;
                 }
               }
             }
-            prevPlayers = uniquePlayers.size;
-            const prevMatchCount = matchSheets.length >= 2 ? (await fetchSheetData(matchSheets[0]) || []).filter(r => (r[0] || '').toString().startsWith('## Match ID:')).length : 0;
-            prevMatches = prevMatchCount;
-            prevRating = bestRating;
           }
+          return { matchCount, playerCount: uniquePlayers.size, bestRating };
         }
-
-        addTrend('stat-players', currentPlayers, prevPlayers);
-        addTrend('stat-matches', currentMatches, prevMatches);
-        if (currentRating > 0) addTrend('stat-top-rating', currentRating, prevRating);
+        const prev = countMatchesAndPlayers(prevRows);
+        const curr = countMatchesAndPlayers(currentRows);
+        addTrend('stat-players', curr.playerCount, prev.playerCount);
+        addTrend('stat-matches', curr.matchCount, prev.matchCount);
+        if (currentRating > 0) addTrend('stat-top-rating', currentRating, prev.bestRating);
       } catch (err) {
         console.warn('Could not load stat trends:', err);
       }
@@ -697,25 +708,25 @@
       const body = document.getElementById('feed-stream-body');
       if (!card || !body || !liveData) { if (card) card.style.display = 'none'; return; }
       const { tw = {}, yt = {} } = liveData;
-      let liveStreamer = null;
+      const liveStreamers = [];
       for (const ch of channels) {
         const info = ch.type === 'twitch' ? tw[ch.id] : yt[ch.handle];
-        if (info && info.isLive) { liveStreamer = { ...ch, ...info }; break; }
+        if (info && info.isLive) liveStreamers.push({ ...ch, ...info });
       }
-      if (!liveStreamer) { card.style.display = 'none'; return; }
+      if (liveStreamers.length === 0) { card.style.display = 'none'; return; }
       card.style.display = '';
-      const viewers = liveStreamer.viewers ? liveStreamer.viewers + ' viewers' : '';
-      body.innerHTML = '<span><strong>' + escapeHtml(liveStreamer.name) + '</strong> · ' + liveStreamer.plat + (viewers ? ' · ' + viewers : '') + '</span><a href="' + liveStreamer.url + '" target="_blank" rel="noopener">' + I18n.t('streams_click_to_watch') + '</a>';
+      body.innerHTML = liveStreamers.map(ch => {
+        const viewers = ch.viewers ? ' · ' + ch.viewers + ' viewers' : '';
+        return '<div class="feed-streamer"><span class="feed-streamer-info"><strong>' + escapeHtml(ch.name) + '</strong> · ' + ch.plat + viewers + '</span><a href="' + ch.url + '" target="_blank" rel="noopener">▶ ' + I18n.t('streams_click_to_watch') + '</a></div>';
+      }).join('');
     }
 
-    async function renderFeedMatches() {
+    async function renderFeedMatches(matchSheets) {
       const list = document.getElementById('feed-matches-list');
       const section = document.getElementById('feed-section');
       if (!list || !section) return;
       try {
-        const sheets = await fetchSheetList();
-        const matchSheets = sheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse();
-        if (matchSheets.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
+        if (!matchSheets || matchSheets.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
         const allRows = await fetchSheetData(matchSheets[0]);
         if (!allRows || allRows.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
         const cleanRows = allRows.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
@@ -724,7 +735,7 @@
           if (cleanRows[i][0] && cleanRows[i][0].startsWith('## Match ID:')) matchStartIndices.push(i);
         }
         const matches = [];
-        for (let idx = 0; idx < Math.min(matchStartIndices.length, 10); idx++) {
+        for (let idx = 0; idx < matchStartIndices.length; idx++) {
           const start = matchStartIndices[idx];
           const end = idx < matchStartIndices.length - 1 ? matchStartIndices[idx + 1] : cleanRows.length;
           const block = cleanRows.slice(start, end);
@@ -757,7 +768,8 @@
           matches.push({ winner, loser, delta, date });
         }
         if (matches.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
-        list.innerHTML = matches.slice(0, 5).map(m => {
+        const recent = matches.slice(-4).reverse();
+        list.innerHTML = recent.map(m => {
           const deltaHtml = m.delta != null ? '<span class="feed-match-delta ' + (m.delta >= 0 ? 'positive' : 'negative') + '">' + (m.delta >= 0 ? '+' : '') + m.delta.toFixed(1) + ' ⭐</span>' : '';
           return '<div class="feed-match-item"><span class="feed-match-icon"><i class="ph ph-flag" aria-hidden="true"></i></span><span class="feed-match-players"><strong>' + escapeHtml(m.winner) + '</strong> vs ' + escapeHtml(m.loser) + '</span>' + deltaHtml + '<span class="feed-match-time">' + timeAgo(m.date) + '</span></div>';
         }).join('');
@@ -770,8 +782,9 @@
     }
 
     async function initHome() {
-      await loadHomeStats();
-      const liveData = await fetchLiveStatus();
+      const livePromise = fetchLiveStatus();
+      const stats = await loadHomeStats();
+      const liveData = await livePromise;
       updateLiveIndicator(liveData);
       setInterval(async () => {
         const freshData = await fetchLiveStatus();
@@ -779,7 +792,8 @@
       }, 120000);
       initScrollReveal();
       renderFeedStreamCard(liveData);
-      renderFeedMatches();
+      renderFeedMatches(stats.matchSheets);
+      loadStatTrends(stats.matchSheets, stats.targetPlayers, stats.targetRating);
       initPlayerSearch();
     }
 
