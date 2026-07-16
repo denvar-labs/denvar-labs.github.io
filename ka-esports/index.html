@@ -585,31 +585,20 @@
       }).join('');
     }
 
-    async function fetchLiveStatus(retryCount = 0) {
-      const MAX_RETRIES = 2;
+    async function fetchLiveStatus() {
       const twNames = channels.filter(c => c.type === 'twitch').map(c => c.id).join(',');
       const ytNames = channels.filter(c => c.type === 'yt').map(c => c.handle).join(',');
       const url = `${KA_API_BASE}?action=live&tw=${encodeURIComponent(twNames)}&yt=${encodeURIComponent(ytNames)}`;
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), retryCount === 0 ? 15000 : 25000);
+        const timeout = setTimeout(() => controller.abort(), 12000);
         const resp = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
-        const ytKeys = Object.keys(data.yt || {});
-        const ytLiveCount = ytKeys.filter(k => data.yt[k] && data.yt[k].isLive).length;
-        if (ytKeys.length > 0 && ytLiveCount === 0 && retryCount < MAX_RETRIES) {
-          await new Promise(r => setTimeout(r, 3000 * (retryCount + 1)));
-          return fetchLiveStatus(retryCount + 1);
-        }
         return { tw: data.tw || {}, yt: data.yt || {} };
       } catch (err) {
         console.warn('Live check failed:', err);
-        if (retryCount < MAX_RETRIES) {
-          await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
-          return fetchLiveStatus(retryCount + 1);
-        }
         return null;
       }
     }
@@ -886,7 +875,7 @@
       setInterval(async () => {
         const freshData = await fetchLiveStatus();
         updateLiveIndicator(freshData);
-      }, 120000);
+      }, 300000);
       initScrollReveal();
       renderFeedStreamCard(liveData);
       renderFeedMatches(stats.matchSheets);
