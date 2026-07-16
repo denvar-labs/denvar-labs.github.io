@@ -602,6 +602,70 @@ async function fetchSheetList() {
   return json.sheets || [];
 }
 
+async function fetchPlayerMatchHistory(playerName) {
+  const sheets = await fetchSheetList();
+  const matchSheets = sheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse();
+  if (matchSheets.length === 0) return [];
+  const allData = await Promise.all(matchSheets.map(s => fetchSheetData(s)));
+  const results = [];
+  for (let si = 0; si < allData.length; si++) {
+    const rows = allData[si];
+    if (!rows || rows.length === 0) continue;
+    const clean = rows.map(row => row.map(c => (c || '').toString().replace(ZERO_WIDTH_CHARS_REGEX, '').trim()));
+    const matchStarts = [];
+    for (let i = 0; i < clean.length; i++) {
+      if (clean[i][0] && clean[i][0].startsWith('## Match ID:')) matchStarts.push(i);
+    }
+    for (let mi = 0; mi < matchStarts.length; mi++) {
+      const start = matchStarts[mi];
+      const end = mi < matchStarts.length - 1 ? matchStarts[mi + 1] : clean.length;
+      const block = clean.slice(start, end);
+      const matchId = (block[0][0] || '').replace('## Match ID:', '').trim();
+      const dateRow = block[1] ? block[1][0] : '';
+      let date = '';
+      const dm = dateRow.match(/\*\*Date:\*\*\s*(.*?)\s*\|/);
+      if (dm) date = dm[1].trim();
+      let headerRow = null, dataStart = 0;
+      for (let j = 0; j < block.length; j++) {
+        if (block[j].some(c => c.toLowerCase().includes('player'))) { headerRow = block[j]; dataStart = j + 1; break; }
+      }
+      if (!headerRow) continue;
+      const playerIdx = headerRow.findIndex(h => h.toLowerCase().includes('player'));
+      const posIdx = headerRow.findIndex(h => h === 'Pos');
+      const ptsIdx = headerRow.findIndex(h => h === 'Points');
+      const deltaIdx = headerRow.findIndex(h => h === 'Δ Rating');
+      const ratingIdx = headerRow.findIndex(h => h === 'Rating Before Match' || h === 'New Rating');
+      const dataRows = [];
+      for (let j = dataStart; j < block.length; j++) {
+        if (block[j][0] === '---' || block[j][0] === '') break;
+        dataRows.push(block[j]);
+      }
+      const playerRow = dataRows.find(r => {
+        const raw = (r[playerIdx] || '').toString().replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
+        return raw === playerName || raw.includes(playerName);
+      });
+      if (!playerRow) continue;
+      const pos = posIdx >= 0 ? cellToString(playerRow[posIdx], true) : '';
+      const pts = ptsIdx >= 0 ? parseInt(playerRow[ptsIdx]) || 0 : 0;
+      const delta = deltaIdx >= 0 ? parseFloat(playerRow[deltaIdx]) : null;
+      const rating = ratingIdx >= 0 ? parseFloat(playerRow[ratingIdx]) : null;
+      const opponents = dataRows.filter(r => r !== playerRow).map(r => {
+        const name = (r[playerIdx] || '').toString().replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
+        const opPts = ptsIdx >= 0 ? parseInt(r[ptsIdx]) || 0 : 0;
+        return { name, pts: opPts };
+      });
+      const posNum = parseInt(pos) || 0;
+      results.push({ matchId, date, pos, posNum, pts, delta, rating, opponents, sheet: matchSheets[si] });
+    }
+  }
+  results.sort((a, b) => {
+    const da = new Date(a.date), db = new Date(b.date);
+    if (!isNaN(da.getTime()) && !isNaN(db.getTime())) return da - db;
+    return 0;
+  });
+  return results;
+}
+
 async function populateMonthSelector(selectId, prefix) {
   const select = document.getElementById(selectId);
   if (!select) return;

@@ -22,6 +22,31 @@
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 8px 0; }
     .stat-card h3 { margin: 0 0 8px; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); }
     .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .match-history-section { margin-top: 32px; }
+    .match-history-section h3 { margin: 0 0 16px; font-size: 1.1rem; }
+    .mh-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .mh-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .mh-stat .mh-val { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    .mh-stat .mh-lbl { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+    .mh-dots { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; }
+    .mh-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mh-dot.win { background: #10b981; }
+    .mh-dot.podium { background: #f59e0b; }
+    .mh-dot.loss { background: #6b7280; }
+    .mh-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .mh-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+    .mh-table td { padding: 8px; border-bottom: 1px solid var(--border); }
+    .mh-table tr:hover td { background: var(--accent-bg, rgba(74,134,232,0.05)); }
+    .mh-delta { font-weight: 600; }
+    .mh-delta.pos { color: #10b981; }
+    .mh-delta.neg { color: #ef4444; }
+    .mh-pos-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; }
+    .mh-pos-badge.first { background: #fbbf24; color: #000; }
+    .mh-pos-badge.second { background: #d1d5db; color: #000; }
+    .mh-pos-badge.third { background: #d97706; color: #fff; }
+    .mh-pos-badge.other { background: var(--border); color: var(--text-muted); }
+    .mh-opponents { font-size: 0.8rem; color: var(--text-muted); }
+    .mh-empty { color: var(--text-muted); padding: 20px; text-align: center; }
   </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://unpkg.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
@@ -78,6 +103,65 @@
     }
 
     let chart = null;
+
+    async function renderMatchHistory(playerName, container) {
+      const section = document.createElement('div');
+      section.className = 'match-history-section';
+      section.innerHTML = '<h3><i class="ph ph-flag" aria-hidden="true"></i> Match History</h3><div class="mh-empty">Loading match history...</div>';
+      container.appendChild(section);
+
+      try {
+        const matches = await fetchPlayerMatchHistory(playerName);
+        if (matches.length === 0) {
+          section.innerHTML = '<h3><i class="ph ph-flag" aria-hidden="true"></i> Match History</h3><div class="mh-empty">No match history found.</div>';
+          return;
+        }
+
+        const total = matches.length;
+        const wins = matches.filter(m => m.posNum === 1).length;
+        const podiums = matches.filter(m => m.posNum >= 1 && m.posNum <= 3).length;
+        const avgPos = matches.reduce((s, m) => s + (m.posNum || 0), 0) / total;
+        let streak = 0, curStreak = 0;
+        for (let i = 0; i < matches.length; i++) {
+          if (matches[i].posNum === 1) { curStreak++; if (curStreak > streak) streak = curStreak; }
+          else curStreak = 0;
+        }
+        const form = matches.slice(-5);
+        const formStr = form.map(m => m.posNum === 1 ? '🏆' : m.posNum <= 3 ? '🟡' : '⬛').join(' ');
+
+        const dotsHtml = matches.slice(-30).map(m => {
+          const cls = m.posNum === 1 ? 'win' : m.posNum <= 3 ? 'podium' : 'loss';
+          return '<span class="mh-dot ' + cls + '" title="Match ' + m.matchId + ': ' + m.pos + '"></span>';
+        }).join('');
+
+        let tableHtml = '<div style="overflow-x:auto;"><table class="mh-table"><thead><tr>';
+        tableHtml += '<th>Date</th><th>Match</th><th>Pos</th><th>Pts</th><th>Δ Rating</th><th>Opponents</th>';
+        tableHtml += '</tr></thead><tbody>';
+        const reversed = [...matches].reverse();
+        reversed.forEach(m => {
+          const posClass = m.posNum === 1 ? 'first' : m.posNum === 2 ? 'second' : m.posNum === 3 ? 'third' : 'other';
+          const deltaHtml = m.delta != null ? '<span class="mh-delta ' + (m.delta >= 0 ? 'pos' : 'neg') + '">' + (m.delta >= 0 ? '+' : '') + m.delta.toFixed(2) + '</span>' : '—';
+          const oppStr = m.opponents.map(o => escapeHtml(o.name) + ' (' + o.pts + ')').join(', ');
+          tableHtml += '<tr><td>' + escapeHtml(m.date) + '</td><td>' + escapeHtml(m.matchId) + '</td><td><span class="mh-pos-badge ' + posClass + '">' + escapeHtml(m.pos) + '</span></td><td>' + m.pts + '</td><td>' + deltaHtml + '</td><td class="mh-opponents">' + oppStr + '</td></tr>';
+        });
+        tableHtml += '</tbody></table></div>';
+
+        section.innerHTML = '<h3><i class="ph ph-flag" aria-hidden="true"></i> Match History</h3>' +
+          '<div class="mh-summary">' +
+          '<div class="mh-stat"><div class="mh-val">' + total + '</div><div class="mh-lbl">Total Races</div></div>' +
+          '<div class="mh-stat"><div class="mh-val">' + wins + '</div><div class="mh-lbl">Wins</div></div>' +
+          '<div class="mh-stat"><div class="mh-val">' + podiums + '</div><div class="mh-lbl">Podiums</div></div>' +
+          '<div class="mh-stat"><div class="mh-val">' + avgPos.toFixed(1) + '</div><div class="mh-lbl">Avg Position</div></div>' +
+          '<div class="mh-stat"><div class="mh-val">' + streak + '</div><div class="mh-lbl">Best Streak</div></div>' +
+          '<div class="mh-stat"><div class="mh-val" style="font-size:0.9rem">' + formStr + '</div><div class="mh-lbl">Last 5</div></div>' +
+          '</div>' +
+          '<div class="mh-dots" title="Last 30: 🟢=Win 🟡=Podium ⬛=Loss">' + dotsHtml + '</div>' +
+          tableHtml;
+      } catch (err) {
+        console.warn('Match history error:', err);
+        section.innerHTML = '<h3><i class="ph ph-flag" aria-hidden="true"></i> Match History</h3><div class="mh-empty">Could not load match history.</div>';
+      }
+    }
 
     async function init() {
       const names = await fetchPlayerNames();
@@ -209,6 +293,8 @@
             }
           });
         }
+
+        renderMatchHistory(playerName, container);
       } catch (err) {
         console.error(err);
         renderState(container, 'error', { detail: err.message, onRetry: () => loadProfile(playerName) });

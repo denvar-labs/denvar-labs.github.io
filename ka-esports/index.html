@@ -271,22 +271,34 @@
       margin-left: auto;
     }
     .feed-stream-body {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: var(--space-3);
       font-size: 0.95rem;
+    }
+    .feed-stream-body:has(.feed-streamer:only-child) {
+      grid-template-columns: 1fr;
     }
     .feed-streamer {
       display: flex;
       align-items: center;
       gap: var(--space-3);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      transition: border-color var(--transition-fast);
     }
-    .feed-streamer-info { flex: 1; }
+    .feed-streamer:hover { border-color: #10b981; }
+    .feed-streamer-info { flex: 1; min-width: 0; }
+    .feed-streamer-name { font-weight: 700; }
+    .feed-streamer-meta { font-size: 0.8rem; color: var(--text-muted); }
     .feed-streamer a {
       color: var(--accent);
       font-weight: 600;
       text-decoration: none;
       white-space: nowrap;
+      font-size: 0.85rem;
     }
     .feed-streamer a:hover { text-decoration: underline; }
     .feed-matches { margin-bottom: var(--space-4); }
@@ -314,12 +326,16 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       margin-bottom: var(--space-2);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       transition: border-color var(--transition-fast);
     }
     .feed-match-item:hover { border-color: var(--accent); }
     .feed-match-icon { color: var(--text-muted); flex-shrink: 0; }
-    .feed-match-players { flex: 1; color: var(--text); }
+    .feed-match-players { flex: 1; color: var(--text); display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+    .mh-feed-player { white-space: nowrap; }
+    .mh-feed-player strong { color: var(--text); }
+    .mh-feed-pts { color: var(--text-muted); font-size: 0.8rem; }
+    .mh-feed-sep { color: var(--text-muted); margin: 0 2px; }
     .feed-match-delta { font-weight: 700; white-space: nowrap; }
     .feed-match-delta.positive { color: #10b981; }
     .feed-match-delta.negative { color: #ef4444; }
@@ -717,7 +733,7 @@
       card.style.display = '';
       body.innerHTML = liveStreamers.map(ch => {
         const viewers = ch.viewers ? ' · ' + ch.viewers + ' viewers' : '';
-        return '<div class="feed-streamer"><span class="feed-streamer-info"><strong>' + escapeHtml(ch.name) + '</strong> · ' + ch.plat + viewers + '</span><a href="' + ch.url + '" target="_blank" rel="noopener">▶ ' + I18n.t('streams_click_to_watch') + '</a></div>';
+        return '<div class="feed-streamer"><div class="feed-streamer-info"><div class="feed-streamer-name">' + escapeHtml(ch.name) + '</div><div class="feed-streamer-meta">' + ch.plat + viewers + '</div></div><a href="' + ch.url + '" target="_blank" rel="noopener">▶ Watch</a></div>';
       }).join('');
     }
 
@@ -751,27 +767,33 @@
           const deltaIdx = headerRow.findIndex(h => h === 'Δ Rating');
           const playerIdx = headerRow.findIndex(h => h.toLowerCase().includes('player'));
           const pointsIdx = headerRow.findIndex(h => h === 'Points');
+          const posIdx = headerRow.findIndex(h => h === 'Pos');
           const dataRows = [];
           for (let j = dataStart; j < block.length; j++) {
             if (block[j][0] === '---' || block[j][0] === '') break;
             dataRows.push(block[j]);
           }
           if (dataRows.length < 2) continue;
-          let best = 0, bestIdx = 0;
-          dataRows.forEach((r, i) => { const p = parseInt(r[pointsIdx]); if (!isNaN(p) && p > best) { best = p; bestIdx = i; } });
-          let worst = Infinity, worstIdx = 0;
-          dataRows.forEach((r, i) => { const p = parseInt(r[pointsIdx]); if (!isNaN(p) && p < worst) { worst = p; worstIdx = i; } });
-          if (bestIdx === worstIdx) worstIdx = (bestIdx + 1) % dataRows.length;
-          const winner = (dataRows[bestIdx][playerIdx] || '').replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
-          const loser = (dataRows[worstIdx][playerIdx] || '').replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
-          const delta = deltaIdx >= 0 ? parseFloat(dataRows[bestIdx][deltaIdx]) : null;
-          matches.push({ winner, loser, delta, date });
+          const players = dataRows.map(r => {
+            const name = (r[playerIdx] || '').replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
+            const pts = parseInt(r[pointsIdx]) || 0;
+            const pos = posIdx >= 0 ? (r[posIdx] || '').toString().trim() : '';
+            return { name, pts, pos };
+          }).filter(p => p.name).sort((a, b) => b.pts - a.pts);
+          if (players.length === 0) continue;
+          const delta = deltaIdx >= 0 ? parseFloat(dataRows[0][deltaIdx]) : null;
+          matches.push({ players, delta, date });
         }
         if (matches.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
         const recent = matches.slice(-4).reverse();
         list.innerHTML = recent.map(m => {
+          const posIcons = ['🥇', '🥈', '🥉', '4️⃣'];
+          const playersHtml = m.players.map((p, i) => {
+            const icon = posIcons[i] || '';
+            return '<span class="mh-feed-player">' + icon + ' <strong>' + escapeHtml(p.name) + '</strong> <span class="mh-feed-pts">(' + p.pts + ')</span></span>';
+          }).join('<span class="mh-feed-sep"> · </span>');
           const deltaHtml = m.delta != null ? '<span class="feed-match-delta ' + (m.delta >= 0 ? 'positive' : 'negative') + '">' + (m.delta >= 0 ? '+' : '') + m.delta.toFixed(1) + ' ⭐</span>' : '';
-          return '<div class="feed-match-item"><span class="feed-match-icon"><i class="ph ph-flag" aria-hidden="true"></i></span><span class="feed-match-players"><strong>' + escapeHtml(m.winner) + '</strong> vs ' + escapeHtml(m.loser) + '</span>' + deltaHtml + '<span class="feed-match-time">' + timeAgo(m.date) + '</span></div>';
+          return '<div class="feed-match-item"><span class="feed-match-icon"><i class="ph ph-flag" aria-hidden="true"></i></span><span class="feed-match-players">' + playersHtml + '</span>' + deltaHtml + '<span class="feed-match-time">' + timeAgo(m.date) + '</span></div>';
         }).join('');
         section.style.display = '';
       } catch (err) {
