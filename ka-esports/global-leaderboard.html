@@ -36,7 +36,15 @@
       <div id="sidebar-container"></div>
       <main class="content">
         <section class="panel">
-          <div class="section-heading" data-i18n="leaderboard_all_players">All Players</div>
+          <div class="section-heading">
+            <span data-i18n="leaderboard_all_players">All Players</span>
+            <div class="season-filter-group">
+              <label for="season-select" data-i18n="season_archive">Season Archive:</label>
+              <select id="season-select" class="field-select">
+                <option value="" data-i18n="all_seasons">All Seasons</option>
+              </select>
+            </div>
+          </div>
           <div class="table-responsive">
             <table id="data-table" class="data-table">
               <thead></thead>
@@ -74,10 +82,46 @@
       });
     }
 
+    let currentSeason = '';
+
     // Load table data
-    function initLeaderboard() {
+    async function initLeaderboard() {
+      await populateSeasonSelector();
       loadTableFromSheet('LEADERBOARD_GLOBAL', 'data-table');
     }
+
+    async function populateSeasonSelector() {
+      const select = document.getElementById('season-select');
+      if (!select) return;
+      try {
+        const allSheets = await fetchSheetList();
+        const seasons = allSheets.filter(name => name.startsWith('LEADERBOARD_') && name !== 'LEADERBOARD_GLOBAL').sort().reverse();
+        select.innerHTML = '<option value="" data-i18n="all_seasons">All Seasons</option>';
+        seasons.forEach(name => {
+          const display = name.replace('LEADERBOARD_', '').replace(/_/g, '-');
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = display;
+          select.appendChild(option);
+        });
+        if (seasons.length === 0) {
+          select.innerHTML = '<option value="">No seasons found</option>';
+        }
+      } catch (err) {
+        console.error('Error populating season selector:', err);
+      }
+    }
+
+    async function loadSeason(sheetName) {
+      currentSeason = sheetName;
+      if (sheetName) {
+        await loadTableFromSheet(sheetName, 'data-table');
+      } else {
+        await loadTableFromSheet('LEADERBOARD_GLOBAL', 'data-table');
+      }
+      addFollowButtonsToTable('data-table');
+    }
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initLeaderboard);
     } else {
@@ -87,6 +131,11 @@
     // Bind export buttons
     ExportUtils.bindCSV('csv-btn', 'data-table', 'global-leaderboard-{date}.csv');
     ExportUtils.bindScreenshot('screenshot-btn', 'data-table', 'global-leaderboard-{date}.png');
+
+    // Season filter change handler
+    document.getElementById('season-select')?.addEventListener('change', e => {
+      loadSeason(e.target.value);
+    });
 
     // Table enhance: sort, filter, column picker, deep links
     (function () {

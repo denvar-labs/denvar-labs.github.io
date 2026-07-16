@@ -101,6 +101,9 @@ const I18n = (() => {
       btn_light_mode: 'Modo claro',
       btn_simulate: 'Simular',
       btn_download: 'Descargar',
+      season_archive: 'Archivo de Temporadas',
+      all_seasons: 'Todas las Temporadas',
+      export_stats: 'Exportar Stats',
 
       // Table
       col_rank: 'Rank',
@@ -710,6 +713,9 @@ const I18n = (() => {
       btn_light_mode: 'Light mode',
       btn_simulate: 'Simulate',
       btn_download: 'Download',
+      season_archive: 'Season Archive',
+      all_seasons: 'All Seasons',
+      export_stats: 'Export Stats',
 
       // Table
       col_rank: 'Rank',

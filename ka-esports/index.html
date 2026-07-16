@@ -587,20 +587,25 @@
 
     async function fetchLiveStatus() {
       const twNames = channels.filter(c => c.type === 'twitch').map(c => c.id).join(',');
-      const ytNames = channels.filter(c => c.type === 'yt').map(c => c.handle).join(',');
-      const url = `${KA_API_BASE}?action=live&tw=${encodeURIComponent(twNames)}&yt=${encodeURIComponent(ytNames)}`;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
-        const resp = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeout);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        return { tw: data.tw || {}, yt: data.yt || {} };
-      } catch (err) {
-        console.warn('Live check failed:', err);
-        return null;
-      }
+      const twPromise = twNames ? fetch(`${KA_API_BASE}?action=live&tw=${encodeURIComponent(twNames)}&yt=`).then(r => r.ok ? r.json() : { tw: {} }).catch(() => ({ tw: {} })) : Promise.resolve({ tw: {} });
+
+      const ytResults = {};
+      const ytChannels = channels.filter(c => c.type === 'yt');
+      const ytPromises = ytChannels.map(async (ch) => {
+        try {
+          const handle = ch.handle.replace('@', '');
+          const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${handle}`;
+          const resp = await fetch(rssUrl);
+          if (!resp.ok) { ytResults[ch.handle] = { isLive: false }; return; }
+          const text = await resp.text();
+          const hasLive = text.includes('yt:liveBroadcast') || text.includes('liveBroadcastContent');
+          ytResults[ch.handle] = { isLive: hasLive };
+        } catch { ytResults[ch.handle] = { isLive: false }; }
+      });
+      await Promise.all(ytPromises);
+
+      const twData = await twPromise;
+      return { tw: twData.tw || {}, yt: ytResults };
     }
 
     function updateLiveIndicator(liveData) {

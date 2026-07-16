@@ -173,3 +173,19 @@ body.dark .retry-btn:hover {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* ===== SEASON FILTER GROUP ===== */
+.season-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 0.9rem;
+}
+.season-filter-group label {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.season-filter-group .field-select {
+  min-width: 150px;
+}
