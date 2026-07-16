@@ -243,13 +243,21 @@
     body:not(.dark) .hero-landing { box-shadow: 0 4px 20px rgba(74,134,232,0.3); }
     body.dark .hero-landing { background: linear-gradient(135deg, #2a3a5c 0%, #1a2540 100%); }
 
-    .feed-section { margin-bottom: var(--space-8); }
+    .feed-section { margin-bottom: var(--space-6); }
+    .feed-row {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: var(--space-4);
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .feed-row { grid-template-columns: 1fr; }
+    }
     .feed-stream-card {
       background: var(--surface);
       border: 1px solid #10b981;
       border-radius: var(--radius-lg);
-      padding: var(--space-5);
-      margin-bottom: var(--space-4);
+      padding: var(--space-4);
     }
     .feed-stream-header {
       display: flex;
@@ -258,56 +266,52 @@
       font-weight: 700;
       margin-bottom: var(--space-3);
       color: var(--text);
+      font-size: 0.9rem;
     }
     .feed-stream-header .live-badge {
       background: #10b981;
       color: #fff;
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       font-weight: 700;
-      padding: 2px 8px;
+      padding: 2px 6px;
       border-radius: 4px;
       text-transform: uppercase;
       animation: pulse 2s infinite;
       margin-left: auto;
     }
     .feed-stream-body {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: var(--space-3);
-      font-size: 0.95rem;
-    }
-    .feed-stream-body:has(.feed-streamer:only-child) {
-      grid-template-columns: 1fr;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      font-size: 0.85rem;
     }
     .feed-streamer {
       display: flex;
       align-items: center;
-      gap: var(--space-3);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: var(--space-3) var(--space-4);
-      transition: border-color var(--transition-fast);
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      background: var(--accent-bg, rgba(74,134,232,0.05));
     }
-    .feed-streamer:hover { border-color: #10b981; }
     .feed-streamer-info { flex: 1; min-width: 0; }
-    .feed-streamer-name { font-weight: 700; }
-    .feed-streamer-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .feed-streamer-name { font-weight: 600; font-size: 0.85rem; }
+    .feed-streamer-meta { font-size: 0.75rem; color: var(--text-muted); }
     .feed-streamer a {
       color: var(--accent);
       font-weight: 600;
       text-decoration: none;
       white-space: nowrap;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
     .feed-streamer a:hover { text-decoration: underline; }
-    .feed-matches { margin-bottom: var(--space-4); }
+    .feed-matches { }
     .feed-matches-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-weight: 700;
-      margin-bottom: var(--space-3);
+      margin-bottom: var(--space-2);
+      font-size: 0.9rem;
       color: var(--text);
     }
     .feed-see-all {
@@ -320,13 +324,13 @@
     .feed-match-item {
       display: flex;
       align-items: center;
-      gap: var(--space-3);
-      padding: var(--space-3) var(--space-4);
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      margin-bottom: var(--space-2);
-      font-size: 0.85rem;
+      margin-bottom: var(--space-1);
+      font-size: 0.8rem;
       transition: border-color var(--transition-fast);
     }
     .feed-match-item:hover { border-color: var(--accent); }
@@ -415,20 +419,22 @@
     </div>
 
     <div class="feed-section" id="feed-section" style="display:none;">
-      <div class="feed-stream-card" id="feed-stream-card" style="display:none;">
-        <div class="feed-stream-header">
-          <i class="ph ph-broadcast" aria-hidden="true"></i>
-          <span data-i18n="feed_live_now">En Vivo Ahora</span>
-          <span class="live-badge" data-i18n="streams_live">EN VIVO</span>
+      <div class="feed-row">
+        <div class="feed-stream-card" id="feed-stream-card" style="display:none;">
+          <div class="feed-stream-header">
+            <i class="ph ph-broadcast" aria-hidden="true"></i>
+            <span data-i18n="feed_live_now">En Vivo Ahora</span>
+            <span class="live-badge" data-i18n="streams_live">EN VIVO</span>
+          </div>
+          <div class="feed-stream-body" id="feed-stream-body"></div>
         </div>
-        <div class="feed-stream-body" id="feed-stream-body"></div>
-      </div>
-      <div class="feed-matches">
-        <div class="feed-matches-header">
-          <span><i class="ph ph-flag" aria-hidden="true"></i> <span data-i18n="feed_recent_matches">Partidas Recientes</span></span>
-          <a href="match-reports.html" class="feed-see-all" data-i18n="feed_see_all">Ver todas →</a>
+        <div class="feed-matches">
+          <div class="feed-matches-header">
+            <span><i class="ph ph-flag" aria-hidden="true"></i> <span data-i18n="feed_recent_matches">Partidas Recientes</span></span>
+            <a href="match-reports.html" class="feed-see-all" data-i18n="feed_see_all">Ver todas →</a>
+          </div>
+          <div class="feed-matches-list" id="feed-matches-list"></div>
         </div>
-        <div class="feed-matches-list" id="feed-matches-list"></div>
       </div>
     </div>
 
@@ -527,17 +533,31 @@
       { name: "Morton Channel", plat: "YouTube", type: "yt", handle: "@Morton-Channel", url: "https://www.youtube.com/@Morton-Channel" }
     ];
 
-    async function fetchLiveStatus() {
+    async function fetchLiveStatus(retryCount = 0) {
+      const MAX_RETRIES = 2;
       const twNames = channels.filter(c => c.type === 'twitch').map(c => c.id).join(',');
       const ytNames = channels.filter(c => c.type === 'yt').map(c => c.handle).join(',');
       const url = `${KA_API_BASE}?action=live&tw=${encodeURIComponent(twNames)}&yt=${encodeURIComponent(ytNames)}`;
       try {
-        const resp = await fetch(url);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), retryCount === 0 ? 15000 : 25000);
+        const resp = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
+        const ytKeys = Object.keys(data.yt || {});
+        const ytLiveCount = ytKeys.filter(k => data.yt[k] && data.yt[k].isLive).length;
+        if (ytKeys.length > 0 && ytLiveCount === 0 && retryCount < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 3000 * (retryCount + 1)));
+          return fetchLiveStatus(retryCount + 1);
+        }
         return { tw: data.tw || {}, yt: data.yt || {} };
       } catch (err) {
         console.warn('Live check failed:', err);
+        if (retryCount < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
+          return fetchLiveStatus(retryCount + 1);
+        }
         return null;
       }
     }
@@ -785,9 +805,14 @@
           matches.push({ players, delta, date });
         }
         if (matches.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
-        const recent = matches.slice(-4).reverse();
+        matches.sort((a, b) => {
+          const da = new Date(a.date), db = new Date(b.date);
+          if (!isNaN(da.getTime()) && !isNaN(db.getTime())) return db - da;
+          return 0;
+        });
+        const recent = matches.slice(0, 5);
         list.innerHTML = recent.map(m => {
-          const posIcons = ['🥇', '🥈', '🥉', '4️⃣'];
+          const posIcons = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
           const playersHtml = m.players.map((p, i) => {
             const icon = posIcons[i] || '';
             return '<span class="mh-feed-player">' + icon + ' <strong>' + escapeHtml(p.name) + '</strong> <span class="mh-feed-pts">(' + p.pts + ')</span></span>';
@@ -804,6 +829,12 @@
     }
 
     async function initHome() {
+      const indicator = document.getElementById('live-indicator');
+      const label = document.getElementById('live-label');
+      if (indicator && label) {
+        indicator.className = 'live-indicator offline';
+        label.textContent = 'Checking streams...';
+      }
       const livePromise = fetchLiveStatus();
       const stats = await loadHomeStats();
       const liveData = await livePromise;
