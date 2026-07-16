@@ -55,12 +55,12 @@
     </div>
   </div>
 
-  <script src="../js/config.js"></script>
-  <script src="../js/api-loader.js"></script>
-  <script src="../js/ui/darkmode.js"></script>
-  <script src="../js/ui/i18n.js"></script>
-  <script src="../js/ui/navbar.js"></script>
-  <script src="../js/ui/header.js"></script>
+  <script src="../js/config.js" defer></script>
+  <script src="../js/api-loader.js" defer></script>
+  <script src="../js/ui/darkmode.js" defer></script>
+  <script src="../js/ui/i18n.js" defer></script>
+  <script src="../js/ui/navbar.js" defer></script>
+  <script src="../js/ui/header.js" defer></script>
 
   <script>
     Navbar.inject('navbar-container');
@@ -135,11 +135,11 @@
           const lastStr = s.lastDate ? s.lastDate.toISOString().replace('T', ' ').substring(0, 19) : '—';
           return `
             <tr>
-              <td>${i + 1}</td>
-              <td>${escapeHtml(s.name)}</td>
-              <td>${getFlagEmoji(s.country)}</td>
-              <td><strong>${s.count}</strong></td>
-              <td>${lastStr}</td>
+              <td data-label="#">${i + 1}</td>
+              <td data-label="Player">${escapeHtml(s.name)}</td>
+              <td data-label="Country">${getFlagEmoji(s.country)}</td>
+              <td data-label="Rage Quits"><strong>${s.count}</strong></td>
+              <td data-label="Last Rage Quit">${lastStr}</td>
             </tr>
           `;
         }).join('');

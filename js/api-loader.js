@@ -604,7 +604,7 @@ async function fetchSheetList() {
 
 async function fetchPlayerMatchHistory(playerName) {
   const sheets = await fetchSheetList();
-  const matchSheets = sheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse();
+  const matchSheets = sheets.filter(s => s.startsWith('MATCH_REPORTS_')).sort().reverse().slice(0, 3);
   if (matchSheets.length === 0) return [];
   const allData = await Promise.all(matchSheets.map(s => fetchSheetData(s)));
   const results = [];
@@ -746,19 +746,31 @@ async function loadPlainText(sheetName, containerId) {
 let sidebarInitialized = false;
 
 function initSidebar() {
-  if (sidebarInitialized) return; // Prevent race conditions
+  if (sidebarInitialized) return;
   sidebarInitialized = true;
 
   const target = document.getElementById('sidebar-container');
   if (!target) return;
 
-  // sidebar.html always lives at the site root. Depth is computed from
-  // the current URL path so this works correctly at any folder depth
-  // (root, /ka-esports/, /ka-esports/admin/, etc.) without hardcoding "../".
   const segments = window.location.pathname.split('/').filter(Boolean);
   const depth = Math.max(segments.length - 1, 0);
   const prefix = '../'.repeat(depth);
-  
+  const cacheKey = 'ka_sidebar_html';
+  const cacheTTL = 3600000;
+
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      const { html, ts } = JSON.parse(cached);
+      if (Date.now() - ts < cacheTTL) {
+        target.innerHTML = html;
+        highlightActiveSidebarLink();
+        if (typeof I18n !== 'undefined') I18n.translatePage();
+        return;
+      }
+    } catch (e) { /* ignore corrupt cache */ }
+  }
+
   fetch(`${prefix}sidebar.html`)
     .then(r => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -766,11 +778,9 @@ function initSidebar() {
     })
     .then(html => {
       target.innerHTML = html;
+      localStorage.setItem(cacheKey, JSON.stringify({ html, ts: Date.now() }));
       highlightActiveSidebarLink();
-      // Translate sidebar links
-      if (typeof I18n !== 'undefined') {
-        I18n.translatePage();
-      }
+      if (typeof I18n !== 'undefined') I18n.translatePage();
     })
     .catch(err => {
       console.error('Error loading sidebar:', err);

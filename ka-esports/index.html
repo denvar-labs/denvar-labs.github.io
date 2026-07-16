@@ -82,31 +82,6 @@
     .hero-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
     .hero-btn-primary { background: #fff; color: var(--accent-dark); }
     .hero-btn-secondary { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
-    .hero-search { margin-top: var(--space-6); max-width: 480px; margin-left: auto; margin-right: auto; position: relative; }
-    .hero-search-wrap { display: flex; align-items: center; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: var(--radius-lg); padding: 0 var(--space-3); transition: background var(--transition-fast), border-color var(--transition-fast); }
-    .hero-search-wrap:focus-within { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
-    .hero-search-icon { color: rgba(255,255,255,0.6); font-size: 1.1rem; }
-    .hero-search-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; padding: var(--space-3) var(--space-2); font-size: 0.95rem; }
-    .hero-search-input::placeholder { color: rgba(255,255,255,0.5); }
-    .hero-search-kbd { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; color: rgba(255,255,255,0.5); font-family: monospace; }
-    .hero-search-results {
-      position: absolute; top: 100%; left: 0; right: 0;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-md); margin-top: 4px;
-      max-height: 240px; overflow-y: auto;
-      display: none; z-index: 100; box-shadow: var(--shadow-lg);
-    }
-    .hero-search-results.open { display: block; }
-    .hero-search-result {
-      display: flex; align-items: center; gap: var(--space-2);
-      padding: var(--space-3) var(--space-4); color: var(--text);
-      text-decoration: none; font-size: 0.9rem; cursor: pointer;
-      transition: background var(--transition-fast);
-    }
-    .hero-search-result:hover, .hero-search-result.active { background: var(--accent-bg); color: var(--accent); }
-    .hero-search-result .flag { font-size: 1.1rem; }
-    .hero-search-result .rank { margin-left: auto; font-size: 0.75rem; color: var(--text-muted); }
-    .hero-search-empty { padding: var(--space-3) var(--space-4); color: var(--text-muted); font-size: 0.85rem; text-align: center; }
 
     .landing-content { max-width: 1100px; margin: 0 auto; padding: 0 var(--space-4); }
 
@@ -250,7 +225,7 @@
       gap: var(--space-4);
       align-items: start;
     }
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
       .feed-row { grid-template-columns: 1fr; }
     }
     .feed-stream-card {
@@ -400,14 +375,6 @@
         <span data-i18n="nav_match_reports">Reportes de Partidas</span>
       </a>
     </div>
-    <div class="hero-search">
-      <div class="hero-search-wrap">
-        <i class="ph ph-magnifying-glass hero-search-icon" aria-hidden="true"></i>
-        <input type="text" id="hero-search-input" class="hero-search-input" placeholder="Buscar jugador..." data-i18n-placeholder="home_search_placeholder" autocomplete="off" aria-label="Buscar jugador" role="combobox" aria-expanded="false" aria-controls="hero-search-results">
-        <kbd class="hero-search-kbd">/</kbd>
-      </div>
-      <div class="hero-search-results" id="hero-search-results"></div>
-    </div>
   </div>
 
   <div class="landing-content">
@@ -516,12 +483,12 @@
   </div>
   </main>
 
-  <script src="../js/config.js"></script>
-  <script src="../js/api-loader.js"></script>
-  <script src="../js/ui/darkmode.js"></script>
-  <script src="../js/ui/i18n.js"></script>
-  <script src="../js/ui/navbar.js"></script>
-  <script src="../js/ui/follow.js"></script>
+  <script src="../js/config.js" defer></script>
+  <script src="../js/api-loader.js" defer></script>
+  <script src="../js/ui/darkmode.js" defer></script>
+  <script src="../js/ui/i18n.js" defer></script>
+  <script src="../js/ui/navbar.js" defer></script>
+  <script src="../js/ui/follow.js" defer></script>
 
   <script>
     Navbar.inject('navbar-container');
@@ -591,18 +558,21 @@
 
       const ytResults = {};
       const ytChannels = channels.filter(c => c.type === 'yt');
-      const ytPromises = ytChannels.map(async (ch) => {
-        try {
-          const handle = ch.handle.replace('@', '');
-          const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${handle}`;
-          const resp = await fetch(rssUrl);
-          if (!resp.ok) { ytResults[ch.handle] = { isLive: false }; return; }
-          const text = await resp.text();
-          const hasLive = text.includes('yt:liveBroadcast') || text.includes('liveBroadcastContent');
-          ytResults[ch.handle] = { isLive: hasLive };
-        } catch { ytResults[ch.handle] = { isLive: false }; }
-      });
-      await Promise.all(ytPromises);
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < ytChannels.length; i += BATCH_SIZE) {
+        const batch = ytChannels.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(batch.map(async (ch) => {
+          try {
+            const handle = ch.handle.replace('@', '');
+            const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${handle}`;
+            const resp = await fetch(rssUrl);
+            if (!resp.ok) { ytResults[ch.handle] = { isLive: false }; return; }
+            const text = await resp.text();
+            const hasLive = text.includes('yt:liveBroadcast') || text.includes('liveBroadcastContent');
+            ytResults[ch.handle] = { isLive: hasLive };
+          } catch { ytResults[ch.handle] = { isLive: false }; }
+        }));
+      }
 
       const twData = await twPromise;
       return { tw: twData.tw || {}, yt: ytResults };
@@ -885,79 +855,6 @@
       renderFeedStreamCard(liveData);
       renderFeedMatches(stats.matchSheets);
       loadStatTrends(stats.matchSheets, stats.targetPlayers, stats.targetRating);
-      initPlayerSearch();
-    }
-
-    async function initPlayerSearch() {
-      const input = document.getElementById('hero-search-input');
-      const results = document.getElementById('hero-search-results');
-      if (!input || !results) return;
-      let players = [];
-      let loaded = false;
-      let activeIdx = -1;
-
-      async function loadPlayers() {
-        if (loaded) return;
-        try {
-          const data = await fetchSheetData('PLAYERS');
-          if (!data) return;
-          const clean = data.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
-          const header = clean[0];
-          const nameIdx = header.findIndex(h => h.toLowerCase().includes('player'));
-          const countryIdx = header.findIndex(h => h.toLowerCase().includes('country'));
-          const rankIdx = header.findIndex(h => h.toLowerCase().includes('rank'));
-          const ptsIdx = header.findIndex(h => h === 'Current Points' || h === 'Total Points');
-          for (let i = 1; i < clean.length; i++) {
-            const row = clean[i];
-            const name = nameIdx >= 0 ? row[nameIdx] : '';
-            if (!name) continue;
-            players.push({
-              name,
-              country: countryIdx >= 0 ? row[countryIdx] : '',
-              rank: rankIdx >= 0 ? row[rankIdx] : '',
-              pts: ptsIdx >= 0 ? parseInt(row[ptsIdx]) || 0 : 0
-            });
-          }
-          loaded = true;
-        } catch (err) {
-          console.warn('Player search load error:', err);
-        }
-      }
-
-      function render(query) {
-        if (!query || query.length < 2) { results.innerHTML = ''; results.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); activeIdx = -1; return; }
-        const q = query.toLowerCase();
-        const matches = players.filter(p => p.name.toLowerCase().includes(q)).slice(0, 8);
-        if (matches.length === 0) {
-          results.innerHTML = '<div class="hero-search-empty">No se encontraron jugadores</div>';
-          results.classList.add('open');
-          input.setAttribute('aria-expanded', 'true');
-          activeIdx = -1;
-          return;
-        }
-        activeIdx = -1;
-        results.innerHTML = matches.map((p, i) => {
-          const flag = FLAG_MAP[p.country] || p.country;
-          const rankClass = RANK_CLASS_MAP[p.rank] || '';
-          return '<a href="player-profile.html?player=' + encodeURIComponent(p.name) + '" class="hero-search-result" data-idx="' + i + '"><span class="flag">' + flag + '</span> ' + escapeHtml(p.name) + '<span class="rank ' + rankClass + '">' + escapeHtml(p.rank) + '</span></a>';
-        }).join('');
-        results.classList.add('open');
-        input.setAttribute('aria-expanded', 'true');
-      }
-
-      input.addEventListener('focus', async () => { await loadPlayers(); render(input.value); });
-      input.addEventListener('input', async () => { await loadPlayers(); render(input.value); });
-      document.addEventListener('click', (e) => { if (!e.target.closest('.hero-search')) { results.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); } });
-      document.addEventListener('keydown', (e) => {
-        if (e.key === '/' && document.activeElement !== input) { e.preventDefault(); input.focus(); }
-        if (e.key === 'Escape' && document.activeElement === input) { results.classList.remove('open'); input.blur(); }
-      });
-      input.addEventListener('keydown', (e) => {
-        const items = results.querySelectorAll('.hero-search-result');
-        if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
-        else if (e.key === 'Enter') { e.preventDefault(); if (activeIdx >= 0 && items[activeIdx]) { window.location.href = items[activeIdx].href; } else if (input.value.trim()) { window.location.href = 'players.html?q=' + encodeURIComponent(input.value.trim()); } }
-      });
     }
 
     if (document.readyState === 'loading') {

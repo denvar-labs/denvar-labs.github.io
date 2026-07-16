@@ -74,11 +74,11 @@
           <div class="faq-section">
             <h2 data-i18n="faq_s1_title">1. What is Glicko 2 and why do we use it?</h2>
             <p data-i18n="faq_s1_p1">Glicko 2 is a ranking system developed by Professor Mark Glickman as an improvement over the traditional Elo system. Unlike simple point systems, Glicko 2 considers three factors for each player:</p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s1_th1">Rating (R)</th><td data-i18n="faq_s1_td1">Represents the player's estimated skill</td><td data-i18n="faq_s1_val1">100 – 3500</td></tr>
               <tr><th data-i18n="faq_s1_th2">Rating Deviation (RD)</th><td data-i18n="faq_s1_td2">Measures the uncertainty about the rating. More games = lower RD = more accurate rating</td><td data-i18n="faq_s1_val2">30 – 350</td></tr>
               <tr><th data-i18n="faq_s1_th3">Volatility (σ)</th><td data-i18n="faq_s1_td3">Indicates performance consistency. Low values = stable results; high values = unpredictable player</td><td data-i18n="faq_s1_val3">0.02 – 0.2</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s1_adv_title">Advantages over traditional systems:</p>
             <ul>
               <li data-i18n="faq_s1_adv1">✅ Quickly adjusts to the player's real skill level (thanks to RD)</li>
@@ -98,12 +98,12 @@
           <div class="faq-section">
             <h2 data-i18n="faq_s3_title">3. Why are ALL matches ranked?</h2>
             <p data-i18n="faq_s3_p1">At KA ESPORTS, every match you play affects your rating. There are no "friendly" or "practice" matches that don't count. This is possible because Glicko 2 automatically adjusts to all skill levels:</p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s3_t1_th">Beginner</th><td data-i18n="faq_s3_t1_td">Your RD is high (350), so your first matches will have a moderate impact until the system fine‑tunes your real level.</td></tr>
               <tr><th data-i18n="faq_s3_t2_th">Experienced player</th><td data-i18n="faq_s3_t2_td">Your RD is low (30‑100), so each match will accurately reflect small changes in your performance.</td></tr>
               <tr><th data-i18n="faq_s3_t3_th">Playing against similarly skilled opponents</th><td data-i18n="faq_s3_t3_td">Point distribution is balanced and fair.</td></tr>
               <tr><th data-i18n="faq_s3_t4_th">There's an upset (beginner beats master)</th><td data-i18n="faq_s3_t4_td">The system recognizes that something unusual happened and adjusts ratings significantly, but controlled by volatility.</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s3_adv_title">Advantages of this approach:</p>
             <ul>
               <li data-i18n="faq_s3_adv1">• Every match matters, encouraging constant participation.</li>
@@ -116,13 +116,13 @@
           <div class="faq-section">
             <h2 data-i18n="faq_s4_title">4. Race scoring</h2>
             <p data-i18n="faq_s4_p1">Each 4‑player match distributes 96 total points as follows:</p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s4_th1">Position</th><th data-i18n="faq_s4_th2">Race points</th><th data-i18n="faq_s4_th3">Place points (for reference)</th></tr>
               <tr><td data-i18n="faq_s4_r1_pos">1st</td><td data-i18n="faq_s4_r1_pts">12</td><td data-i18n="faq_s4_r1_ref">🥇 12</td></tr>
               <tr><td data-i18n="faq_s4_r2_pos">2nd</td><td data-i18n="faq_s4_r2_pts">8</td><td data-i18n="faq_s4_r2_ref">🥈 8</td></tr>
               <tr><td data-i18n="faq_s4_r3_pos">3rd</td><td data-i18n="faq_s4_r3_pts">4</td><td data-i18n="faq_s4_r3_ref">🥉 4</td></tr>
               <tr><td data-i18n="faq_s4_r4_pos">4th</td><td data-i18n="faq_s4_r4_pts">0</td><td data-i18n="faq_s4_r4_ref">4️⃣ 0</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s4_imp">Important: Race points are not the rating. They are the input to the Glicko 2 algorithm. The rating is calculated after each match by comparing:</p>
             <p data-i18n="faq_s4_calc1">• Your result (race points)<br>• Your opponents' results<br>• The rating and RD of all players before the match</p>
             <p data-i18n="faq_s4_p2">This means that finishing first is not enough: if you beat weak opponents, you'll gain few points; if you finish last but against very strong opponents, you'll lose few points.</p>
@@ -131,7 +131,7 @@
           <div class="faq-section">
             <h2 data-i18n="faq_s5_title">5. Ranks and colors</h2>
             <p data-i18n="faq_s5_p1">Depending on your rating and number of matches played, you get a rank. The thresholds are:</p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s5_th1">Rank</th><th data-i18n="faq_s5_th2">Minimum</th><th data-i18n="faq_s5_th3">Color</th><th data-i18n="faq_s5_th4">Description</th></tr>
               <tr><td data-i18n="faq_s5_r1_rank">Grand Master</td><td data-i18n="faq_s5_r1_min">2000</td><td style="background:#f1c232">&nbsp;</td><td data-i18n="faq_s5_r1_desc">The absolute elite</td></tr>
               <tr><td data-i18n="faq_s5_r2_rank">Master</td><td data-i18n="faq_s5_r2_min">1800</td><td style="background:#FFD966">&nbsp;</td><td data-i18n="faq_s5_r2_desc">Top tier players</td></tr>
@@ -140,19 +140,19 @@
               <tr><td data-i18n="faq_s5_r5_rank">Advanced</td><td data-i18n="faq_s5_r5_min">1200</td><td style="background:#FFF38A">&nbsp;</td><td data-i18n="faq_s5_r5_desc">Experienced players</td></tr>
               <tr><td data-i18n="faq_s5_r6_rank">Amateur</td><td data-i18n="faq_s5_r6_min">1000</td><td style="background:#9AFF7D">&nbsp;</td><td data-i18n="faq_s5_r6_desc">Competitive base</td></tr>
               <tr><td data-i18n="faq_s5_r7_rank">Padawan</td><td data-i18n="faq_s5_r7_min">0</td><td style="background:#C7C1C1">&nbsp;</td><td data-i18n="faq_s5_r7_desc">Learning the way</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s5_req_title">Requirements to appear in rankings:</p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s5_req_th1">Ranking</th><th data-i18n="faq_s5_req_th2">Minimum matches</th><th data-i18n="faq_s5_req_th3">Activity required</th></tr>
               <tr><td data-i18n="faq_s5_req_r1_rank">Global</td><td data-i18n="faq_s5_req_r1_min">10 matches</td><td data-i18n="faq_s5_req_r1_act">Last 60 days</td></tr>
               <tr><td data-i18n="faq_s5_req_r2_rank">Monthly</td><td data-i18n="faq_s5_req_r2_min">5 matches</td><td data-i18n="faq_s5_req_r2_act">During that month</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s5_p2">If you don't meet the minimum, you'll appear as Unranked until you reach the required matches.</p>
           </div>
 
           <div class="faq-section">
             <h2 data-i18n="faq_s6_title">6. Available statistics</h2>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s6_th1">Metric</th><th data-i18n="faq_s6_th2">Description</th><th data-i18n="faq_s6_th3">Formula / Detail</th></tr>
               <tr><td data-i18n="faq_s6_r1_met">Win %</td><td data-i18n="faq_s6_r1_desc">Percentage of wins (first places)</td><td data-i18n="faq_s6_r1_formula">(Wins / Matches) × 100</td></tr>
               <tr><td data-i18n="faq_s6_r2_met">Avg Race Pts</td><td data-i18n="faq_s6_r2_desc">Average race points per match</td><td data-i18n="faq_s6_r2_formula">Total points / Matches</td></tr>
@@ -161,7 +161,7 @@
               <tr><td data-i18n="faq_s6_r5_met">Confidence</td><td data-i18n="faq_s6_r5_desc">Indicates how reliable your current rating is</td><td data-i18n="faq_s6_r5_formula">1 – (RD / 350). Closer to 1 = more reliable</td></tr>
               <tr><td data-i18n="faq_s6_r6_met">SOS (Strength of Schedule)</td><td data-i18n="faq_s6_r6_desc">Average rating of opponents faced</td><td data-i18n="faq_s6_r6_formula">Average of opponents' pre‑match ratings</td></tr>
               <tr><td data-i18n="faq_s6_r7_met">Performance</td><td data-i18n="faq_s6_r7_desc">Combined index of win rate and rating</td><td data-i18n="faq_s6_r7_formula">0.4 × WinRate + 0.6 × (Normalized rating)</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s6_p1">SOS is especially important: a high value means you play against strong opponents, which gives more value to your wins and reduces the penalty for your losses.</p>
           </div>
 
@@ -193,13 +193,13 @@
             </ul>
 
             <p data-i18n="faq_s7_example"><strong>Visual example of a Match Report:</strong></p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s7_ex_th1">Player</th><th data-i18n="faq_s7_ex_th2">Points</th><th data-i18n="faq_s7_ex_th3">Pos</th><th data-i18n="faq_s7_ex_th4">Rating Before</th><th data-i18n="faq_s7_ex_th5">RD Before</th><th data-i18n="faq_s7_ex_th6">Δ Rating</th><th data-i18n="faq_s7_ex_th7">New Rating</th><th data-i18n="faq_s7_ex_th8">New RD</th></tr>
               <tr><td>Jabon 🇨🇴</td><td>35</td><td>🥇</td><td>1900</td><td>50</td><td>+15</td><td>1915</td><td>48</td></tr>
               <tr><td>Vena 🇲🇽</td><td>28</td><td>🥈</td><td>1880</td><td>52</td><td>+8</td><td>1888</td><td>51</td></tr>
               <tr><td>Alex 🇨🇴</td><td>20</td><td>🥉</td><td>1850</td><td>55</td><td>-3</td><td>1847</td><td>56</td></tr>
               <tr><td>Grey0 🇺🇸</td><td>13</td><td>4️⃣</td><td>1600</td><td>60</td><td>-20</td><td>1580</td><td>62</td></tr>
-            </table>
+            </table></div>
           </div>
 
           <div class="faq-section">
@@ -216,11 +216,11 @@
             <p data-i18n="faq_s8_sub2_why_title"><strong>Why only for high ratings?</strong><br>Because elite players must constantly demonstrate their level. If they stop competing, it's reasonable to assume their skill might have slightly decreased.</p>
 
             <p data-i18n="faq_s8_sub2_ex_title"><strong>Practical example:</strong></p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s8_sub2_ex_th1">Player</th><th data-i18n="faq_s8_sub2_ex_th2">Rating</th><th data-i18n="faq_s8_sub2_ex_th3">Days inactive</th><th data-i18n="faq_s8_sub2_ex_th4">RD effect</th><th data-i18n="faq_s8_sub2_ex_th5">Rating loss</th></tr>
               <tr><td data-i18n="faq_s8_sub2_ex_r1_name">Player A</td><td data-i18n="faq_s8_sub2_ex_r1_rd">1500</td><td data-i18n="faq_s8_sub2_ex_r1_days">21 days</td><td data-i18n="faq_s8_sub2_ex_r1_effect">Increases (3 periods)</td><td data-i18n="faq_s8_sub2_ex_r1_loss">0 (below threshold)</td></tr>
               <tr><td data-i18n="faq_s8_sub2_ex_r2_name">Player B</td><td data-i18n="faq_s8_sub2_ex_r2_rd">1900</td><td data-i18n="faq_s8_sub2_ex_r2_days">21 days</td><td data-i18n="faq_s8_sub2_ex_r2_effect">Increases (3 periods)</td><td data-i18n="faq_s8_sub2_ex_r2_loss">-10 points (2 periods of 14 days)</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s8_p2">Both records are kept in the <span class="code">AUDIT_LOG</span> for complete transparency.</p>
           </div>
 
@@ -229,13 +229,13 @@
             <p data-i18n="faq_s9_p1">The system automatically detects suspicious behavior and logs it in the <span class="code">ANTI_SMURF_LOG</span> sheet for administrator review.</p>
 
             <h3 data-i18n="faq_s9_detect_title">🛡️ What we detect:</h3>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s9_detect_th1">Situation</th><th data-i18n="faq_s9_detect_th2">Criteria</th><th data-i18n="faq_s9_detect_th3">Alert level</th></tr>
               <tr><td data-i18n="faq_s9_detect_r1_sit">Excessive gain</td><td data-i18n="faq_s9_detect_r1_crit">&gt; 200 points in a period</td><td data-i18n="faq_s9_detect_r1_alert">🔴 HIGH</td></tr>
               <tr><td data-i18n="faq_s9_detect_r2_sit">Suspicious win rate</td><td data-i18n="faq_s9_detect_r2_crit">&gt; 80% with less than 10 matches</td><td data-i18n="faq_s9_detect_r2_alert">🟡 MEDIUM</td></tr>
               <tr><td data-i18n="faq_s9_detect_r3_sit">Low RD with few matches</td><td data-i18n="faq_s9_detect_r3_crit">RD &lt; 100 and less than 5 matches</td><td data-i18n="faq_s9_detect_r3_alert">🟢 LOW</td></tr>
               <tr><td data-i18n="faq_s9_detect_r4_sit">Same group playing consecutively</td><td data-i18n="faq_s9_detect_r4_crit">&gt; 3 consecutive matches with the same 4 players</td><td data-i18n="faq_s9_detect_r4_alert">🟡 MEDIUM</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s9_p2">Each case is recorded with:</p>
             <ul>
               <li data-i18n="faq_s9_log1">• Timestamp</li>
@@ -282,22 +282,22 @@
             <p data-i18n="faq_s11_p1">Let's simulate a match with four players. We'll use simplified values to convey the idea, although the real algorithm has additional steps (volatility calculation, iterations, etc.).</p>
 
             <h3 data-i18n="faq_s11_sub1_title">Initial data</h3>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s11_sub1_th1">Player</th><th data-i18n="faq_s11_sub1_th2">Rating (R)</th><th data-i18n="faq_s11_sub1_th3">RD (φ)</th><th data-i18n="faq_s11_sub1_th4">Volatility (σ)</th></tr>
               <tr><td data-i18n="faq_s11_sub1_r1">A</td><td data-i18n="faq_s11_sub1_r1r">1500</td><td data-i18n="faq_s11_sub1_r1rd">50</td><td data-i18n="faq_s11_sub1_r1v">0.06</td></tr>
               <tr><td data-i18n="faq_s11_sub1_r2">B</td><td data-i18n="faq_s11_sub1_r2r">1400</td><td data-i18n="faq_s11_sub1_r2rd">100</td><td data-i18n="faq_s11_sub1_r2v">0.06</td></tr>
               <tr><td data-i18n="faq_s11_sub1_r3">C</td><td data-i18n="faq_s11_sub1_r3r">1300</td><td data-i18n="faq_s11_sub1_r3rd">150</td><td data-i18n="faq_s11_sub1_r3v">0.06</td></tr>
               <tr><td data-i18n="faq_s11_sub1_r4">D</td><td data-i18n="faq_s11_sub1_r4r">1200</td><td data-i18n="faq_s11_sub1_r4rd">200</td><td data-i18n="faq_s11_sub1_r4v">0.06</td></tr>
-            </table>
+            </table></div>
 
             <h3 data-i18n="faq_s11_sub2_title">Race results:</h3>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s11_sub2_th1">Player</th><th data-i18n="faq_s11_sub2_th2">Points</th></tr>
               <tr><td data-i18n="faq_s11_sub2_r1">A</td><td data-i18n="faq_s11_sub2_r1p">40</td></tr>
               <tr><td data-i18n="faq_s11_sub2_r2">B</td><td data-i18n="faq_s11_sub2_r2p">30</td></tr>
               <tr><td data-i18n="faq_s11_sub2_r3">C</td><td data-i18n="faq_s11_sub2_r3p">20</td></tr>
               <tr><td data-i18n="faq_s11_sub2_r4">D</td><td data-i18n="faq_s11_sub2_r4p">6</td></tr>
-            </table>
+            </table></div>
 
             <h3 data-i18n="faq_s11_step1_title">Step 1: Convert to internal scale</h3>
             <p data-i18n="faq_s11_step1_p1">Glicko 2 uses a different scale. It applies:</p>
@@ -314,13 +314,13 @@
             <h3 data-i18n="faq_s11_step3_title">Step 3: Adjust rating and RD</h3>
             <p data-i18n="faq_s11_step3_p1">After the match, ratings are updated using Glicko 2 formulas. The rating change is proportional to the difference between the actual result (1, 0.5, 0) and the expected result, weighted by the opponent's RD.</p>
             <p data-i18n="faq_s11_step3_p2"><strong>Simplified result (for this example):</strong></p>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_s11_step3_th1">Player</th><th data-i18n="faq_s11_step3_th2">Rating before</th><th data-i18n="faq_s11_step3_th3">Change</th><th data-i18n="faq_s11_step3_th4">Rating after</th></tr>
               <tr><td data-i18n="faq_s11_step3_r1">A</td><td data-i18n="faq_s11_step3_r1before">1500</td><td data-i18n="faq_s11_step3_r1change">+10</td><td data-i18n="faq_s11_step3_r1after">1510</td></tr>
               <tr><td data-i18n="faq_s11_step3_r2">B</td><td data-i18n="faq_s11_step3_r2before">1400</td><td data-i18n="faq_s11_step3_r2change">+5</td><td data-i18n="faq_s11_step3_r2after">1405</td></tr>
               <tr><td data-i18n="faq_s11_step3_r3">C</td><td data-i18n="faq_s11_step3_r3before">1300</td><td data-i18n="faq_s11_step3_r3change">-2</td><td data-i18n="faq_s11_step3_r3after">1298</td></tr>
               <tr><td data-i18n="faq_s11_step3_r4">D</td><td data-i18n="faq_s11_step3_r4before">1200</td><td data-i18n="faq_s11_step3_r4change">-15</td><td data-i18n="faq_s11_step3_r4after">1185</td></tr>
-            </table>
+            </table></div>
             <p data-i18n="faq_s11_step3_p3">Notice that A gained many points because he beat lower rated opponents, but not as many as if he had beaten stronger rivals.</p>
             <p data-i18n="faq_s11_step3_res_title">D lost many points because he finished last against higher rated opponents, which was expected, but the defeat was clear and his RD was high, amplifying the changes.</p>
 
@@ -362,24 +362,24 @@
 
           <div class="faq-section" style="margin-top:30px;">
             <h2 data-i18n="faq_changelog_title">📝 Changelog</h2>
-            <table>
+            <div class="table-responsive"><table>
               <tr><th data-i18n="faq_changelog_th1">Version</th><th data-i18n="faq_changelog_th2">Changes</th></tr>
               <tr><td data-i18n="faq_changelog_v1_ver">V01.00</td><td data-i18n="faq_changelog_v1_changes">Initial Release</td></tr>
               <tr><td data-i18n="faq_changelog_v2_ver">V01.16</td><td data-i18n="faq_changelog_v2_changes">Seasonal Leaderboards: Fixed ordering – players with enough matches now appear first, followed by unranked players.<br><br>Global Leaderboard: Now only counts matches from the last 60 days. New thresholds: 10 matches for any rank, 20 for Master/Grand Master.<br><br>General bug fixes and performance improvements.<br><br>Head to Head details, average vs opponents (Experimental)</td></tr>
               <tr><td data-i18n="faq_changelog_v3_ver">V02.00</td><td data-i18n="faq_changelog_v3_changes">Security & reliability overhaul: admin actions now use secured POST requests; table headers restyled; rank colors now apply only to Player/Rank cells instead of full rows; consistent loading/error states across all pages.</td></tr>
-            </table>
+            </table></div>
           </div>
 
         </section>
       </main>
     </div>
   </div>
-  <script src="../js/config.js"></script>
-  <script src="../js/api-loader.js"></script>
-  <script src="../js/ui/darkmode.js"></script>
-  <script src="../js/ui/i18n.js"></script>
-  <script src="../js/ui/navbar.js"></script>
-  <script src="../js/ui/header.js"></script>
+  <script src="../js/config.js" defer></script>
+  <script src="../js/api-loader.js" defer></script>
+  <script src="../js/ui/darkmode.js" defer></script>
+  <script src="../js/ui/i18n.js" defer></script>
+  <script src="../js/ui/navbar.js" defer></script>
+  <script src="../js/ui/header.js" defer></script>
 
   <script>
     Navbar.inject('navbar-container');

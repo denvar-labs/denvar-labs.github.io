@@ -189,3 +189,54 @@ body.dark .retry-btn:hover {
 .season-filter-group .field-select {
   min-width: 150px;
 }
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .hero-landing h1 {
+    font-size: 1.5rem;
+  }
+  .section-heading {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+  }
+  .awards-grid,
+  .records-grid {
+    grid-template-columns: 1fr;
+  }
+  .player-cards {
+    grid-template-columns: 1fr;
+  }
+  .gauge-row {
+    gap: 15px;
+  }
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .h2h-mini-table {
+    font-size: 0.8rem;
+  }
+  .mh-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .comparison-setup {
+    flex-direction: column;
+  }
+  .player-selector {
+    min-width: 100%;
+  }
+  .season-filter-group {
+    margin-left: 0;
+    margin-top: 8px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .mvp-history {
+    padding: 12px;
+  }
+  .mvp-row {
+    flex-wrap: wrap;
+  }
+}

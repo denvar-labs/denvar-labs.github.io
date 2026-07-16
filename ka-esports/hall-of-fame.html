@@ -72,12 +72,12 @@
       </main>
     </div>
   </div>
-  <script src="../js/config.js"></script>
-  <script src="../js/api-loader.js"></script>
-  <script src="../js/ui/darkmode.js"></script>
-  <script src="../js/ui/i18n.js"></script>
-  <script src="../js/ui/navbar.js"></script>
-  <script src="../js/ui/header.js"></script>
+  <script src="../js/config.js" defer></script>
+  <script src="../js/api-loader.js" defer></script>
+  <script src="../js/ui/darkmode.js" defer></script>
+  <script src="../js/ui/i18n.js" defer></script>
+  <script src="../js/ui/navbar.js" defer></script>
+  <script src="../js/ui/header.js" defer></script>
 
   <script>
     Navbar.inject('navbar-container');
@@ -161,21 +161,19 @@
         try {
           const allSheets = await fetchSheetList();
           const lbSheets = allSheets.filter(s => s.startsWith('LEADERBOARD_') && s !== 'LEADERBOARD_GLOBAL').sort();
-          for (const sheet of lbSheets) {
-            try {
-              const sData = await fetchSheetData(sheet);
-              if (sData.length < 4) continue;
-              const sHeaders = sData[2].map(h => (h || '').toString().trim());
-              const sNameIdx = sHeaders.indexOf('Player');
-              const sRatingIdx = sHeaders.indexOf('Rating');
-              const sMatchesIdx = sHeaders.indexOf('Matches');
-              const sRows = sData.slice(3).filter(r => r[sNameIdx] && parseInt(r[sMatchesIdx]) > 0);
-              if (sRows.length === 0) continue;
-              const sMvp = sRows.reduce((a, b) => (parseFloat(a[sRatingIdx]) || 0) > (parseFloat(b[sRatingIdx]) || 0) ? a : b);
-              const mvpName = (sMvp[sNameIdx] || '').toString().trim();
-              if (mvpName) mvpCount[mvpName] = (mvpCount[mvpName] || 0) + 1;
-            } catch (e) { /* skip */ }
-          }
+          const allData = await Promise.all(lbSheets.map(s => fetchSheetData(s).catch(() => [])));
+          allData.forEach(sData => {
+            if (sData.length < 4) return;
+            const sHeaders = sData[2].map(h => (h || '').toString().trim());
+            const sNameIdx = sHeaders.indexOf('Player');
+            const sRatingIdx = sHeaders.indexOf('Rating');
+            const sMatchesIdx = sHeaders.indexOf('Matches');
+            const sRows = sData.slice(3).filter(r => r[sNameIdx] && parseInt(r[sMatchesIdx]) > 0);
+            if (sRows.length === 0) return;
+            const sMvp = sRows.reduce((a, b) => (parseFloat(a[sRatingIdx]) || 0) > (parseFloat(b[sRatingIdx]) || 0) ? a : b);
+            const mvpName = (sMvp[sNameIdx] || '').toString().trim();
+            if (mvpName) mvpCount[mvpName] = (mvpCount[mvpName] || 0) + 1;
+          });
         } catch (e) { /* MVP count failed */ }
 
         const topMvp = Object.entries(mvpCount).sort((a, b) => b[1] - a[1])[0];

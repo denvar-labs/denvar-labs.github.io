@@ -86,12 +86,12 @@
       </main>
     </div>
   </div>
-  <script src="../js/config.js"></script>
-  <script src="../js/api-loader.js"></script>
-  <script src="../js/ui/darkmode.js"></script>
-  <script src="../js/ui/i18n.js"></script>
-  <script src="../js/ui/navbar.js"></script>
-  <script src="../js/ui/header.js"></script>
+  <script src="../js/config.js" defer></script>
+  <script src="../js/api-loader.js" defer></script>
+  <script src="../js/ui/darkmode.js" defer></script>
+  <script src="../js/ui/i18n.js" defer></script>
+  <script src="../js/ui/navbar.js" defer></script>
+  <script src="../js/ui/header.js" defer></script>
 
   <script>
     Navbar.inject('navbar-container');
@@ -260,23 +260,19 @@
         const leaderboardSheets = allSheets.filter(s => s.startsWith('LEADERBOARD_') && s !== 'LEADERBOARD_GLOBAL').sort();
         const mvpCounts = {};
 
-        for (const sheet of leaderboardSheets) {
-          try {
-            const data = await fetchSheetData(sheet);
-            if (data.length < 4) continue;
-            const headers = data[2].map(h => (h || '').toString().trim());
-            const nameIdx = headers.indexOf('Player');
-            const ratingIdx = headers.indexOf('Rating');
-            const matchesIdx = headers.indexOf('Matches');
-            const rows = data.slice(3).filter(r => r[nameIdx] && parseInt(r[matchesIdx]) > 0);
-            if (rows.length === 0) continue;
-            const mvp = rows.reduce((a, b) => (parseFloat(a[ratingIdx]) || 0) > (parseFloat(b[ratingIdx]) || 0) ? a : b);
-            const mvpName = (mvp[nameIdx] || '').toString().trim();
-            if (mvpName) {
-              mvpCounts[mvpName] = (mvpCounts[mvpName] || 0) + 1;
-            }
-          } catch (e) { /* skip sheet */ }
-        }
+        const allData = await Promise.all(leaderboardSheets.map(s => fetchSheetData(s).catch(() => [])));
+        allData.forEach(data => {
+          if (data.length < 4) return;
+          const headers = data[2].map(h => (h || '').toString().trim());
+          const nameIdx = headers.indexOf('Player');
+          const ratingIdx = headers.indexOf('Rating');
+          const matchesIdx = headers.indexOf('Matches');
+          const rows = data.slice(3).filter(r => r[nameIdx] && parseInt(r[matchesIdx]) > 0);
+          if (rows.length === 0) return;
+          const mvp = rows.reduce((a, b) => (parseFloat(a[ratingIdx]) || 0) > (parseFloat(b[ratingIdx]) || 0) ? a : b);
+          const mvpName = (mvp[nameIdx] || '').toString().trim();
+          if (mvpName) mvpCounts[mvpName] = (mvpCounts[mvpName] || 0) + 1;
+        });
 
         const sorted = Object.entries(mvpCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
         if (sorted.length === 0) {

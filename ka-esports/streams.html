@@ -62,12 +62,12 @@
     </div>
   </div>
 
-  <script src="../js/config.js"></script>
-  <script src="../js/api-loader.js"></script>
-  <script src="../js/ui/darkmode.js"></script>
-  <script src="../js/ui/i18n.js"></script>
-  <script src="../js/ui/navbar.js"></script>
-  <script src="../js/ui/header.js"></script>
+  <script src="../js/config.js" defer></script>
+  <script src="../js/api-loader.js" defer></script>
+  <script src="../js/ui/darkmode.js" defer></script>
+  <script src="../js/ui/i18n.js" defer></script>
+  <script src="../js/ui/navbar.js" defer></script>
+  <script src="../js/ui/header.js" defer></script>
 
   <script>
     Navbar.inject('navbar-container');
@@ -187,7 +187,7 @@
             const previewImg = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${ch.id}-640x360.jpg`;
             mediaHtml = `
               <div class="live-preview" onclick="this.innerHTML='<iframe src=\\'https://player.twitch.tv/?channel=${ch.id}&parent=denvar-labs.github.io\\' allowfullscreen scrolling=\\'no\\' style=\\'width:100%;height:200px;\\'></iframe>'">
-                <img src="${previewImg}" alt="${ch.name} stream preview" />
+                <img src="${previewImg}" alt="${ch.name} stream preview" loading="lazy" />
                 <div class="play-button">${I18n.t('streams_click_to_watch')}</div>
               </div>
             `;
@@ -196,9 +196,9 @@
           }
         } else { // YouTube
           if (ch.isLive && ch.liveVideoId) {
-            mediaHtml = `<iframe src="https://www.youtube.com/embed/${ch.liveVideoId}" allowfullscreen scrolling="no"></iframe>`;
+            mediaHtml = `<iframe src="https://www.youtube.com/embed/${ch.liveVideoId}" allowfullscreen scrolling="no" loading="lazy"></iframe>`;
           } else {
-            mediaHtml = `<iframe src="https://www.youtube.com/embed?listType=user_uploads&list=${ch.handle}" allowfullscreen scrolling="no"></iframe>`;
+            mediaHtml = `<div class="offline-preview"><span>${ch.name}</span></div>`;
           }
         }
 
