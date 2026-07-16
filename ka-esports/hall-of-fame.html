@@ -15,12 +15,13 @@
   <link rel="stylesheet" href="../css/esports.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
   <style>
-    .records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .records-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .record-card { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
     .record-icon { font-size: 2.5rem; }
-    .record-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin: 8px 0 4px; }
-    .record-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-    .record-player { font-size: 1.1rem; color: var(--text); margin-top: 4px; }
+    .record-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin: 8px 0 4px; }
+    .record-value { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+    .record-player { font-size: 1rem; color: var(--text); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .record-flag { font-size: 1.2rem; }
     .mode-switch { display: flex; gap: 8px; margin-bottom: 16px; }
     .mode-btn { padding: 8px 16px; border: 2px solid var(--border); background: var(--surface); border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--text); }
     .mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -98,12 +99,13 @@
       return completed.length > 0 ? completed[0] : null;
     }
 
-    function buildRecordCard(icon, title, player, value) {
+    function buildRecordCard(icon, title, player, value, flag) {
+      const flagHtml = flag ? `<span class="record-flag">${flag}</span>` : '';
       return `<div class="record-card">
         <div class="record-icon">${icon}</div>
         <div class="record-title">${escapeHtml(title)}</div>
         <div class="record-value">${escapeHtml(value)}</div>
-        <div class="record-player">${escapeHtml(player)}</div>
+        <div class="record-player">${flagHtml}${escapeHtml(player)}</div>
       </div>`;
     }
 
@@ -115,7 +117,7 @@
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
       const chartCaption = document.getElementById('chart-caption');
-      renderState(container, 'loading', { title: 'Loading all‑time records…' });
+      renderState(container, 'loading', { title: 'Loading all-time records...' });
       chartSection.style.display = 'none';
       destroyChart();
 
@@ -128,6 +130,8 @@
         const rankIdx = headers.indexOf('Rank');
         const matchesIdx = headers.indexOf('Matches');
         const winsIdx = headers.indexOf('Wins');
+        const countryIdx = headers.indexOf('Country');
+        const volIdx = headers.indexOf('Volatility');
 
         const inactiveNames = await getInactivePlayerNames();
         const rows = data.slice(3).filter(r => {
@@ -142,19 +146,47 @@
           name: r[nameIdx],
           rating: parseFloat(r[ratingIdx]),
           matches: parseInt(r[matchesIdx]) || 0,
-          wins: parseInt(r[winsIdx]) || 0
+          wins: parseInt(r[winsIdx]) || 0,
+          country: (r[countryIdx] || 'XX').toString().trim(),
+          volatility: parseFloat(r[volIdx]) || 0
         }));
 
         const topRating = players.reduce((a, b) => a.rating > b.rating ? a : b);
         const topMatches = players.reduce((a, b) => a.matches > b.matches ? a : b);
         const topWins = players.reduce((a, b) => a.wins > b.wins ? a : b);
         const highWR = players.filter(p => p.matches >= 10).sort((a, b) => (b.wins / b.matches) - (a.wins / a.matches))[0];
+        const mostConsistent = players.filter(p => p.matches >= 5).reduce((a, b) => a.volatility < b.volatility ? a : b);
+
+        let mvpCount = {};
+        try {
+          const allSheets = await fetchSheetList();
+          const lbSheets = allSheets.filter(s => s.startsWith('LEADERBOARD_') && s !== 'LEADERBOARD_GLOBAL').sort();
+          for (const sheet of lbSheets) {
+            try {
+              const sData = await fetchSheetData(sheet);
+              if (sData.length < 4) continue;
+              const sHeaders = sData[2].map(h => (h || '').toString().trim());
+              const sNameIdx = sHeaders.indexOf('Player');
+              const sRatingIdx = sHeaders.indexOf('Rating');
+              const sMatchesIdx = sHeaders.indexOf('Matches');
+              const sRows = sData.slice(3).filter(r => r[sNameIdx] && parseInt(r[sMatchesIdx]) > 0);
+              if (sRows.length === 0) continue;
+              const sMvp = sRows.reduce((a, b) => (parseFloat(a[sRatingIdx]) || 0) > (parseFloat(b[sRatingIdx]) || 0) ? a : b);
+              const mvpName = (sMvp[sNameIdx] || '').toString().trim();
+              if (mvpName) mvpCount[mvpName] = (mvpCount[mvpName] || 0) + 1;
+            } catch (e) { /* skip */ }
+          }
+        } catch (e) { /* MVP count failed */ }
+
+        const topMvp = Object.entries(mvpCount).sort((a, b) => b[1] - a[1])[0];
 
         let html = '';
-        html += buildRecordCard('👑', 'Highest Rating Ever', topRating.name, topRating.rating.toFixed(2));
-        html += buildRecordCard('🎮', 'Most Matches Played', topMatches.name, topMatches.matches + ' matches');
-        html += buildRecordCard('🏅', 'Most Wins', topWins.name, topWins.wins + ' wins');
-        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate (min 10 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
+        html += buildRecordCard('&#x1F451;', 'Highest Rating Ever', topRating.name, topRating.rating.toFixed(2), getFlagEmoji(topRating.country));
+        html += buildRecordCard('&#x1F3AE;', 'Most Matches Played', topMatches.name, topMatches.matches + ' matches', getFlagEmoji(topMatches.country));
+        html += buildRecordCard('&#x1F3C6;', 'Most Wins', topWins.name, topWins.wins + ' wins', getFlagEmoji(topWins.country));
+        if (highWR) html += buildRecordCard('&#x1F3AF;', 'Best Win Rate (min 10)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%', getFlagEmoji(highWR.country));
+        if (topMvp) html += buildRecordCard('&#x1F3C5;', 'Most MVP Awards', topMvp[0], topMvp[1] + 'x MVP', getFlagEmoji(players.find(p => p.name === topMvp[0])?.country));
+        if (mostConsistent && mostConsistent.volatility > 0) html += buildRecordCard('&#x1F4AA;', 'Most Consistent', mostConsistent.name, `Vol ${mostConsistent.volatility.toFixed(3)}`, getFlagEmoji(mostConsistent.country));
         container.innerHTML = html || '<div class="state-box state-empty"><div class="state-title">Not enough data.</div></div>';
 
         const top10 = players.sort((a, b) => b.rating - a.rating).slice(0, 10);
@@ -179,7 +211,7 @@
       const container = document.getElementById('records-container');
       const chartSection = document.getElementById('chart-section');
       const chartCaption = document.getElementById('chart-caption');
-      renderState(container, 'loading', { title: 'Loading monthly records…' });
+      renderState(container, 'loading', { title: 'Loading monthly records...' });
       chartSection.style.display = 'none';
       destroyChart();
 
@@ -192,6 +224,7 @@
         const rankIdx = headers.indexOf('Rank');
         const matchesIdx = headers.indexOf('Matches');
         const winsIdx = headers.indexOf('Wins');
+        const countryIdx = headers.indexOf('Country');
 
         const inactiveNames = await getInactivePlayerNames();
         const rows = data.slice(3).filter(r => {
@@ -206,7 +239,8 @@
           name: r[nameIdx],
           rating: parseFloat(r[ratingIdx]),
           matches: parseInt(r[matchesIdx]),
-          wins: parseInt(r[winsIdx])
+          wins: parseInt(r[winsIdx]),
+          country: (r[countryIdx] || 'XX').toString().trim()
         }));
 
         const topRating = players.reduce((a, b) => a.rating > b.rating ? a : b);
@@ -215,10 +249,10 @@
         const highWR = players.filter(p => p.matches >= 3).sort((a, b) => (b.wins / b.matches) - (a.wins / a.matches))[0];
 
         let html = '';
-        html += buildRecordCard('👑', 'Highest Rating This Month', topRating.name, topRating.rating.toFixed(2));
-        html += buildRecordCard('🎮', 'Most Matches This Month', topMatches.name, topMatches.matches + ' matches');
-        html += buildRecordCard('🏅', 'Most Wins This Month', topWins.name, topWins.wins + ' wins');
-        if (highWR) html += buildRecordCard('🎯', 'Best Win Rate This Month (min 3 matches)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%');
+        html += buildRecordCard('&#x1F451;', 'Highest Rating This Month', topRating.name, topRating.rating.toFixed(2), getFlagEmoji(topRating.country));
+        html += buildRecordCard('&#x1F3AE;', 'Most Matches This Month', topMatches.name, topMatches.matches + ' matches', getFlagEmoji(topMatches.country));
+        html += buildRecordCard('&#x1F3C6;', 'Most Wins This Month', topWins.name, topWins.wins + ' wins', getFlagEmoji(topWins.country));
+        if (highWR) html += buildRecordCard('&#x1F3AF;', 'Best Win Rate This Month (min 3)', highWR.name, (highWR.wins / highWR.matches * 100).toFixed(1) + '%', getFlagEmoji(highWR.country));
         container.innerHTML = html || '<div class="state-box state-empty"><div class="state-title">Not enough data.</div></div>';
 
         const top5 = players.sort((a, b) => b.rating - a.rating).slice(0, 5);

@@ -26,7 +26,29 @@
   <meta name="twitter:title" content="Player H2H – KA ESPORTS">
   <meta name="twitter:description" content="Select a player to view their match history against specific opponents.">
   <meta name="twitter:image" content="https://denvar-labs.github.io/ka-esports/og-image.png">
-<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script></head>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>
+    .h2h-filter { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .h2h-filter label { color: var(--text-muted); font-size: 0.85rem; }
+    .h2h-filter input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.85rem; }
+    .h2h-form { display: inline-flex; gap: 3px; }
+    .h2h-form-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .h2h-form-dot.win { background: #10b981; }
+    .h2h-form-dot.podium { background: #f59e0b; }
+    .h2h-form-dot.loss { background: #6b7280; }
+    .h2h-detail-section { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: none; }
+    .h2h-detail-section h4 { margin: 0 0 12px; color: var(--accent); }
+    .h2h-detail-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .h2h-detail-table th { text-align: left; padding: 6px 8px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+    .h2h-detail-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    .h2h-clickable { cursor: pointer; text-decoration: underline; color: var(--accent); }
+    .h2h-clickable:hover { color: var(--text); }
+    .h2h-pos-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.8rem; }
+    .h2h-pos-badge.first { background: #fbbf24; color: #000; }
+    .h2h-pos-badge.second { background: #d1d5db; color: #000; }
+    .h2h-pos-badge.third { background: #d97706; color: #fff; }
+    .h2h-pos-badge.other { background: var(--border); color: var(--text-muted); }
+  </style>
 <body>
   <div id="navbar-container"></div>
   <div class="wrap">
@@ -41,15 +63,30 @@
               <option value="" data-i18n="choose_player">-- Choose a player --</option>
             </select>
           </div>
+          <div class="h2h-filter">
+            <label for="h2h-date-from">From:</label>
+            <input type="date" id="h2h-date-from">
+            <label for="h2h-date-to">To:</label>
+            <input type="date" id="h2h-date-to">
+          </div>
           <div class="table-responsive">
             <table id="h2h-table" class="data-table">
               <thead>
-                <tr><th data-i18n="col_opponent">Opponent</th><th data-i18n="col_matches">Matches</th><th data-i18n="col_wins">Wins</th><th data-i18n="col_losses">Losses</th><th data-i18n="col_ties">Ties</th><th data-i18n="col_win_pct">Win %</th><th data-i18n="col_avg_race_pts">Avg Race Pts</th></tr>
+                <tr><th data-i18n="col_opponent">Opponent</th><th data-i18n="col_matches">Matches</th><th data-i18n="col_wins">Wins</th><th data-i18n="col_losses">Losses</th><th data-i18n="col_ties">Ties</th><th data-i18n="col_win_pct">Win %</th><th data-i18n="col_avg_race_pts">Avg Race Pts</th><th>Last 5</th></tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align:center; color:var(--text-muted);" data-i18n="h2h_select_prompt">Select a player to see H2H statistics.</td></tr>
+                <tr><td colspan="8" style="text-align:center; color:var(--text-muted);" data-i18n="h2h_select_prompt">Select a player to see H2H statistics.</td></tr>
               </tbody>
             </table>
+          </div>
+          <div class="h2h-detail-section" id="h2h-detail-section">
+            <h4 id="h2h-detail-title"></h4>
+            <div class="table-responsive">
+              <table class="h2h-detail-table" id="h2h-detail-table">
+                <thead><tr><th>Date</th><th>Pos</th><th>Pts</th><th>Opponents</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
         </section>
       </main>
@@ -87,12 +124,18 @@
 
     async function loadH2HForPlayer(playerName) {
       const tbody = document.querySelector('#h2h-table tbody');
-      renderTableState(tbody, 7, 'loading');
+      renderTableState(tbody, 8, 'loading');
+      const detailSection = document.getElementById('h2h-detail-section');
+      detailSection.style.display = 'none';
+
+      const dateFrom = document.getElementById('h2h-date-from').value;
+      const dateTo = document.getElementById('h2h-date-to').value;
 
       try {
         const inactiveNames = await getInactivePlayerNames();
         const playersSheet = await fetchSheetData('PLAYERS');
         const idToName = {};
+        const nameToId = {};
         if (playersSheet.length > 1) {
           const header = playersSheet[0].map(h => (h || '').toString().trim());
           const idCol = header.indexOf('ID');
@@ -101,9 +144,50 @@
             playersSheet.slice(1).forEach(row => {
               if (row[idCol] && row[nameCol]) {
                 const name = row[nameCol].toString().trim();
-                if (!inactiveNames.has(name)) idToName[row[idCol]] = name;
+                if (!inactiveNames.has(name)) {
+                  idToName[row[idCol]] = name;
+                  nameToId[name] = row[idCol];
+                }
               }
             });
+          }
+        }
+
+        const playerId = nameToId[playerName];
+
+        const allMatches = await fetchSheetData('MATCHES');
+        const matchHeader = allMatches.length > 0 ? allMatches[0].map(h => (h || '').toString().trim()) : [];
+        const mDateIdx = matchHeader.indexOf('Date');
+        const mP1Idx = matchHeader.indexOf('Player 1');
+        const mStatusIdx = matchHeader.indexOf('Status');
+        const mPos1Idx = matchHeader.indexOf('Position 1');
+        const mPts1Idx = matchHeader.indexOf('Race Points 1');
+
+        const playerMatches = [];
+        if (mDateIdx !== -1 && mP1Idx !== -1 && mStatusIdx !== -1) {
+          for (let i = 1; i < allMatches.length; i++) {
+            const row = allMatches[i];
+            if (!row || row[mStatusIdx] !== 'PROCESSED') continue;
+            const date = new Date(row[mDateIdx]);
+            if (isNaN(date.getTime())) continue;
+            if (dateFrom && date < new Date(dateFrom)) continue;
+            if (dateTo && date > new Date(dateTo + 'T23:59:59')) continue;
+            const pIds = [];
+            for (let j = 0; j < 4; j++) pIds.push((row[mP1Idx + j] || '').toString().trim());
+            if (pIds.includes(playerId)) {
+              const posIdx = mPos1Idx !== -1 ? mPos1Idx : -1;
+              const ptsIdx = mPts1Idx !== -1 ? mPts1Idx : -1;
+              playerMatches.push({
+                date,
+                dateStr: date.toISOString().split('T')[0],
+                positions: pIds.map((pid, idx) => ({
+                  id: pid,
+                  name: idToName[pid] || pid,
+                  pos: posIdx !== -1 ? parseInt(row[posIdx + idx]) || 0 : 0,
+                  pts: ptsIdx !== -1 ? parseInt(row[ptsIdx + idx]) || 0 : 0
+                }))
+              });
+            }
           }
         }
 
@@ -114,12 +198,8 @@
           return idToName[idA] === playerName || idToName[idB] === playerName;
         });
 
-        if (playerRows.length === 0) {
-          renderTableState(tbody, 7, 'empty', { title: I18n.t('h2h_no_data') });
-          return;
-        }
-
         const oppStats = {};
+        const oppMatches = {};
         playerRows.forEach(row => {
           const idA = row[0], idB = row[1], matches = row[2], winsA = row[3], winsB = row[4], ties = row[5], ptsA = row[6], ptsB = row[7];
           const isPlayerA = idToName[idA] === playerName;
@@ -133,33 +213,94 @@
           if (!oppStats[oppName]) oppStats[oppName] = { matches: 0, wins: 0, losses: 0, ties: 0, totalPts: 0 };
           const st = oppStats[oppName];
           st.matches += matches; st.wins += wins; st.losses += losses; st.ties += ties; st.totalPts += totalPts;
+
+          if (!oppMatches[oppName]) oppMatches[oppName] = [];
         });
+
+        playerMatches.forEach(m => {
+          const opp = m.positions.find(p => p.id === playerId);
+          if (!opp) return;
+          m.positions.filter(p => p.id !== playerId).forEach(p => {
+            if (!oppMatches[p.name]) oppMatches[p.name] = [];
+            oppMatches[p.name].push({
+              date: m.dateStr,
+              pos: opp.pos,
+              pts: opp.pts,
+              oppName: p.name,
+              oppPos: p.pos
+            });
+          });
+        });
+
         const opponents = Object.entries(oppStats).sort((a, b) => b[1].matches - a[1].matches);
 
         if (opponents.length === 0) {
-          renderTableState(tbody, 7, 'empty', { title: I18n.t('h2h_no_active_opponents') });
+          renderTableState(tbody, 8, 'empty', { title: I18n.t('h2h_no_data') });
           return;
         }
 
         tbody.innerHTML = opponents.map(([name, st]) => {
           const winPercent = st.matches ? ((st.wins / st.matches) * 100).toFixed(1) : '0.0';
           const avgPts = st.matches ? (st.totalPts / st.matches).toFixed(2) : '0.00';
-          return `<tr><td>${escapeHtml(name)}</td><td>${st.matches}</td><td>${st.wins}</td><td>${st.losses}</td><td>${st.ties}</td><td>${winPercent}%</td><td>${avgPts}</td></tr>`;
+          const last5 = (oppMatches[name] || []).slice(-5);
+          const formHtml = last5.length > 0 ? '<span class="h2h-form">' +
+            last5.map(m => {
+              const cls = m.pos === 1 ? 'win' : m.pos <= 3 ? 'podium' : 'loss';
+              return '<span class="h2h-form-dot ' + cls + '" title="' + m.date + ': ' + m.pos + '"></span>';
+            }).join('') + '</span>' : '—';
+          return `<tr><td><span class="h2h-clickable" data-opp="${escapeHtml(name)}">${escapeHtml(name)}</span></td><td>${st.matches}</td><td>${st.wins}</td><td>${st.losses}</td><td>${st.ties}</td><td>${winPercent}%</td><td>${avgPts}</td><td>${formHtml}</td></tr>`;
         }).join('');
+
+        tbody.querySelectorAll('.h2h-clickable').forEach(el => {
+          el.addEventListener('click', () => {
+            const oppName = el.dataset.opp;
+            showH2HDetail(oppName, playerName, oppMatches[oppName] || []);
+          });
+        });
+
       } catch (err) {
-        renderTableState(tbody, 7, 'error', { detail: err.message });
+        renderTableState(tbody, 8, 'error', { detail: err.message });
       }
+    }
+
+    function showH2HDetail(oppName, playerName, matches) {
+      const section = document.getElementById('h2h-detail-section');
+      const title = document.getElementById('h2h-detail-title');
+      const tbody = document.querySelector('#h2h-detail-table tbody');
+      title.textContent = playerName + ' vs ' + oppName + ' (' + matches.length + ' matches)';
+      if (matches.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No matches found.</td></tr>';
+      } else {
+        tbody.innerHTML = matches.sort((a, b) => b.date.localeCompare(a.date)).map(m => {
+          const posClass = m.pos === 1 ? 'first' : m.pos === 2 ? 'second' : m.pos === 3 ? 'third' : 'other';
+          return '<tr><td>' + m.date + '</td><td><span class="h2h-pos-badge ' + posClass + '">' + m.pos + '</span></td><td>' + m.pts + '</td><td>' + escapeHtml(m.oppName) + ' (' + m.oppPos + ')</td></tr>';
+        }).join('');
+      }
+      section.style.display = 'block';
+      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     async function initH2H() {
       await initPlayerDropdown();
-      document.getElementById('player-select').addEventListener('change', e => {
+      const playerSelect = document.getElementById('player-select');
+      const dateFrom = document.getElementById('h2h-date-from');
+      const dateTo = document.getElementById('h2h-date-to');
+
+      playerSelect.addEventListener('change', e => {
         if (e.target.value) {
           loadH2HForPlayer(e.target.value);
         } else {
           const tbody = document.querySelector('#h2h-table tbody');
-          renderTableState(tbody, 7, 'empty', { title: I18n.t('h2h_select_prompt') });
+          renderTableState(tbody, 8, 'empty', { title: I18n.t('h2h_select_prompt') });
+          document.getElementById('h2h-detail-section').style.display = 'none';
         }
+      });
+
+      dateFrom.addEventListener('change', () => {
+        if (playerSelect.value) loadH2HForPlayer(playerSelect.value);
+      });
+      dateTo.addEventListener('change', () => {
+        if (playerSelect.value) loadH2HForPlayer(playerSelect.value);
       });
     }
     if (document.readyState === 'loading') {

@@ -35,6 +35,13 @@
     .evolution-container { margin-top: 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .evolution-container h4 { text-align: center; margin: 0 0 15px; color: var(--accent); }
     .evolution-chart-wrapper { position: relative; height: 320px; width: 100%; overflow: hidden; }
+    .h2h-mini-section { margin-top: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .h2h-mini-section h4 { text-align: center; margin: 0 0 12px; color: var(--accent); }
+    .h2h-mini-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .h2h-mini-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+    .h2h-mini-table td { padding: 8px; border-bottom: 1px solid var(--border); }
+    .h2h-mini-winner { font-weight: 700; color: #10b981; }
+    .h2h-mini-loser { color: var(--text-muted); }
   </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://unpkg.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
@@ -140,6 +147,9 @@
 
         let html = '<div class="charts-grid" id="charts-grid"></div>';
         html += '<div class="player-cards" id="player-cards"></div>';
+        if (chosen.length === 2) {
+          html += '<div class="h2h-mini-section" id="h2h-mini-section"><h4><i class="ph ph-sword" aria-hidden="true"></i> Head to Head</h4><div id="h2h-mini-content"></div></div>';
+        }
         html += `
           <div class="evolution-container">
             <h4>${I18n.t('comp_evolution_title')}</h4>
@@ -225,6 +235,9 @@
         });
 
         await drawEvolutionChart(chosen, playerColors);
+        if (chosen.length === 2) {
+          await loadH2HMini(chosen[0], chosen[1]);
+        }
       } catch (err) {
         renderState(container, 'error', { detail: err.message, onRetry: compare });
         console.error(err);
@@ -354,6 +367,72 @@
           }
         }
       });
+    }
+
+    async function loadH2HMini(playerA, playerB) {
+      const content = document.getElementById('h2h-mini-content');
+      if (!content) return;
+      content.innerHTML = '<div style="text-align:center;color:var(--text-muted);">Loading H2H...</div>';
+
+      try {
+        const playersSheet = await fetchSheetData('PLAYERS');
+        const nameToId = {};
+        if (playersSheet.length > 1) {
+          const header = playersSheet[0].map(h => (h || '').toString().trim());
+          const idIdx = header.indexOf('ID');
+          const nameIdx = header.indexOf('Name');
+          if (idIdx !== -1 && nameIdx !== -1) {
+            for (let i = 1; i < playersSheet.length; i++) {
+              const row = playersSheet[i];
+              if (row[idIdx] && row[nameIdx]) nameToId[row[nameIdx].toString().trim()] = row[idIdx].toString().trim();
+            }
+          }
+        }
+
+        const idA = nameToId[playerA];
+        const idB = nameToId[playerB];
+        if (!idA || !idB) { content.innerHTML = '<div style="text-align:center;color:var(--text-muted);">Players not found.</div>'; return; }
+
+        const h2hData = await fetchSheetData('_H2H_DATA');
+        const match = h2hData.slice(1).find(row => {
+          const rA = (row[0] || '').toString().trim();
+          const rB = (row[1] || '').toString().trim();
+          return (rA === idA && rB === idB) || (rA === idB && rB === idA);
+        });
+
+        if (!match) { content.innerHTML = '<div style="text-align:center;color:var(--text-muted);">No matches found between these players.</div>'; return; }
+
+        const isAfirst = (match[0] || '').toString().trim() === idA;
+        const matches = parseInt(match[2]) || 0;
+        const winsA = isAfirst ? (parseInt(match[3]) || 0) : (parseInt(match[4]) || 0);
+        const winsB = isAfirst ? (parseInt(match[4]) || 0) : (parseInt(match[3]) || 0);
+        const ties = parseInt(match[5]) || 0;
+        const ptsA = isAfirst ? (parseFloat(match[6]) || 0) : (parseFloat(match[7]) || 0);
+        const ptsB = isAfirst ? (parseFloat(match[7]) || 0) : (parseFloat(match[6]) || 0);
+        const lossesA = matches - winsA - ties;
+        const lossesB = matches - winsB - ties;
+        const wrA = matches ? ((winsA / matches) * 100).toFixed(1) : '0.0';
+        const wrB = matches ? ((winsB / matches) * 100).toFixed(1) : '0.0';
+        const avgPtsA = matches ? (ptsA / matches).toFixed(2) : '0.00';
+        const avgPtsB = matches ? (ptsB / matches).toFixed(2) : '0.00';
+        const winClassA = winsA > winsB ? 'h2h-mini-winner' : winsA < winsB ? 'h2h-mini-loser' : '';
+        const winClassB = winsB > winsA ? 'h2h-mini-winner' : winsB < winsA ? 'h2h-mini-loser' : '';
+
+        content.innerHTML = `
+          <table class="h2h-mini-table">
+            <thead><tr><th></th><th>${escapeHtml(playerA)}</th><th>${escapeHtml(playerB)}</th></tr></thead>
+            <tbody>
+              <tr><td>Matches</td><td colspan="2" style="text-align:center;font-weight:700;">${matches}</td></tr>
+              <tr><td>Wins</td><td class="${winClassA}">${winsA}</td><td class="${winClassB}">${winsB}</td></tr>
+              <tr><td>Losses</td><td>${lossesA}</td><td>${lossesB}</td></tr>
+              <tr><td>Ties</td><td colspan="2" style="text-align:center;">${ties}</td></tr>
+              <tr><td>Win Rate</td><td class="${winClassA}">${wrA}%</td><td class="${winClassB}">${wrB}%</td></tr>
+              <tr><td>Avg Pts</td><td>${avgPtsA}</td><td>${avgPtsB}</td></tr>
+            </tbody>
+          </table>`;
+      } catch (e) {
+        content.innerHTML = '<div style="text-align:center;color:var(--text-muted);">Error loading H2H data.</div>';
+      }
     }
 
     async function getPlayerStats(playerName) {

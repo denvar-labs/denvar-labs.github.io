@@ -15,14 +15,21 @@
   <link rel="stylesheet" href="../css/esports.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
   <style>
-    .awards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .awards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .award-card { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; transition: transform 0.2s; }
     .award-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
     .award-icon { font-size: 2.5rem; margin-bottom: 8px; }
-    .award-title { font-size: 1rem; font-weight: 700; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
-    .award-player { font-size: 1.4rem; font-weight: 800; color: var(--text); }
-    .award-stat { font-size: 0.95rem; color: var(--text-muted); margin-top: 4px; }
+    .award-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+    .award-player { font-size: 1.3rem; font-weight: 800; color: var(--text); }
+    .award-stat { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
     .chart-container { max-width: 900px; margin: 20px auto; }
+    .mvp-history { margin-top: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .mvp-history h3 { margin: 0 0 12px; font-size: 1rem; color: var(--accent); }
+    .mvp-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .mvp-row:last-child { border-bottom: none; }
+    .mvp-rank { font-weight: 700; color: var(--text-muted); min-width: 24px; }
+    .mvp-name { font-weight: 700; flex: 1; }
+    .mvp-count { background: var(--accent); color: #fff; border-radius: 12px; padding: 2px 10px; font-weight: 700; font-size: 0.85rem; }
   </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://unpkg.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
@@ -69,6 +76,11 @@
           <div class="chart-container" id="chart-section" style="display:none;">
             <canvas id="evolutionChart"></canvas>
             <p style="text-align:center; color:var(--text-muted)" data-i18n="awards_rating_evolution_of_the_top_5_players_du">Rating evolution of the Top 5 players during this month</p>
+          </div>
+
+          <div class="mvp-history" id="mvp-history-section" style="display:none;">
+            <h3><i class="ph ph-crown" aria-hidden="true"></i> MVP History (All Seasons)</h3>
+            <div id="mvp-history-list"></div>
           </div>
         </section>
       </main>
@@ -123,9 +135,11 @@
       const cardsContainer = document.getElementById('awards-cards');
       const top5Section = document.getElementById('top5-section');
       const chartSection = document.getElementById('chart-section');
-      renderState(cardsContainer, 'loading', { title: 'Loading awards…' });
+      const mvpHistorySection = document.getElementById('mvp-history-section');
+      renderState(cardsContainer, 'loading', { title: 'Loading awards...' });
       top5Section.style.display = 'none';
       chartSection.style.display = 'none';
+      mvpHistorySection.style.display = 'none';
 
       try {
         const data = await fetchSheetData(sheetName);
@@ -138,6 +152,7 @@
         const ratingIdx = headers.indexOf('Rating');
         const matchesIdx = headers.indexOf('Matches');
         const winsIdx = headers.indexOf('Wins');
+        const volIdx = headers.indexOf('Volatility');
 
         const inactiveNames = await getInactivePlayerNames();
 
@@ -157,7 +172,8 @@
           name: r[nameIdx],
           rating: parseFloat(r[ratingIdx]),
           matches: parseInt(r[matchesIdx]),
-          wins: parseInt(r[winsIdx])
+          wins: parseInt(r[winsIdx]),
+          volatility: parseFloat(r[volIdx]) || 0
         }));
 
         const mvp = players.reduce((a, b) => a.rating > b.rating ? a : b);
@@ -185,7 +201,7 @@
                 }
               });
             }
-          } catch (e) { /* previous month sheet may not exist — most-improved falls back to MVP */ }
+          } catch (e) { /* previous month sheet may not exist */ }
         }
         if (!mostImproved) mostImproved = { ...mvp, improvement: 0 };
 
@@ -200,15 +216,19 @@
         }
 
         const ironWall = players.reduce((a, b) => (a.rd || 0) < (b.rd || 0) ? a : b);
+        const mostActive = players.reduce((a, b) => a.matches > b.matches ? a : b);
+        const mostConsistent = players.reduce((a, b) => a.volatility < b.volatility ? a : b);
 
         let html = '';
-        html += buildAwardCard('👑', 'MVP of the Month', mvp.name, `${(mvp.rating || 0).toFixed(2)} rating`);
-        html += buildAwardCard('🚀', 'Most Improved', mostImproved.name, `+${(mostImproved.improvement || 0).toFixed(2)} points`);
+        html += buildAwardCard('&#x1F451;', 'MVP of the Month', mvp.name, `${(mvp.rating || 0).toFixed(2)} rating`);
+        html += buildAwardCard('&#x1F680;', 'Most Improved', mostImproved.name, `+${(mostImproved.improvement || 0).toFixed(2)} points`);
         if (risingStar) {
           const wr = risingStar.matches ? (risingStar.wins / risingStar.matches * 100).toFixed(0) : 0;
-          html += buildAwardCard('🌟', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
+          html += buildAwardCard('&#x1F31F;', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
         }
-        html += buildAwardCard('🛡️', 'Iron Wall', ironWall.name, `RD ${(ironWall.rd || 0).toFixed(0)}`);
+        html += buildAwardCard('&#x1F6E1;', 'Iron Wall', ironWall.name, `RD ${(ironWall.rd || 0).toFixed(0)}`);
+        html += buildAwardCard('&#x1F3AE;', 'Most Active', mostActive.name, `${mostActive.matches} matches played`);
+        html += buildAwardCard('&#x1F4AA;', 'Most Consistent', mostConsistent.name, `Volatility ${(mostConsistent.volatility || 0).toFixed(3)}`);
         cardsContainer.innerHTML = `<div class="awards-grid">${html}</div>`;
 
         const top5 = players.sort((a, b) => b.rating - a.rating).slice(0, 5);
@@ -225,9 +245,55 @@
         top5Section.style.display = 'block';
 
         await drawEvolutionChart(sheetName, top5.map(p => p.name));
+        await loadMVPHistory();
       } catch (err) {
         console.error(err);
         renderState(cardsContainer, 'error', { detail: err.message, onRetry: () => loadAwards(sheetName) });
+      }
+    }
+
+    async function loadMVPHistory() {
+      const section = document.getElementById('mvp-history-section');
+      const list = document.getElementById('mvp-history-list');
+      try {
+        const allSheets = await fetchSheetList();
+        const leaderboardSheets = allSheets.filter(s => s.startsWith('LEADERBOARD_') && s !== 'LEADERBOARD_GLOBAL').sort();
+        const mvpCounts = {};
+
+        for (const sheet of leaderboardSheets) {
+          try {
+            const data = await fetchSheetData(sheet);
+            if (data.length < 4) continue;
+            const headers = data[2].map(h => (h || '').toString().trim());
+            const nameIdx = headers.indexOf('Player');
+            const ratingIdx = headers.indexOf('Rating');
+            const matchesIdx = headers.indexOf('Matches');
+            const rows = data.slice(3).filter(r => r[nameIdx] && parseInt(r[matchesIdx]) > 0);
+            if (rows.length === 0) continue;
+            const mvp = rows.reduce((a, b) => (parseFloat(a[ratingIdx]) || 0) > (parseFloat(b[ratingIdx]) || 0) ? a : b);
+            const mvpName = (mvp[nameIdx] || '').toString().trim();
+            if (mvpName) {
+              mvpCounts[mvpName] = (mvpCounts[mvpName] || 0) + 1;
+            }
+          } catch (e) { /* skip sheet */ }
+        }
+
+        const sorted = Object.entries(mvpCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        if (sorted.length === 0) {
+          section.style.display = 'none';
+          return;
+        }
+
+        list.innerHTML = sorted.map(([name, count], i) => `
+          <div class="mvp-row">
+            <span class="mvp-rank">${i + 1}.</span>
+            <span class="mvp-name">${escapeHtml(name)}</span>
+            <span class="mvp-count">${count}x MVP</span>
+          </div>
+        `).join('');
+        section.style.display = 'block';
+      } catch (e) {
+        section.style.display = 'none';
       }
     }
 
