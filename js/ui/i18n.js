@@ -592,6 +592,9 @@ const I18n = (() => {
 
       // Leaderboard
       leaderboard_all_players: 'Todos los Jugadores',
+      monthly_leaderboard: 'Leaderboard Mensual',
+      match_reports: 'Reportes de Partidas',
+      player_h2h: 'H2H de Jugador',
 
       // Seasons
       seasons_summary: 'Resumen de Temporadas',
@@ -1204,6 +1207,9 @@ const I18n = (() => {
 
       // Leaderboard
       leaderboard_all_players: 'All Players',
+      monthly_leaderboard: 'Monthly Leaderboard',
+      match_reports: 'Match Reports',
+      player_h2h: 'Player H2H',
 
       // Seasons
       seasons_summary: 'Seasons Summary',

@@ -36,10 +36,13 @@
       <main class="content">
         <section class="panel">
           <div class="section-heading">
-            <label for="report-select" data-i18n="month">Month:</label>
-            <select id="report-select" class="field-select">
-              <option value="" data-i18n="choose_month">-- Choose a month --</option>
-            </select>
+            <span data-i18n="match_reports">Match Reports</span>
+            <div class="season-filter-group">
+              <label for="report-select" data-i18n="month">Month:</label>
+              <select id="report-select" class="field-select">
+                <option value="" data-i18n="choose_month">-- Choose a month --</option>
+              </select>
+            </div>
           </div>
           <div id="match-reports-container">
             <div class="state-box state-empty"><div class="state-title" data-i18n="select_month">Select a month to view its match reports.</div></div>
