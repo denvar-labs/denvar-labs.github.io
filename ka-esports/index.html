@@ -639,9 +639,6 @@
             ? rows.filter(r => (r[activeIdx] || '').toString().trim().toUpperCase() === 'ACTIVE')
             : rows;
 
-          targetPlayers = activePlayers.length;
-          animateValue(document.getElementById('stat-players'), 0, targetPlayers, 800);
-
           if (ratingIdx !== -1) {
             targetRating = activePlayers.reduce((max, r) => {
               const rating = parseFloat(r[ratingIdx]);
@@ -654,16 +651,23 @@
         }
 
         if (seasonsData && seasonsData.length > 1) {
-          const header = seasonsData[0].map(h => (h || '').toString().trim());
+          const detectedIndex = detectHeaderRow(seasonsData, false);
+          const headerRowIndex = detectedIndex >= 0 ? detectedIndex : (HEADER_ROWS_TO_SKIP['SEASONS_REPORT'] || 2) - 1;
+          const header = (seasonsData[headerRowIndex] || []).map(h => (h || '').toString().trim());
           const matchesIdx = header.findIndex(h => (h || '').toString().toLowerCase().includes('match'));
-          const headerRowIndex = (HEADER_ROWS_TO_SKIP['SEASONS_REPORT'] || 2) - 1;
+          const playersIdx = header.findIndex(h => (h || '').toString().toLowerCase().includes('player'));
           const dataRows = seasonsData.slice(headerRowIndex + 1).filter(r => {
             const first = (r[0] || '').toString().trim();
             return first && first !== '---' && first !== 'undefined';
           });
           targetMatches = dataRows.reduce((sum, r) => sum + (parseInt(r[matchesIdx >= 0 ? matchesIdx : 1]) || 0), 0);
+          if (playersIdx >= 0) {
+            const totalPlayersAcrossSeasons = dataRows.reduce((sum, r) => sum + (parseInt(r[playersIdx]) || 0), 0);
+            targetPlayers = Math.round(totalPlayersAcrossSeasons / dataRows.length);
+          }
         }
         animateValue(document.getElementById('stat-matches'), 0, targetMatches, 800);
+        animateValue(document.getElementById('stat-players'), 0, targetPlayers, 800);
 
         const seasons = allSheets.filter(s => s.startsWith('LEADERBOARD_') && !s.includes('GLOBAL'));
         animateValue(document.getElementById('stat-seasons'), 0, seasons.length, 600);
