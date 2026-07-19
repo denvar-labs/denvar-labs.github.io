@@ -620,9 +620,10 @@
 
     async function loadHomeStats() {
       try {
-        const [playersData, allSheets] = await Promise.all([
+        const [playersData, allSheets, seasonsData] = await Promise.all([
           fetchSheetData('PLAYERS'),
-          fetchSheetList()
+          fetchSheetList(),
+          fetchSheetData('SEASONS_REPORT')
         ]);
 
         let targetPlayers = 0, targetMatches = 0, targetRating = 0;
@@ -630,7 +631,6 @@
           const header = playersData[0].map(h => (h || '').toString().trim());
           const activeIdx = header.indexOf('Active');
           const ratingIdx = header.indexOf('Rating');
-          const matchesIdx = header.indexOf('Matches');
 
           const rows = playersData.slice(1);
           const activePlayers = activeIdx !== -1
@@ -639,11 +639,6 @@
 
           targetPlayers = activePlayers.length;
           animateValue(document.getElementById('stat-players'), 0, targetPlayers, 800);
-
-          if (matchesIdx !== -1) {
-            targetMatches = activePlayers.reduce((sum, r) => sum + (parseInt(r[matchesIdx]) || 0), 0);
-            animateValue(document.getElementById('stat-matches'), 0, targetMatches, 800);
-          }
 
           if (ratingIdx !== -1) {
             targetRating = activePlayers.reduce((max, r) => {
@@ -655,6 +650,18 @@
             }
           }
         }
+
+        if (seasonsData && seasonsData.length > 1) {
+          const header = seasonsData[0].map(h => (h || '').toString().trim());
+          const matchesIdx = header.findIndex(h => (h || '').toString().toLowerCase().includes('match'));
+          const headerRowIndex = (HEADER_ROWS_TO_SKIP['SEASONS_REPORT'] || 2) - 1;
+          const dataRows = seasonsData.slice(headerRowIndex + 1).filter(r => {
+            const first = (r[0] || '').toString().trim();
+            return first && first !== '---' && first !== 'undefined';
+          });
+          targetMatches = dataRows.reduce((sum, r) => sum + (parseInt(r[matchesIdx >= 0 ? matchesIdx : 1]) || 0), 0);
+        }
+        animateValue(document.getElementById('stat-matches'), 0, targetMatches, 800);
 
         const seasons = allSheets.filter(s => s.startsWith('LEADERBOARD_') && !s.includes('GLOBAL'));
         animateValue(document.getElementById('stat-seasons'), 0, seasons.length, 600);
