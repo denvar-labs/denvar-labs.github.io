@@ -66,11 +66,14 @@
       <div id="sidebar-container"></div>
       <main class="content">
         <section class="panel">
+          <div class="section-heading">
+            <span data-i18n="player_comparison">Player Comparison</span>
+          </div>
           <div class="comparison-setup">
-            <div class="player-selector"><label data-i18n="comp_player_1">Player 1</label><select id="player1-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
-            <div class="player-selector"><label data-i18n="comp_player_2">Player 2</label><select id="player2-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
-            <div class="player-selector"><label data-i18n="comp_player_3">Player 3</label><select id="player3-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
-            <div class="player-selector"><label data-i18n="comp_player_4">Player 4</label><select id="player4-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div>
+            <div class="player-selector"><div class="season-filter-group"><label data-i18n="comp_player_1">Player 1</label><select id="player1-select" class="field-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div></div>
+            <div class="player-selector"><div class="season-filter-group"><label data-i18n="comp_player_2">Player 2</label><select id="player2-select" class="field-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div></div>
+            <div class="player-selector"><div class="season-filter-group"><label data-i18n="comp_player_3">Player 3</label><select id="player3-select" class="field-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div></div>
+            <div class="player-selector"><div class="season-filter-group"><label data-i18n="comp_player_4">Player 4</label><select id="player4-select" class="field-select"><option value="" data-i18n="comp_choose">-- Choose --</option></select></div></div>
           </div>
           <div id="comparison-content">
             <div class="state-box state-empty"><div class="state-title" data-i18n="comp_select_two">Select at least two players to compare.</div></div>

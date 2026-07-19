@@ -56,10 +56,15 @@
           </div>
 
           <div id="month-selector" style="display:none; margin-bottom:16px;">
-            <label for="hof-month-select">Season:</label>
-            <select id="hof-month-select" class="field-select">
-              <option value="">-- Choose a month --</option>
-            </select>
+            <div class="section-heading" style="margin-bottom:0;">
+              <span data-i18n="hall_of_fame_monthly">Monthly Records</span>
+              <div class="season-filter-group">
+                <label for="hof-month-select" data-i18n="season">Season:</label>
+                <select id="hof-month-select" class="field-select">
+                  <option value="" data-i18n="choose_month">-- Choose a month --</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div class="records-grid" id="records-container"></div>

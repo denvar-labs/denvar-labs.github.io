@@ -55,10 +55,13 @@
       <main class="content">
         <section class="panel">
           <div class="section-heading">
-            <label for="award-month-select">Season:</label>
-            <select id="award-month-select" class="field-select">
-              <option value="">-- Choose a month --</option>
-            </select>
+            <span data-i18n="monthly_awards">Monthly Awards</span>
+            <div class="season-filter-group">
+              <label for="award-month-select" data-i18n="season">Season:</label>
+              <select id="award-month-select" class="field-select">
+                <option value="" data-i18n="choose_month">-- Choose a month --</option>
+              </select>
+            </div>
           </div>
 
           <div class="awards-grid" id="awards-cards"></div>

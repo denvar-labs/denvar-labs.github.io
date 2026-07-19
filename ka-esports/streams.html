@@ -14,6 +14,10 @@
   <link rel="stylesheet" href="../css/esports.css">
   <style>
     .stream-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .stream-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--text-muted); gap: 16px; }
+    .stream-loading .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .stream-loading p { font-size: 0.95rem; margin: 0; }
+    .stream-loading small { font-size: 0.8rem; opacity: 0.7; }
     .stream-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; }
     .stream-card iframe, .stream-card .offline-preview, .stream-card .live-preview { width: 100%; height: 200px; border: 0; object-fit: cover; }
     .offline-preview { background: #0b0f17; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 1.2rem; }
@@ -218,9 +222,15 @@
 
     async function init() {
       const container = document.getElementById('streams-container');
-      container.innerHTML = renderAllChannels(null);
+      container.innerHTML = `<div class="stream-loading" id="stream-loading">
+        <div class="spinner"></div>
+        <p data-i18n="streams_checking">Checking live streams…</p>
+        <small data-i18n="streams_please_wait">This may take a few seconds</small>
+      </div>`;
 
       const liveData = await fetchLiveStatus();
+      const loadingEl = document.getElementById('stream-loading');
+      if (loadingEl) loadingEl.remove();
       container.innerHTML = renderAllChannels(liveData);
 
       if (!isTestMode()) {

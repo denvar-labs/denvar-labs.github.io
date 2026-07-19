@@ -43,7 +43,9 @@
       <div id="sidebar-container"></div>
       <main class="content">
         <section class="panel">
-          <div class="section-heading" data-i18n="simulator_heading">Set Up the Match</div>
+          <div class="section-heading">
+            <span data-i18n="simulator_heading">Set Up the Match</span>
+          </div>
           <div id="sim-players"></div>
           <button id="simulate-btn" onclick="simulate()" data-i18n="btn_simulate">Simulate</button>
           <div id="sim-result"></div>
@@ -150,10 +152,14 @@
       const options = playerPool.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${p.rating.toFixed(0)})</option>`).join('');
       container.innerHTML = [1, 2, 3, 4].map(i => `
         <div class="sim-row">
-          <span>${I18n.t('simulator_p')}${i}:</span>
-          <select id="player${i}">${options}</select>
-          <span>${I18n.t('simulator_pos')}</span>
-          <input type="number" id="pos${i}" min="1" max="4" value="${i}">
+          <div class="season-filter-group">
+            <label>${I18n.t('simulator_p')}${i}</label>
+            <select id="player${i}" class="field-select">${options}</select>
+          </div>
+          <div class="season-filter-group">
+            <label>${I18n.t('simulator_pos')}</label>
+            <input type="number" id="pos${i}" min="1" max="4" value="${i}" class="field-select" style="width:60px;">
+          </div>
         </div>
       `).join('');
     }

@@ -605,11 +605,19 @@ const I18n = (() => {
       // Streams
       streams_heading: 'Canales de la Comunidad',
       streams_loading: 'Cargando transmisiones…',
+      streams_checking: 'Verificando transmisiones en vivo…',
+      streams_please_wait: 'Esto puede tomar unos segundos',
       streams_offline: '(Desconectado)',
       streams_live: 'EN VIVO',
       live_checking: 'Verificando…',
       streams_click_to_watch: '▶ Haz clic para ver',
       streams_open_channel: 'Abrir canal ↗',
+
+      // Page titles for filter groups
+      player_profile: 'Perfil de Jugador',
+      monthly_awards: 'Premios Mensuales',
+      hall_of_fame_monthly: 'Récords Mensuales',
+      player_comparison: 'Comparación de Jugadores',
 
       // Simulator
       simulator_heading: 'Configurar la Partida',
@@ -1210,6 +1218,10 @@ const I18n = (() => {
       monthly_leaderboard: 'Monthly Leaderboard',
       match_reports: 'Match Reports',
       player_h2h: 'Player H2H',
+      player_profile: 'Player Profile',
+      monthly_awards: 'Monthly Awards',
+      hall_of_fame_monthly: 'Monthly Records',
+      player_comparison: 'Player Comparison',
 
       // Seasons
       seasons_summary: 'Seasons Summary',
@@ -1220,6 +1232,8 @@ const I18n = (() => {
       // Streams
       streams_heading: 'Community Channels',
       streams_loading: 'Loading streams…',
+      streams_checking: 'Checking live streams…',
+      streams_please_wait: 'This may take a few seconds',
       streams_offline: '(Offline)',
       streams_live: 'LIVE',
       live_checking: 'Checking…',

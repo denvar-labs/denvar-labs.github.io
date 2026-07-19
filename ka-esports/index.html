@@ -213,6 +213,10 @@
     }
     .live-indicator.live .live-dot { background: #10b981; animation: pulse 2s infinite; }
     .live-indicator.offline .live-dot { background: #9ca3af; }
+    .live-indicator.loading .live-dot { background: #f59e0b; animation: pulse 1s infinite; }
+    .live-spinner { display: none; width: 12px; height: 12px; border: 2px solid var(--text-muted); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 4px; }
+    .live-indicator.loading .live-spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .hero-top { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-3); flex-wrap: wrap; }
 
     body:not(.dark) .hero-landing { box-shadow: 0 4px 20px rgba(74,134,232,0.3); }
@@ -358,6 +362,7 @@
       <div class="live-indicator offline" id="live-indicator" title="Check live stream status" role="status" aria-live="polite">
         <span class="live-dot"></span>
         <span id="live-label" data-i18n="live_checking">Checking…</span>
+        <span class="live-spinner" id="live-spinner"></span>
       </div>
     </div>
     <p data-i18n="desc_home">Tu acceso central a todos los datos competitivos de Mario Kart 64.</p>
@@ -554,28 +559,17 @@
 
     async function fetchLiveStatus() {
       const twNames = channels.filter(c => c.type === 'twitch').map(c => c.id).join(',');
-      const twPromise = twNames ? fetch(`${KA_API_BASE}?action=live&tw=${encodeURIComponent(twNames)}&yt=`).then(r => r.ok ? r.json() : { tw: {} }).catch(() => ({ tw: {} })) : Promise.resolve({ tw: {} });
-
-      const ytResults = {};
-      const ytChannels = channels.filter(c => c.type === 'yt');
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < ytChannels.length; i += BATCH_SIZE) {
-        const batch = ytChannels.slice(i, i + BATCH_SIZE);
-        await Promise.allSettled(batch.map(async (ch) => {
-          try {
-            const handle = ch.handle.replace('@', '');
-            const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${handle}`;
-            const resp = await fetch(rssUrl);
-            if (!resp.ok) { ytResults[ch.handle] = { isLive: false }; return; }
-            const text = await resp.text();
-            const hasLive = text.includes('yt:liveBroadcast') || text.includes('liveBroadcastContent');
-            ytResults[ch.handle] = { isLive: hasLive };
-          } catch { ytResults[ch.handle] = { isLive: false }; }
-        }));
+      const ytNames = channels.filter(c => c.type === 'yt').map(c => c.handle).join(',');
+      const url = `${KA_API_BASE}?action=live&tw=${encodeURIComponent(twNames)}&yt=${encodeURIComponent(ytNames)}`;
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        return { tw: data.tw || {}, yt: data.yt || {} };
+      } catch (err) {
+        console.error('Live check failed', err);
+        return null;
       }
-
-      const twData = await twPromise;
-      return { tw: twData.tw || {}, yt: ytResults };
     }
 
     function updateLiveIndicator(liveData) {
@@ -840,7 +834,7 @@
       const indicator = document.getElementById('live-indicator');
       const label = document.getElementById('live-label');
       if (indicator && label) {
-        indicator.className = 'live-indicator offline';
+        indicator.className = 'live-indicator loading';
         label.textContent = 'Checking streams...';
       }
       const livePromise = fetchLiveStatus();

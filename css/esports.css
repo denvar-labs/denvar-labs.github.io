@@ -190,6 +190,29 @@ body.dark .retry-btn:hover {
   min-width: 150px;
 }
 
+/* ===== COMPARISON SETUP ===== */
+.comparison-setup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.comparison-setup .player-selector {
+  min-width: 0;
+}
+
+/* ===== SIMULATOR ROWS ===== */
+.sim-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.sim-row .season-filter-group label {
+  min-width: 70px;
+}
+
 /* ===== MOBILE RESPONSIVE ===== */
 @media (max-width: 768px) {
   .hero-landing h1 {
