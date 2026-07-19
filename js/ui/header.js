@@ -30,7 +30,7 @@ const PageHeader = (() => {
         actionsHTML += `<button id="${id}" class="btn btn-sm btn-ghost" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);" aria-label="${ariaLabel}"><span>${icon} ${label}</span></button>`;
       });
       if (showDarkToggle) {
-        actionsHTML += `<button id="dark-toggle-btn" class="btn btn-sm btn-ghost" data-dark-toggle style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);" aria-label="Toggle dark mode"><span id="dark-label">🌙 Dark mode</span></button>`;
+        actionsHTML += `<button id="dark-toggle-btn" class="btn btn-sm btn-ghost dark-mode-header-btn" data-dark-toggle aria-label="Toggle dark mode"><span id="dark-label"><i class="ph ph-moon" aria-hidden="true"></i> Dark</span></button>`;
       }
       actionsHTML += '</div>';
     }

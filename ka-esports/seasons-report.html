@@ -62,7 +62,7 @@
         descKey: 'desc_seasons_report'
       });
     }
-    function initSeasonsReport() { loadTableFromSheet('SEASONS_REPORT', 'data-table', -1); }
+    function initSeasonsReport() { loadSeasonsReport('data-table'); }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initSeasonsReport);
     } else {

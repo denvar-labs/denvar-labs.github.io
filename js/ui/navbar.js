@@ -85,7 +85,7 @@ const Navbar = (() => {
               </div>
 
               <button class="navbar-icon-btn" id="dark-toggle-btn" data-dark-toggle>
-                <span id="dark-label"><i class="ph ph-moon" aria-hidden="true"></i> Dark mode</span>
+                <span id="dark-label"><i class="ph ph-moon" aria-hidden="true"></i> Dark</span>
               </button>
             </div>
           </div>

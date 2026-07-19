@@ -19,6 +19,27 @@ body.dark .hero h1 {
   text-shadow: var(--accent-glow-text);
 }
 
+/* Dark mode toggle button in hero */
+.dark-mode-header-btn {
+  background: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
+  backdrop-filter: blur(4px);
+}
+.dark-mode-header-btn:hover {
+  background: rgba(255,255,255,0.22) !important;
+  border-color: rgba(255,255,255,0.4) !important;
+}
+body.dark .dark-mode-header-btn {
+  background: rgba(0,212,255,0.15) !important;
+  color: var(--accent) !important;
+  border-color: rgba(0,212,255,0.3) !important;
+}
+body.dark .dark-mode-header-btn:hover {
+  background: rgba(0,212,255,0.25) !important;
+  border-color: rgba(0,212,255,0.5) !important;
+}
+
 body.dark .eyebrow {
   background: rgba(0, 212, 255, 0.15);
   color: var(--accent);
@@ -262,4 +283,20 @@ body.dark .retry-btn:hover {
   .mvp-row {
     flex-wrap: wrap;
   }
+}
+
+/* ===== SEASONS REPORT TOTAL ROW ===== */
+.seasons-total-row {
+  border-top: 2px solid var(--accent);
+  background: var(--surface-alt);
+}
+.seasons-total-row td {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  font-size: 0.95rem;
+}
+.seasons-total-row td:first-child {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

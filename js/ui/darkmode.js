@@ -13,11 +13,16 @@ const DarkMode = (() => {
   function apply(on) {
     if (!document.body) return;
     document.body.classList.toggle('dark', on);
-    const label = document.getElementById('dark-label');
-    if (label) {
-      label.className = on ? 'ph ph-sun' : 'ph ph-moon';
-      label.textContent = on ? ' Light mode' : ' Dark mode';
-    }
+    document.querySelectorAll('#dark-label').forEach(label => {
+      const icon = label.querySelector('i');
+      if (icon) {
+        icon.className = on ? 'ph ph-sun' : 'ph ph-moon';
+      }
+      const textNode = Array.from(label.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+      if (textNode) {
+        textNode.textContent = on ? ' Light' : ' Dark';
+      }
+    });
     document.querySelectorAll('[data-dark-toggle]').forEach(btn => {
       btn.setAttribute('aria-pressed', on);
       btn.setAttribute('aria-label', on ? 'Switch to light mode' : 'Switch to dark mode');

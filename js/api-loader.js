@@ -437,6 +437,70 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
   }
 }
 
+// ========== SEASONS REPORT RENDERER ==========
+function formatSeasonDate(dateStr) {
+  const s = String(dateStr || '').trim();
+  const m = s.match(/^(\d{4})-(\d{2})/);
+  if (!m) return s;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthName = months[parseInt(m[2], 10) - 1] || m[2];
+  return monthName + ' ' + m[1];
+}
+
+async function loadSeasonsReport(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  if (!thead || !tbody) return;
+
+  renderTableState(tbody, 3, 'loading', { skeletonRows: 7 });
+
+  try {
+    const allRows = await fetchSheetData('SEASONS_REPORT');
+    if (allRows.length === 0) { renderTableState(tbody, 3, 'empty'); return; }
+
+    const headerRowIndex = (HEADER_ROWS_TO_SKIP['SEASONS_REPORT'] || 2) - 1;
+    const headerRow = allRows[headerRowIndex] || [];
+    const dataRows = allRows.slice(headerRowIndex + 1).filter(r => {
+      const first = (r[0] || '').toString().trim();
+      return first && first !== '---' && first !== 'undefined';
+    });
+
+    const seasonCol = 0, matchesCol = 1, playersCol = 2;
+    const th = ['SEASON', 'TOTAL MATCHES', 'TOTAL PLAYERS'];
+    thead.innerHTML = '<tr>' + th.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+
+    let totalMatches = 0, totalPlayers = 0;
+
+    tbody.innerHTML = dataRows.map(row => {
+      const rawDate = (row[seasonCol] || '').toString().trim();
+      const matches = parseInt(row[matchesCol], 10) || 0;
+      const players = parseInt(row[playersCol], 10) || 0;
+      totalMatches += matches;
+      totalPlayers += players;
+      const seasonLabel = formatSeasonDate(rawDate);
+      return `<tr>
+        <td data-label="Season"><strong>${seasonLabel}</strong></td>
+        <td data-label="Total Matches">${matches}</td>
+        <td data-label="Total Players">${players}</td>
+      </tr>`;
+    }).join('');
+
+    if (dataRows.length > 0) {
+      const avgPlayers = Math.round(totalPlayers / dataRows.length);
+      tbody.innerHTML += `<tr class="seasons-total-row">
+        <td><strong>TOTAL / AVG</strong></td>
+        <td><strong>${totalMatches}</strong></td>
+        <td><strong>~${avgPlayers}</strong></td>
+      </tr>`;
+    }
+  } catch (err) {
+    console.error('Error loading seasons report:', err);
+    renderTableState(tbody, 3, 'error', { detail: err.message });
+  }
+}
+
 // ========== MATCH REPORTS RENDERER ==========
 async function renderMatchReports(sheetName, containerId) {
   const container = document.getElementById(containerId);
