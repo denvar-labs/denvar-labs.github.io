@@ -517,7 +517,7 @@ const I18n = (() => {
       awards_rating_evolution_of_the_top_5_players_du: 'Evolución del Rating del Top 5 durante este mes',
       community_discord: 'Discord',
       community_join_the_ka_esports_community_server: 'Únete al servidor comunitario de KA ESPORTS.',
-      community_twitch_devarsc: 'Twitch – devarsc',
+      community_twitch_denvarsc: 'Twitch – devarsc',
       community_watch_live_streams_and_tournaments: 'Mira streams y torneos en vivo.',
       'hall-of-fame_alltime': 'Histórico',
       'hall-of-fame_monthly': 'Mensual',
@@ -621,6 +621,7 @@ const I18n = (() => {
 
       // Simulator
       simulator_heading: 'Configurar la Partida',
+      simulator_instruction: 'Selecciona 4 jugadores diferentes y asigna sus posiciones finales para predecir los cambios de rating.',
       simulator_loading: 'Cargando jugadores…',
       simulator_not_enough: 'No hay suficientes jugadores activos para simular una partida de 4 jugadores.',
       simulator_results: 'Resultados de la Simulación',
@@ -1140,7 +1141,7 @@ const I18n = (() => {
       awards_rating_evolution_of_the_top_5_players_du: 'Rating evolution of the Top 5 players during this month',
       community_discord: 'Discord',
       community_join_the_ka_esports_community_server: 'Join the KA ESPORTS community server.',
-      community_twitch_devarsc: 'Twitch – devarsc',
+      community_twitch_denvarsc: 'Twitch – devarsc',
       community_watch_live_streams_and_tournaments: 'Watch live streams and tournaments.',
       'hall-of-fame_alltime': 'All‑Time',
       'hall-of-fame_monthly': 'Monthly',
@@ -1242,6 +1243,7 @@ const I18n = (() => {
 
       // Simulator
       simulator_heading: 'Set Up the Match',
+      simulator_instruction: 'Select 4 different players and assign their finishing positions to predict rating changes.',
       simulator_loading: 'Loading players…',
       simulator_not_enough: 'Not enough active players with valid rating data to simulate a 4-player match.',
       simulator_results: 'Simulation Results',

@@ -12,6 +12,30 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/esports.css">
+  <style>
+    .penalty-list { display: flex; flex-direction: column; gap: 12px; }
+    .penalty-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; transition: border-color 0.2s; }
+    .penalty-card:hover { border-color: var(--accent); }
+    .penalty-main { display: flex; flex-direction: column; gap: 4px; }
+    .penalty-player { font-size: 1.05rem; font-weight: 700; }
+    .penalty-reason { font-size: 0.85rem; color: var(--text-muted); }
+    .penalty-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .penalty-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+    .penalty-badge.rage_quit { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .penalty-badge.suspension { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .penalty-badge.warning { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .penalty-badge.applied { background: rgba(16,185,129,0.15); color: #10b981; }
+    .penalty-badge.pending { background: rgba(156,163,175,0.15); color: #9ca3af; }
+    .penalty-dates { font-size: 0.8rem; color: var(--text-muted); text-align: right; }
+    .penalty-points { font-size: 1.3rem; font-weight: 800; text-align: right; }
+    .penalty-points.negative { color: #ef4444; }
+    .penalty-points.zero { color: var(--text-muted); }
+    .penalty-points-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    @media (max-width: 600px) {
+      .penalty-card { grid-template-columns: 1fr; }
+      .penalty-dates, .penalty-points { text-align: left; }
+    }
+  </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com https://unpkg.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
   <meta name="description" content="Rage quit and suspension records for competitive integrity.">
@@ -35,12 +59,11 @@
       <div id="sidebar-container"></div>
       <main class="content">
         <section class="panel">
-          <div class="section-heading" data-i18n="penalty_history">Penalty History</div>
-          <div class="table-responsive">
-            <table id="data-table" class="data-table">
-              <thead></thead>
-              <tbody></tbody>
-            </table>
+          <div class="section-heading">
+            <span data-i18n="penalty_history">Penalty History</span>
+          </div>
+          <div id="penalties-container">
+            <div class="state-box state-empty"><div class="spinner"></div><div class="state-title">Loading penalties…</div></div>
           </div>
         </section>
       </main>
@@ -62,13 +85,115 @@
         descKey: 'desc_penalties'
       });
     }
-    function initPenalties() { loadTableFromSheet('PENALTIES', 'data-table', -1); }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      } catch { return dateStr; }
+    }
+
+    function getPointsClass(pts) {
+      const n = parseFloat(pts);
+      if (isNaN(n) || n === 0) return 'zero';
+      return 'negative';
+    }
+
+    function getTypeClass(type) {
+      if (!type) return 'warning';
+      const t = type.toUpperCase();
+      if (t.includes('RAGE') || t.includes('QUIT')) return 'rage_quit';
+      if (t.includes('SUSPENSION')) return 'suspension';
+      return 'warning';
+    }
+
+    function getTypeIcon(type) {
+      if (!type) return 'ph-warning';
+      const t = type.toUpperCase();
+      if (t.includes('RAGE') || t.includes('QUIT')) return 'ph-anger';
+      if (t.includes('SUSPENSION')) return 'ph-prohibit';
+      return 'ph-warning';
+    }
+
+    function getStatusClass(status) {
+      if (!status) return 'pending';
+      return status.toLowerCase() === 'applied' ? 'applied' : 'pending';
+    }
+
+    async function initPenalties() {
+      const container = document.getElementById('penalties-container');
+      renderState(container, 'loading', { title: 'Loading penalties…' });
+      try {
+        const allRows = await fetchSheetData('PENALTIES');
+        if (!allRows || allRows.length === 0) {
+          renderState(container, 'empty', { title: 'No penalties found.' });
+          return;
+        }
+
+        const headers = [
+          'Timestamp', 'PlayerID', 'PlayerName', 'Reason', 'Type', 'Points', 'Month', 'StartDate', 'EndDate', 'Status'
+        ];
+
+        const dataRows = allRows.slice(1).filter(row => row && row.some(c => c));
+
+        if (dataRows.length === 0) {
+          renderState(container, 'empty', { title: 'No penalties recorded.' });
+          return;
+        }
+
+        let html = '<div class="penalty-list">';
+        dataRows.forEach(row => {
+          const playerName = row[2] || 'Unknown';
+          const reason = row[3] || '';
+          const type = row[4] || '';
+          const points = row[5] || 0;
+          const startDate = row[7] || '';
+          const endDate = row[8] || '';
+          const status = row[9] || '';
+
+          const typeClass = getTypeClass(type);
+          const typeIcon = getTypeIcon(type);
+          const statusClass = getStatusClass(status);
+          const pointsClass = getPointsClass(points);
+          const pts = parseFloat(points) || 0;
+
+          let dateRange = '';
+          if (startDate) {
+            dateRange = formatDate(startDate);
+            if (endDate) dateRange += ' → ' + formatDate(endDate);
+          }
+
+          html += `<div class="penalty-card">
+            <div class="penalty-main">
+              <div class="penalty-player"><i class="ph ${typeIcon}" aria-hidden="true"></i> ${escapeHtml(playerName)}</div>
+              <div class="penalty-reason">${escapeHtml(reason)}</div>
+              <div class="penalty-meta">
+                <span class="penalty-badge ${typeClass}">${escapeHtml(type)}</span>
+                <span class="penalty-badge ${statusClass}">${escapeHtml(status)}</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="penalty-points ${pointsClass}">${pts > 0 ? '+' : ''}${pts}</div>
+              <div class="penalty-points-label">Points</div>
+              ${dateRange ? `<div class="penalty-dates">${dateRange}</div>` : ''}
+            </div>
+          </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+      } catch (err) {
+        console.error('Error loading penalties:', err);
+        renderState(container, 'error', { detail: err.message, onRetry: initPenalties });
+      }
+    }
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initPenalties);
     } else {
       initPenalties();
     }
-
   </script>
 </body>
 </html>
