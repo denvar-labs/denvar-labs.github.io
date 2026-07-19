@@ -113,7 +113,7 @@
     async function renderMatchHistory(playerName, container) {
       const section = document.createElement('div');
       section.className = 'match-history-section';
-      section.innerHTML = '<h3><i class="ph ph-flag" aria-hidden="true"></i> Match History</h3><div class="mh-empty">Loading match history...</div>';
+      section.innerHTML = '<h3><i class="ph ph-flag" aria-hidden="true"></i> Match History</h3><div style="text-align:center;padding:24px;"><div class="spinner" aria-hidden="true"></div><div class="loading-label">Loading match history…</div></div>';
       container.appendChild(section);
 
       try {

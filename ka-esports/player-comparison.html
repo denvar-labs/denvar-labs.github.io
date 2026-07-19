@@ -375,7 +375,7 @@
     async function loadH2HMini(playerA, playerB) {
       const content = document.getElementById('h2h-mini-content');
       if (!content) return;
-      content.innerHTML = '<div style="text-align:center;color:var(--text-muted);">Loading H2H...</div>';
+      content.innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner" aria-hidden="true"></div><div class="loading-label">Loading H2H…</div></div>';
 
       try {
         const playersSheet = await fetchSheetData('PLAYERS');

@@ -95,7 +95,8 @@ body.dark td.delta-negative { background-color: #4a1a1a; color: #ef9a9a; }
 .state-box.state-empty { background: var(--surface-alt); }
 
 .state-box .spinner,
-.loading-spinner {
+.loading-spinner,
+.spinner {
   width: 36px;
   height: 36px;
   border: 3px solid var(--border);
