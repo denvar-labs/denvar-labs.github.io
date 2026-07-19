@@ -119,7 +119,6 @@ function cellToString(cell, preserveEmojis = false) {
 function renderState(container, type, opts = {}) {
   if (!container) return;
   const { title, detail, onRetry } = opts;
-  const icons = { loading: '', error: '⚠️', empty: '📭' };
   const defaultTitles = {
     loading: 'Loading…',
     error: 'Something went wrong',
@@ -128,9 +127,10 @@ function renderState(container, type, opts = {}) {
 
   let inner = '';
   if (type === 'loading') {
-    inner = `<div class="spinner" aria-hidden="true"></div><div class="state-title">${escapeHtml(title || defaultTitles.loading)}</div>`;
+    inner = `<div class="spinner" aria-hidden="true"></div><div class="loading-label">${escapeHtml(title || defaultTitles.loading)}</div>`;
   } else {
-    inner = `<div class="state-title">${icons[type] || ''} ${escapeHtml(title || defaultTitles[type] || '')}</div>`;
+    const icon = type === 'error' ? '⚠️' : '📭';
+    inner = `<div class="state-title">${icon} ${escapeHtml(title || defaultTitles[type] || '')}</div>`;
   }
   if (detail) {
     inner += `<div class="state-detail">${escapeHtml(detail)}</div>`;
@@ -158,7 +158,11 @@ function renderTableState(tbody, colspan, type, opts = {}) {
   };
   const text = escapeHtml(title || defaultTitles[type] || '');
   const detailHtml = detail ? `<br><small>${escapeHtml(detail)}</small>` : '';
-  tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; padding:24px; color:var(--text-muted);" role="status">${text}${detailHtml}</td></tr>`;
+  if (type === 'loading') {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; padding:40px 20px;" role="status"><div class="spinner" style="margin:0 auto 12px;" aria-hidden="true"></div><div class="loading-label">${text}</div>${detailHtml}</td></tr>`;
+  } else {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; padding:24px; color:var(--text-muted);" role="status">${text}${detailHtml}</td></tr>`;
+  }
 }
 
 // ===== Fetch with real timeout (prevents infinite spinners) =====

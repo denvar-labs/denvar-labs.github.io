@@ -150,6 +150,13 @@ body.dark .dark-toggle {
 body.dark .state-box.state-error {
   border-color: rgba(229, 57, 53, 0.3);
 }
+body.dark .state-box .spinner,
+body.dark .loading-spinner {
+  border-color: rgba(0, 212, 255, 0.2);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
+}
 
 body.dark .retry-btn {
   background: var(--accent);
