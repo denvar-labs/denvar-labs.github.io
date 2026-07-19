@@ -460,7 +460,8 @@ async function loadSeasonsReport(tableId) {
     const allRows = await fetchSheetData('SEASONS_REPORT');
     if (allRows.length === 0) { renderTableState(tbody, 3, 'empty'); return; }
 
-    const headerRowIndex = (HEADER_ROWS_TO_SKIP['SEASONS_REPORT'] || 2) - 1;
+    const detectedIndex = detectHeaderRow(allRows, false);
+    const headerRowIndex = detectedIndex >= 0 ? detectedIndex : (HEADER_ROWS_TO_SKIP['SEASONS_REPORT'] || 2) - 1;
     const headerRow = allRows[headerRowIndex] || [];
     const dataRows = allRows.slice(headerRowIndex + 1).filter(r => {
       const first = (r[0] || '').toString().trim();
