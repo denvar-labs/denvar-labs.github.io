@@ -221,7 +221,9 @@
     .live-spinner { display: none; width: 12px; height: 12px; border: 2px solid var(--text-muted); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 4px; }
     .live-indicator.loading .live-spinner { display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .hero-top { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-3); flex-wrap: wrap; }
+    .hero-top { text-align: center; margin-bottom: var(--space-2); }
+    .hero-top h1 { margin-bottom: 0; }
+    .live-indicator { margin: 0 auto var(--space-3); }
 
     body:not(.dark) .hero-landing { box-shadow: 0 4px 20px rgba(74,134,232,0.3); }
     body.dark .hero-landing { background: linear-gradient(135deg, #2a3a5c 0%, #1a2540 100%); }
@@ -360,16 +362,16 @@
   <div id="navbar-container"></div>
 
   <main>
-  <div class="hero-landing">
-    <div class="hero-top">
-      <h1><i class="ph-bold ph-trophy emoji-hero" aria-hidden="true"></i> <span data-i18n="index_ka_esports">KA ESPORTS</span></h1>
+    <div class="hero-landing">
+      <div class="hero-top">
+        <h1><i class="ph-bold ph-trophy emoji-hero" aria-hidden="true"></i> <span data-i18n="index_ka_esports">KA ESPORTS</span></h1>
+      </div>
       <div class="live-indicator offline" id="live-indicator" title="Check live stream status" role="status" aria-live="polite">
         <span class="live-dot"></span>
         <span id="live-label" data-i18n="live_checking">Checking…</span>
         <span class="live-spinner" id="live-spinner"></span>
       </div>
-    </div>
-    <p data-i18n="desc_home">Tu acceso central a todos los datos competitivos de Mario Kart 64.</p>
+      <p data-i18n="desc_home">Tu acceso central a todos los datos competitivos de Mario Kart 64.</p>
     <div class="hero-actions">
       <a href="global-leaderboard.html" class="hero-btn hero-btn-primary">
         <i class="ph-bold ph-globe" aria-hidden="true"></i>
