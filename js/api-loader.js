@@ -508,6 +508,7 @@ async function renderMatchReports(sheetName, containerId) {
 
     const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(ZERO_WIDTH_CHARS_REGEX, '').trim()));
     const inactiveNames = await getInactivePlayerNames();
+    console.log('[FILTER] inactiveNames.size =', inactiveNames.size, [...inactiveNames]);
 
     const matchStartIndices = [];
     for (let i = 0; i < cleanRows.length; i++) {
@@ -562,9 +563,17 @@ async function renderMatchReports(sheetName, containerId) {
         const hasInactive = dataRows.some(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
           const cleanName = extractPlayerName(rawName);
-          return inactiveNames.has(cleanName);
+          const found = inactiveNames.has(cleanName);
+          if (matchId.includes('ff33d1')) {
+            console.log('[FILTER]', { rawName, cleanName, found, inactiveNames: [...inactiveNames] });
+          }
+          return found;
         });
         if (hasInactive) continue;
+      } else if (playerColIndex === -1) {
+        console.log('[FILTER] playerColIndex not found for match', matchId);
+      } else if (inactiveNames.size === 0) {
+        console.log('[FILTER] inactiveNames is EMPTY for match', matchId);
       }
 
       if (dataRows.length === 0) continue;
