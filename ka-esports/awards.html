@@ -162,8 +162,8 @@
         const rows = data.slice(3).filter(r => {
           const name = r[nameIdx];
           if (!name) return false;
-          if (inactiveNames.has(name.toString().trim())) return false;
-          return parseInt(r[matchesIdx]) > 0;
+          if (inactiveNames.has(extractPlayerName(name.toString().trim()))) return false;
+          return parseInt(r[matchesIdx]) >= 5;
         });
 
         if (rows.length === 0) {
@@ -208,7 +208,7 @@
         }
         if (!mostImproved) mostImproved = { ...mvp, improvement: 0 };
 
-        const risingStars = players.filter(p => p.matches <= 10);
+        const risingStars = players.filter(p => p.matches >= 3 && p.matches <= 10);
         let risingStar = null;
         if (risingStars.length > 0) {
           risingStar = risingStars.reduce((a, b) => {
