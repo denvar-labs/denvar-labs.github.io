@@ -371,7 +371,6 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     const playerColIndex = findPlayerColumn(headerRow);
     if (playerColIndex !== -1) {
       const inactiveNames = await getInactivePlayerNames();
-      console.log('[MatchReports] Inactive names:', [...inactiveNames]);
       if (inactiveNames.size > 0) {
         dataRows = dataRows.filter(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
@@ -515,6 +514,7 @@ async function loadSeasonsReport(tableId) {
 
 // ========== MATCH REPORTS RENDERER ==========
 async function renderMatchReports(sheetName, containerId) {
+  console.log('[DEBUG] renderMatchReports called:', sheetName, containerId);
   const container = document.getElementById(containerId);
   if (!container) return;
   renderState(container, 'loading', { title: 'Loading match reports…' });
@@ -528,6 +528,8 @@ async function renderMatchReports(sheetName, containerId) {
 
     const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(ZERO_WIDTH_CHARS_REGEX, '').trim()));
     const inactiveNames = await getInactivePlayerNames();
+    console.log('[DEBUG] inactiveNames size:', inactiveNames.size, 'names:', [...inactiveNames]);
+    console.log('[DEBUG] total rows:', cleanRows.length);
 
     const matchStartIndices = [];
     for (let i = 0; i < cleanRows.length; i++) {
@@ -582,9 +584,6 @@ async function renderMatchReports(sheetName, containerId) {
         const hasInactive = dataRows.some(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
           const cleanName = extractPlayerName(rawName);
-          if (inactiveNames.has(cleanName)) {
-            console.log('[MatchReports] Inactive player found:', rawName, '->', cleanName, '| Inactive set:', [...inactiveNames]);
-          }
           return inactiveNames.has(cleanName);
         });
         if (hasInactive) continue;
