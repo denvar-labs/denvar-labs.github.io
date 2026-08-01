@@ -243,25 +243,19 @@ async function getInactivePlayerNames() {
     const header = players[0].map(h => (h || '').toString().trim());
     const nameIdx = findColumnIndex(header, ['Name', 'Player', 'PlayerName']);
     const activeIdx = findColumnIndex(header, ['Active', 'Status', 'State']);
-    console.log('[INACTIVE] header:', header, '| nameIdx:', nameIdx, '| activeIdx:', activeIdx);
-    if (nameIdx === -1 || activeIdx === -1) {
-      console.warn('[INACTIVE] Column not found! nameIdx:', nameIdx, 'activeIdx:', activeIdx);
-      return new Set();
-    }
+    if (nameIdx === -1 || activeIdx === -1) return new Set();
     const inactiveNames = new Set();
     for (let i = 1; i < players.length; i++) {
       const row = players[i];
       const status = (row[activeIdx] || '').toString().trim().toUpperCase();
-      const name = (row[nameIdx] || '').toString().trim();
       if (status === 'INACTIVE') {
-        console.log('[INACTIVE] Found:', name);
-        inactiveNames.add(name);
+        const name = (row[nameIdx] || '').toString().trim();
+        if (name) inactiveNames.add(name);
       }
     }
-    console.log('[INACTIVE] Total inactive:', inactiveNames.size, [...inactiveNames]);
     return inactiveNames;
   } catch (e) {
-    console.error('[INACTIVE] Error:', e);
+    console.error('Error fetching inactive players:', e);
     return new Set();
   }
 }
@@ -269,6 +263,8 @@ async function getInactivePlayerNames() {
 function extractPlayerName(cell) {
   if (!cell) return '';
   return cell
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/[\u{200D}]/gu, '')
     .replace(/[\u{1F1E6}-\u{1F1FF}]{2,}/gu, '')
     .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
     .replace(/[\u{2600}-\u{26FF}]/gu, '')
@@ -564,16 +560,11 @@ async function renderMatchReports(sheetName, containerId) {
       }
 
       const playerColIndex = findPlayerColumn(headerRow);
-      console.log('[FILTER] match', matchId, '| playerColIndex:', playerColIndex, '| inactiveNames.size:', inactiveNames.size);
       if (playerColIndex !== -1 && inactiveNames.size > 0) {
-        const playerNames = dataRows.map(r => extractPlayerName((r[playerColIndex] || '').toString().trim()));
-        console.log('[FILTER] players in match:', playerNames);
         const hasInactive = dataRows.some(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
           const cleanName = extractPlayerName(rawName);
-          const found = inactiveNames.has(cleanName);
-          if (found) console.log('[FILTER] BLOCKED:', rawName, '->', cleanName);
-          return found;
+          return inactiveNames.has(cleanName);
         });
         if (hasInactive) continue;
       }
