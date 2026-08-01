@@ -796,6 +796,7 @@
         if (!matchSheets || matchSheets.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
         const allRows = await fetchSheetData(matchSheets[0]);
         if (!allRows || allRows.length === 0) { list.innerHTML = '<div class="feed-empty">' + I18n.t('feed_no_matches') + '</div>'; section.style.display = ''; return; }
+        const inactiveNames = await getInactivePlayerNames();
         const cleanRows = allRows.map(row => row.map(c => (c || '').toString().replace(/[\u200B-\u200D\uFEFF]/g, '').trim()));
         const matchStartIndices = [];
         for (let i = 0; i < cleanRows.length; i++) {
@@ -825,6 +826,14 @@
             dataRows.push(block[j]);
           }
           if (dataRows.length < 2) continue;
+          if (inactiveNames.size > 0) {
+            const hasInactive = dataRows.some(r => {
+              const rawName = (r[playerIdx] || '').toString().trim();
+              const cleanName = extractPlayerName(rawName);
+              return inactiveNames.has(cleanName);
+            });
+            if (hasInactive) continue;
+          }
           const players = dataRows.map(r => {
             const name = (r[playerIdx] || '').replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
             const pts = parseInt(r[pointsIdx]) || 0;
