@@ -175,7 +175,9 @@
             const sMatchesIdx = sHeaders.indexOf('Matches');
             const sRows = sData.slice(3).filter(r => r[sNameIdx] && parseInt(r[sMatchesIdx]) > 0);
             if (sRows.length === 0) return;
-            const sMvp = sRows.reduce((a, b) => (parseFloat(a[sRatingIdx]) || 0) > (parseFloat(b[sRatingIdx]) || 0) ? a : b);
+            const sMvp = sRows.filter(r => !inactiveNames.has((r[sNameIdx] || '').toString().trim()))
+              .reduce((a, b) => (parseFloat(a[sRatingIdx]) || 0) > (parseFloat(b[sRatingIdx]) || 0) ? a : b, {});
+            if (!sMvp[sNameIdx]) return;
             const mvpName = (sMvp[sNameIdx] || '').toString().trim();
             if (mvpName) mvpCount[mvpName] = (mvpCount[mvpName] || 0) + 1;
           });

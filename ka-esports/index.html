@@ -683,6 +683,7 @@
     async function loadStatTrends(matchSheets, currentPlayers, currentRating) {
       try {
         if (matchSheets.length < 2) return;
+        const inactiveNames = await getInactivePlayerNames();
         const [prevRows, currentRows] = await Promise.all([
           fetchSheetData(matchSheets[1]),
           fetchSheetData(matchSheets[0])
@@ -700,7 +701,7 @@
               matchCount++;
               for (let j = i + 1; j < clean.length; j++) {
                 if (clean[j][0] && clean[j][0].startsWith('## Match ID:')) break;
-                if (playerIdx >= 0 && clean[j][playerIdx]) uniquePlayers.add(clean[j][playerIdx]);
+                if (playerIdx >= 0 && clean[j][playerIdx] && !inactiveNames.has(clean[j][playerIdx])) uniquePlayers.add(clean[j][playerIdx]);
                 if (ratingIdx >= 0) {
                   const rt = parseFloat(clean[j][ratingIdx]);
                   if (!isNaN(rt) && rt > bestRating) bestRating = rt;
