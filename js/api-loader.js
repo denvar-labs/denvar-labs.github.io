@@ -235,51 +235,29 @@ function invalidateSheetCache(sheetName) {
   else _sheetCache.clear();
 }
 
-// ===== Cache for inactive player names (with expiration) =====
-let inactiveNamesPromise = null;
-let inactiveNamesCacheTime = null;
-const INACTIVE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-function getInactivePlayerNames() {
-  const now = Date.now();
-  if (inactiveNamesPromise && inactiveNamesCacheTime && (now - inactiveNamesCacheTime) < INACTIVE_CACHE_TTL_MS) {
-    return inactiveNamesPromise;
-  }
-
-  inactiveNamesPromise = (async () => {
-    try {
-      const players = await fetchSheetData('PLAYERS');
-      if (players.length < 2) return new Set();
-      const header = players[0].map(h => (h || '').toString().trim());
-      console.log('[DEBUG] PLAYERS header:', header);
-      const nameIdx = header.indexOf('Name');
-      const activeIdx = header.indexOf('Active');
-      console.log('[DEBUG] nameIdx:', nameIdx, 'activeIdx:', activeIdx);
-      if (nameIdx === -1 || activeIdx === -1) return new Set();
-      const inactiveNames = new Set();
-      for (let i = 1; i < players.length; i++) {
-        const row = players[i];
-        const status = (row[activeIdx] || '').toString().trim().toUpperCase();
+// ===== Get inactive player names =====
+async function getInactivePlayerNames() {
+  try {
+    const players = await fetchSheetData('PLAYERS');
+    if (players.length < 2) return new Set();
+    const header = players[0].map(h => (h || '').toString().trim());
+    const nameIdx = header.indexOf('Name');
+    const activeIdx = header.indexOf('Active');
+    if (nameIdx === -1 || activeIdx === -1) return new Set();
+    const inactiveNames = new Set();
+    for (let i = 1; i < players.length; i++) {
+      const row = players[i];
+      const status = (row[activeIdx] || '').toString().trim().toUpperCase();
+      if (status === 'INACTIVE') {
         const name = (row[nameIdx] || '').toString().trim();
-        if (status === 'INACTIVE') {
-          console.log('[DEBUG] INACTIVE row:', name, '| status:', status);
-          if (name) inactiveNames.add(name);
-        }
+        if (name) inactiveNames.add(name);
       }
-      return inactiveNames;
-    } catch (e) {
-      console.error('Error fetching inactive players:', e);
-      return new Set();
     }
-  })();
-  
-  inactiveNamesCacheTime = now;
-  return inactiveNamesPromise;
-}
-
-function resetInactivePlayerCache() {
-  inactiveNamesPromise = null;
-  inactiveNamesCacheTime = null;
+    return inactiveNames;
+  } catch (e) {
+    console.error('Error fetching inactive players:', e);
+    return new Set();
+  }
 }
 
 function extractPlayerName(cell) {
@@ -517,7 +495,6 @@ async function loadSeasonsReport(tableId) {
 
 // ========== MATCH REPORTS RENDERER ==========
 async function renderMatchReports(sheetName, containerId) {
-  console.log('[DEBUG] renderMatchReports called:', sheetName, containerId);
   const container = document.getElementById(containerId);
   if (!container) return;
   renderState(container, 'loading', { title: 'Loading match reports…' });
@@ -531,8 +508,6 @@ async function renderMatchReports(sheetName, containerId) {
 
     const cleanRows = allRows.map(row => row.map(cell => (cell || '').toString().replace(ZERO_WIDTH_CHARS_REGEX, '').trim()));
     const inactiveNames = await getInactivePlayerNames();
-    console.log('[DEBUG] inactiveNames size:', inactiveNames.size, 'names:', [...inactiveNames]);
-    console.log('[DEBUG] total rows:', cleanRows.length);
 
     const matchStartIndices = [];
     for (let i = 0; i < cleanRows.length; i++) {
