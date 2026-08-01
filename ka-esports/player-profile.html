@@ -118,6 +118,7 @@
 
       try {
         const matches = await fetchPlayerMatchHistory(playerName);
+        const inactiveNames = await getInactivePlayerNames();
         if (matches.length === 0) {
           section.innerHTML = '<h3><i class="ph ph-flag" aria-hidden="true"></i> Match History</h3><div class="mh-empty">No match history found.</div>';
           return;
@@ -147,7 +148,7 @@
         reversed.forEach(m => {
           const posClass = m.posNum === 1 ? 'first' : m.posNum === 2 ? 'second' : m.posNum === 3 ? 'third' : 'other';
           const deltaHtml = m.delta != null ? '<span class="mh-delta ' + (m.delta >= 0 ? 'pos' : 'neg') + '">' + (m.delta >= 0 ? '+' : '') + m.delta.toFixed(2) + '</span>' : '—';
-          const oppStr = m.opponents.map(o => escapeHtml(o.name) + ' (' + o.pts + ')').join(', ');
+          const oppStr = m.opponents.filter(o => !inactiveNames.has(extractPlayerName(o.name))).map(o => escapeHtml(o.name) + ' (' + o.pts + ')').join(', ');
           tableHtml += '<tr><td>' + escapeHtml(m.date) + '</td><td>' + escapeHtml(m.matchId) + '</td><td><span class="mh-pos-badge ' + posClass + '">' + escapeHtml(m.pos) + '</span></td><td>' + m.pts + '</td><td>' + deltaHtml + '</td><td class="mh-opponents">' + oppStr + '</td></tr>';
         });
         tableHtml += '</tbody></table></div>';
