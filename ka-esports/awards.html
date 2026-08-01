@@ -381,12 +381,15 @@
         });
 
         const allNames = new Set([...Object.keys(mvpCounts), ...Object.keys(top5Counts)]);
-        const combined = [...allNames].map(name => ({
-          name,
-          mvp: mvpCounts[name] || 0,
-          top5: top5Counts[name] || 0,
-          score: (mvpCounts[name] || 0) * 3 + (top5Counts[name] || 0)
-        })).sort((a, b) => b.score - a.score || b.mvp - a.mvp).slice(0, 10);
+        const inactiveNames = await getInactivePlayerNames();
+        const combined = [...allNames]
+          .filter(name => !inactiveNames.has(extractPlayerName(name)))
+          .map(name => ({
+            name,
+            mvp: mvpCounts[name] || 0,
+            top5: top5Counts[name] || 0,
+            score: (mvpCounts[name] || 0) * 3 + (top5Counts[name] || 0)
+          })).sort((a, b) => b.score - a.score || b.mvp - a.mvp).slice(0, 10);
 
         if (combined.length === 0) {
           section.style.display = 'none';
