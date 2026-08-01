@@ -281,7 +281,13 @@ function resetInactivePlayerCache() {
 
 function extractPlayerName(cell) {
   if (!cell) return '';
-  return cell.replace(EMOJI_REGEX, '').trim();
+  return cell
+    .replace(/[\u{1F1E6}-\u{1F1FF}]{2,}/gu, '')
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+    .replace(/[\u{2600}-\u{26FF}]/gu, '')
+    .replace(/[\u{2700}-\u{27BF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // ===== Shared column finding utility =====
@@ -365,6 +371,7 @@ async function loadTableFromSheet(sheetName, tableId, rankColumnIndex = 5) {
     const playerColIndex = findPlayerColumn(headerRow);
     if (playerColIndex !== -1) {
       const inactiveNames = await getInactivePlayerNames();
+      console.log('[MatchReports] Inactive names:', [...inactiveNames]);
       if (inactiveNames.size > 0) {
         dataRows = dataRows.filter(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
@@ -575,6 +582,9 @@ async function renderMatchReports(sheetName, containerId) {
         const hasInactive = dataRows.some(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
           const cleanName = extractPlayerName(rawName);
+          if (inactiveNames.has(cleanName)) {
+            console.log('[MatchReports] Inactive player found:', rawName, '->', cleanName, '| Inactive set:', [...inactiveNames]);
+          }
           return inactiveNames.has(cleanName);
         });
         if (hasInactive) continue;
