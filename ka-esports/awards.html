@@ -30,6 +30,8 @@
     .mvp-rank { font-weight: 700; color: var(--text-muted); min-width: 24px; }
     .mvp-name { font-weight: 700; flex: 1; }
     .mvp-count { background: var(--accent); color: #fff; border-radius: 12px; padding: 2px 10px; font-weight: 700; font-size: 0.85rem; }
+    .top5-count { background: #6366f1; color: #fff; border-radius: 12px; padding: 2px 10px; font-weight: 700; font-size: 0.85rem; }
+    .mvp-badges { display: flex; gap: 6px; flex-wrap: wrap; }
   </style>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://static-cdn.jtvnw.net; connect-src 'self' https://script.google.com https://*.script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://unpkg.com; frame-src 'self' https://player.twitch.tv https://www.youtube.com; object-src 'none';">
 
@@ -82,7 +84,7 @@
           </div>
 
           <div class="mvp-history" id="mvp-history-section" style="display:none;">
-            <h3><i class="ph ph-crown" aria-hidden="true"></i> MVP History (All Seasons)</h3>
+            <h3><i class="ph ph-crown" aria-hidden="true"></i> Hall of Legends (All Seasons)</h3>
             <div id="mvp-history-list"></div>
           </div>
         </section>
@@ -121,6 +123,92 @@
       if (!year || !month) return null;
       if (month === 1) return `${year - 1}-12`;
       return `${year}-${String(month - 1).padStart(2, '0')}`;
+    }
+
+    async function calculateSOS(sheetName, players) {
+      try {
+        const matchesAll = await fetchSheetData('MATCHES');
+        if (matchesAll.length < 2) return null;
+        const mh = matchesAll[0].map(h => (h || '').toString().trim());
+        const p1Idx = mh.indexOf('Player 1');
+        const r1Idx = mh.indexOf('New Rating 1');
+        const p2Idx = mh.indexOf('Player 2');
+        const r2Idx = mh.indexOf('New Rating 2');
+        const p3Idx = mh.indexOf('Player 3');
+        const r3Idx = mh.indexOf('New Rating 3');
+        const p4Idx = mh.indexOf('Player 4');
+        const r4Idx = mh.indexOf('New Rating 4');
+        if (p1Idx === -1 || r1Idx === -1) return null;
+
+        const playersData = await fetchSheetData('PLAYERS');
+        const idToName = {};
+        if (playersData.length > 1) {
+          const ph = playersData[0].map(h => (h || '').toString().trim());
+          const idIdx = ph.indexOf('ID');
+          const nameIdx = ph.indexOf('Name');
+          if (idIdx !== -1 && nameIdx !== -1) {
+            for (let i = 1; i < playersData.length; i++) {
+              const r = playersData[i];
+              if (r[idIdx]) idToName[r[idIdx].toString().trim()] = (r[nameIdx] || '').toString().trim();
+            }
+          }
+        }
+
+        const playerIds = {};
+        players.forEach(p => {
+          const pName = (p.name || '').toString().trim();
+          Object.entries(idToName).forEach(([id, name]) => {
+            if (name === pName) playerIds[id] = pName;
+          });
+        });
+
+        const monthKey = sheetName.replace('LEADERBOARD_', '');
+        const [y, m] = monthKey.split('-').map(Number);
+        const startDate = new Date(y, m - 1, 1);
+        const endDate = new Date(y, m, 0, 23, 59, 59);
+
+        const sosAccum = {};
+        const sosCount = {};
+
+        for (let i = 1; i < matchesAll.length; i++) {
+          const row = matchesAll[i];
+          const dateVal = row[0];
+          if (!dateVal) continue;
+          const date = new Date(dateVal);
+          if (isNaN(date.getTime()) || date < startDate || date > endDate) continue;
+
+          const matchPlayers = [
+            { id: (row[p1Idx] || '').toString().trim(), rating: parseFloat(row[r1Idx]) || 0 },
+            { id: (row[p2Idx] || '').toString().trim(), rating: parseFloat(row[r2Idx]) || 0 },
+            { id: (row[p3Idx] || '').toString().trim(), rating: parseFloat(row[r3Idx]) || 0 },
+            { id: (row[p4Idx] || '').toString().trim(), rating: parseFloat(row[r4Idx]) || 0 }
+          ].filter(p => p.id && p.rating > 0);
+
+          for (const mp of matchPlayers) {
+            const pName = playerIds[mp.id];
+            if (!pName) continue;
+            const opponents = matchPlayers.filter(o => o.id !== mp.id);
+            if (opponents.length === 0) continue;
+            const avgOppRating = opponents.reduce((s, o) => s + o.rating, 0) / opponents.length;
+            sosAccum[pName] = (sosAccum[pName] || 0) + avgOppRating;
+            sosCount[pName] = (sosCount[pName] || 0) + 1;
+          }
+        }
+
+        let best = null;
+        let bestSOS = 0;
+        Object.entries(sosAccum).forEach(([name, total]) => {
+          const count = sosCount[name] || 1;
+          const avg = total / count;
+          if (avg > bestSOS && count >= 5) {
+            bestSOS = avg;
+            best = { name, avgOppRating: avg };
+          }
+        });
+        return best;
+      } catch (e) {
+        return null;
+      }
     }
 
     function buildAwardCard(icon, title, player, stat) {
@@ -218,9 +306,15 @@
           });
         }
 
-        const ironWall = players.reduce((a, b) => (a.rd || 0) < (b.rd || 0) ? a : b);
+        const ironWall = players.filter(p => p.matches >= 10).reduce((a, b) => {
+          const aWR = a.matches ? a.wins / a.matches : 0;
+          const bWR = b.matches ? b.wins / b.matches : 0;
+          return aWR > bWR ? a : b;
+        }, { name: '-', matches: 0, wins: 0 });
         const mostActive = players.reduce((a, b) => a.matches > b.matches ? a : b);
-        const mostConsistent = players.reduce((a, b) => a.volatility < b.volatility ? a : b);
+
+        const toughestOpponents = await calculateSOS(sheetName, players);
+        const toughest = toughestOpponents || { name: '-', avgOppRating: 0 };
 
         let html = '';
         html += buildAwardCard('&#x1F451;', 'MVP of the Month', mvp.name, `${(mvp.rating || 0).toFixed(2)} rating`);
@@ -229,9 +323,11 @@
           const wr = risingStar.matches ? (risingStar.wins / risingStar.matches * 100).toFixed(0) : 0;
           html += buildAwardCard('&#x1F31F;', 'Rising Star', risingStar.name, `${wr}% win rate (${risingStar.wins}/${risingStar.matches})`);
         }
-        html += buildAwardCard('&#x1F6E1;', 'Iron Wall', ironWall.name, `RD ${(ironWall.rd || 0).toFixed(0)}`);
+        html += buildAwardCard('&#x1F6E1;', 'Clutch King', ironWall.name, `${(ironWall.matches ? (ironWall.wins / ironWall.matches * 100).toFixed(0) : 0)}% win rate (${ironWall.wins}/${ironWall.matches})`);
         html += buildAwardCard('&#x1F3AE;', 'Most Active', mostActive.name, `${mostActive.matches} matches played`);
-        html += buildAwardCard('&#x1F4AA;', 'Most Consistent', mostConsistent.name, `Volatility ${(mostConsistent.volatility || 0).toFixed(3)}`);
+        if (toughest.name !== '-') {
+          html += buildAwardCard('&#x1F47E;', 'Toughest Opponents', toughest.name, `Avg opponent: ${toughest.avgOppRating.toFixed(0)} rating`);
+        }
         cardsContainer.innerHTML = `<div class="awards-grid">${html}</div>`;
 
         const top5 = players.sort((a, b) => b.rating - a.rating).slice(0, 5);
@@ -262,6 +358,7 @@
         const allSheets = await fetchSheetList();
         const leaderboardSheets = allSheets.filter(s => s.startsWith('LEADERBOARD_') && s !== 'LEADERBOARD_GLOBAL').sort();
         const mvpCounts = {};
+        const top5Counts = {};
 
         const allData = await Promise.all(leaderboardSheets.map(s => fetchSheetData(s).catch(() => [])));
         allData.forEach(data => {
@@ -275,19 +372,35 @@
           const mvp = rows.reduce((a, b) => (parseFloat(a[ratingIdx]) || 0) > (parseFloat(b[ratingIdx]) || 0) ? a : b);
           const mvpName = (mvp[nameIdx] || '').toString().trim();
           if (mvpName) mvpCounts[mvpName] = (mvpCounts[mvpName] || 0) + 1;
+
+          const sorted = rows.sort((a, b) => (parseFloat(b[ratingIdx]) || 0) - (parseFloat(a[ratingIdx]) || 0));
+          sorted.slice(0, 5).forEach(r => {
+            const n = (r[nameIdx] || '').toString().trim();
+            if (n) top5Counts[n] = (top5Counts[n] || 0) + 1;
+          });
         });
 
-        const sorted = Object.entries(mvpCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-        if (sorted.length === 0) {
+        const allNames = new Set([...Object.keys(mvpCounts), ...Object.keys(top5Counts)]);
+        const combined = [...allNames].map(name => ({
+          name,
+          mvp: mvpCounts[name] || 0,
+          top5: top5Counts[name] || 0,
+          score: (mvpCounts[name] || 0) * 3 + (top5Counts[name] || 0)
+        })).sort((a, b) => b.score - a.score || b.mvp - a.mvp).slice(0, 10);
+
+        if (combined.length === 0) {
           section.style.display = 'none';
           return;
         }
 
-        list.innerHTML = sorted.map(([name, count], i) => `
+        list.innerHTML = combined.map((p, i) => `
           <div class="mvp-row">
             <span class="mvp-rank">${i + 1}.</span>
-            <span class="mvp-name">${escapeHtml(name)}</span>
-            <span class="mvp-count">${count}x MVP</span>
+            <span class="mvp-name">${escapeHtml(p.name)}</span>
+            <span class="mvp-badges">
+              ${p.mvp > 0 ? `<span class="mvp-count">${p.mvp}x MVP</span>` : ''}
+              ${p.top5 > 0 ? `<span class="top5-count">${p.top5}x Top 5</span>` : ''}
+            </span>
           </div>
         `).join('');
         section.style.display = 'block';
