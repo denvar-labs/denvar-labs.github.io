@@ -572,13 +572,6 @@ async function renderMatchReports(sheetName, containerId) {
 
       const playerColIndex = findPlayerColumn(headerRow);
       if (playerColIndex !== -1 && inactiveNames.size > 0) {
-        const hasInactive = dataRows.some(row => {
-          const rawName = (row[playerColIndex] || '').toString().trim();
-          const cleanName = extractPlayerName(rawName);
-          return inactiveNames.has(cleanName);
-        });
-        if (hasInactive) continue;
-
         dataRows = dataRows.filter(row => {
           const rawName = (row[playerColIndex] || '').toString().trim();
           const cleanName = extractPlayerName(rawName);
