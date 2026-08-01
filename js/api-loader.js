@@ -251,15 +251,18 @@ function getInactivePlayerNames() {
       const players = await fetchSheetData('PLAYERS');
       if (players.length < 2) return new Set();
       const header = players[0].map(h => (h || '').toString().trim());
+      console.log('[DEBUG] PLAYERS header:', header);
       const nameIdx = header.indexOf('Name');
       const activeIdx = header.indexOf('Active');
+      console.log('[DEBUG] nameIdx:', nameIdx, 'activeIdx:', activeIdx);
       if (nameIdx === -1 || activeIdx === -1) return new Set();
       const inactiveNames = new Set();
       for (let i = 1; i < players.length; i++) {
         const row = players[i];
         const status = (row[activeIdx] || '').toString().trim().toUpperCase();
+        const name = (row[nameIdx] || '').toString().trim();
         if (status === 'INACTIVE') {
-          const name = (row[nameIdx] || '').toString().trim();
+          console.log('[DEBUG] INACTIVE row:', name, '| status:', status);
           if (name) inactiveNames.add(name);
         }
       }
